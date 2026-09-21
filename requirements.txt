@@ -1,0 +1,11 @@
+# Active digital_twin/ subsystem dependencies. See docs/MEMBER1_SUBSYSTEM_REPORT.md.
+fastapi>=0.115,<0.116
+uvicorn>=0.34,<0.35
+networkx>=3.4,<3.5
+pandas>=2.2,<2.3
+pyarrow>=21.0,<22.0
+PyYAML>=6.0,<7.0
+
+# Testing
+pytest>=8.3,<9.0
+httpx>=0.28,<0.29
