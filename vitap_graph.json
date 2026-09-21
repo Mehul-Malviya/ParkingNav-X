@@ -1,66 +1,52 @@
 {
-  "MainGate": {
-    "RoadPlaza": 120,
-    "ParkingMainGate": 40
+  "Gate1": {
+    "ParkingLot1": 275
   },
-  "Gate2": {
-    "RoadSports": 90,
-    "RoadPlaza": 260
+  "ParkingLot1": {
+    "Gate1": 275,
+    "AB-1": 519,
+    "AB-2": 638,
+    "CB": 452,
+    "Food Street": 464,
+    "MH-1": 358,
+    "MH-2": 269,
+    "MH-2 Food Store": 303,
+    "MH-3": 115,
+    "MH-6": 238,
+    "MH-7": 222,
+    "LH-1": 556
   },
-  "Gate3": {
-    "RoadSports": 70,
-    "RoadHostelZone": 300
+  "AB-1": {
+    "ParkingLot1": 519
   },
-  "RoadPlaza": {
-    "MainGate": 120,
-    "Gate2": 260,
-    "RoadAcademic1": 180,
-    "RoadAcademic2": 210,
-    "RoadHostelZone": 340,
-    "RoadFoodCourt": 150
+  "AB-2": {
+    "ParkingLot1": 638
   },
-  "RoadAcademic1": {
-    "RoadPlaza": 180,
-    "ParkingAcademic1": 60,
-    "RoadFoodCourt": 130
+  "CB": {
+    "ParkingLot1": 452
   },
-  "RoadAcademic2": {
-    "RoadPlaza": 210,
-    "ParkingAcademic2": 70,
-    "RoadFoodCourt": 160
+  "Food Street": {
+    "ParkingLot1": 464
   },
-  "RoadHostelZone": {
-    "RoadPlaza": 340,
-    "Gate3": 300,
-    "ParkingHostelZone": 90
+  "MH-1": {
+    "ParkingLot1": 358
   },
-  "RoadFoodCourt": {
-    "RoadPlaza": 150,
-    "RoadAcademic1": 130,
-    "RoadAcademic2": 160,
-    "ParkingFoodCourt": 50
+  "MH-2": {
+    "ParkingLot1": 269
   },
-  "RoadSports": {
-    "Gate2": 90,
-    "Gate3": 70,
-    "ParkingSports": 80
+  "MH-2 Food Store": {
+    "ParkingLot1": 303
   },
-  "ParkingMainGate": {
-    "MainGate": 40
+  "MH-3": {
+    "ParkingLot1": 115
   },
-  "ParkingAcademic1": {
-    "RoadAcademic1": 60
+  "MH-6": {
+    "ParkingLot1": 238
   },
-  "ParkingAcademic2": {
-    "RoadAcademic2": 70
+  "MH-7": {
+    "ParkingLot1": 222
   },
-  "ParkingHostelZone": {
-    "RoadHostelZone": 90
-  },
-  "ParkingFoodCourt": {
-    "RoadFoodCourt": 50
-  },
-  "ParkingSports": {
-    "RoadSports": 80
+  "LH-1": {
+    "ParkingLot1": 556
   }
 }

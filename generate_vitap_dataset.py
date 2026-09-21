@@ -1,20 +1,30 @@
 """
-Generates a synthetic-but-realistic parking/routing dataset for VIT-AP
-University (Amaravati, Andhra Pradesh), matching the existing mock data
-schema (mock_graph.json, mock_parking.json, mock_predictions.json).
+Generates the VIT-AP dataset (mock_graph.json / mock_parking.json /
+mock_predictions.json schema) from vitap_real_destinations.json.
 
-What's real: entry gate names, block/hostel/food-court names, and the rough
-relative layout of the campus (main gate near the front plaza, hostels and
-academic blocks further in, food court central).
+Provenance, spelled out plainly:
 
-What's simulated: exact edge distances, parking capacities, occupancy, and
-congestion values. No public live feed of VIT-AP parking/traffic exists, so
-these are generated with a fixed random seed following believable patterns
-(higher congestion near academic blocks/food court at class-change and lunch
-hours; higher occupancy near the main gate and academic blocks) rather than
-uniform noise. Swap this generator for a real sensor feed later without
-changing the rest of the app, since the output schema is identical to the
-existing mock files.
+- Destination NAMES and COORDINATES (AB-1, AB-2, CB, MH-1..MH-7, LH-1,
+  Food Street, MH-2 Food Store) are REAL VIT-AP locations, pulled from
+  Jyothireddy-pula/Parking_nav_'s configs/campuses/vitap.yaml, which itself
+  sourced them from public OpenStreetMap via the Overpass API on 2026-09-13.
+  Provenance: EXTERNAL_MAP_REFERENCE (real-world names/coordinates, not yet
+  physically GPS-surveyed or satellite-corrected).
+- The GATE and PARKING LOT are fabricated placeholders (one of each), same
+  as the source repo — VIT-AP's real gates and lots have not been surveyed
+  publicly anywhere. Provenance: SAMPLE.
+- ROAD DISTANCES are computed with the haversine formula on the real
+  destination coordinates (straight-line, not a walked path) at a fixed
+  walking speed, exactly the method the source repo documents for its own
+  SAMPLE roads. Provenance: SAMPLE (a straight line is not a real path).
+- PARKING CAPACITY/OCCUPANCY and CONGESTION values have no real VIT-AP
+  source at all (none exists publicly - confirmed by search). They are
+  seeded synthetic values with time-of-day shape, same as before.
+  Provenance: SYNTHETIC.
+
+No field in this dataset is claimed as REAL or VALIDATED. Only the
+destination identity/location layer is EXTERNAL_MAP_REFERENCE; everything
+connecting those points is SAMPLE or SYNTHETIC. See PROVENANCE.md.
 
 Usage:
     python generate_vitap_dataset.py [--time morning|midday|evening] [--seed N]
@@ -22,119 +32,79 @@ Usage:
 
 import argparse
 import json
+import math
 import random
 from pathlib import Path
 
 PROJECT_FOLDER = Path(__file__).resolve().parent
-
-# Real, publicly-known VIT-AP landmarks used as node names.
-GATES = ["MainGate", "Gate2", "Gate3"]
-
-ROADS = [
-    "RoadPlaza",        # Main Gate -> central plaza
-    "RoadAcademic1",    # plaza -> Academic Block 1
-    "RoadAcademic2",    # plaza -> Academic Block 2
-    "RoadHostelZone",   # plaza -> Men's/Ladies hostel cluster
-    "RoadFoodCourt",    # plaza -> food court
-    "RoadSports",       # Gate2/Gate3 -> sports complex
-]
-
-PARKING_LOTS = [
-    "ParkingMainGate",
-    "ParkingAcademic1",
-    "ParkingAcademic2",
-    "ParkingHostelZone",
-    "ParkingFoodCourt",
-    "ParkingSports",
-]
+WALKING_SPEED_M_S = 1.3  # matches the source repo's haversine walking-speed assumption
 
 TIME_PROFILES = {
-    # label: (base_occupancy_factor, congestion_hotspots)
-    "morning": (0.55, {"RoadAcademic1": 0.85, "RoadAcademic2": 0.8, "RoadPlaza": 0.6}),
-    "midday": (0.8, {"RoadFoodCourt": 0.9, "RoadPlaza": 0.7, "RoadAcademic1": 0.5}),
-    "evening": (0.4, {"RoadSports": 0.6, "RoadHostelZone": 0.55, "RoadPlaza": 0.35}),
+    # label: (base_occupancy_factor, congestion_hotspot_categories)
+    "morning": (0.55, {"academic_block": 0.85, "administrative_building": 0.6}),
+    "midday": (0.8, {"cafeteria": 0.9, "academic_block": 0.5}),
+    "evening": (0.4, {"hostel": 0.6, "cafeteria": 0.5}),
 }
 
 
-def build_graph():
-    """Fixed campus topology: gates -> plaza road -> destination roads -> parking."""
+def load_real_destinations():
+    path = PROJECT_FOLDER / "vitap_real_destinations.json"
+    with open(path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def haversine_meters(lat1, lng1, lat2, lng2):
+    r = 6371000
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lng2 - lng1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+def build_graph(data):
+    gate = data["gate_placeholder"]
+    lot = data["parking_lot_placeholder"]
+    destinations = data["destinations"]
+
+    gate_node = "Gate1"
+    lot_node = "ParkingLot1"
+
+    # The source repo's gate and lot placeholders are ~275m apart at VIT-AP;
+    # kept as a fixed short link since both are non-real placeholder points.
     graph = {
-        "MainGate": {"RoadPlaza": 120},
-        "Gate2": {"RoadSports": 90, "RoadPlaza": 260},
-        "Gate3": {"RoadSports": 70, "RoadHostelZone": 300},
-        "RoadPlaza": {
-            "MainGate": 120,
-            "Gate2": 260,
-            "RoadAcademic1": 180,
-            "RoadAcademic2": 210,
-            "RoadHostelZone": 340,
-            "RoadFoodCourt": 150,
-        },
-        "RoadAcademic1": {
-            "RoadPlaza": 180,
-            "ParkingAcademic1": 60,
-            "RoadFoodCourt": 130,
-        },
-        "RoadAcademic2": {
-            "RoadPlaza": 210,
-            "ParkingAcademic2": 70,
-            "RoadFoodCourt": 160,
-        },
-        "RoadHostelZone": {
-            "RoadPlaza": 340,
-            "Gate3": 300,
-            "ParkingHostelZone": 90,
-        },
-        "RoadFoodCourt": {
-            "RoadPlaza": 150,
-            "RoadAcademic1": 130,
-            "RoadAcademic2": 160,
-            "ParkingFoodCourt": 50,
-        },
-        "RoadSports": {
-            "Gate2": 90,
-            "Gate3": 70,
-            "ParkingSports": 80,
-        },
-        "ParkingMainGate": {"MainGate": 40},
-        "ParkingAcademic1": {"RoadAcademic1": 60},
-        "ParkingAcademic2": {"RoadAcademic2": 70},
-        "ParkingHostelZone": {"RoadHostelZone": 90},
-        "ParkingFoodCourt": {"RoadFoodCourt": 50},
-        "ParkingSports": {"RoadSports": 80},
+        gate_node: {lot_node: 275},
+        lot_node: {gate_node: 275},
     }
-    # MainGate also has a short direct parking spur, mirroring real campuses
-    # where a small visitor lot sits right at the entrance.
-    graph["MainGate"]["ParkingMainGate"] = 40
+
+    for dest in destinations:
+        node = dest["name"]
+        distance = round(haversine_meters(gate["lat"], gate["lng"], dest["lat"], dest["lng"]))
+        graph[lot_node][node] = distance
+        graph[node] = {lot_node: distance}
+
     return graph
 
 
-def build_parking(rng, base_occupancy_factor):
-    capacities = {
-        "ParkingMainGate": 60,
-        "ParkingAcademic1": 220,
-        "ParkingAcademic2": 200,
-        "ParkingHostelZone": 150,
-        "ParkingFoodCourt": 90,
-        "ParkingSports": 70,
-    }
-    parking = {}
-    for lot, capacity in capacities.items():
-        noise = rng.uniform(-0.1, 0.1)
-        factor = min(max(base_occupancy_factor + noise, 0.05), 0.98)
-        parking[lot] = {
+def build_parking(rng, base_occupancy_factor, data):
+    lot = data["parking_lot_placeholder"]
+    capacity = lot["usable_capacity"]
+    noise = rng.uniform(-0.1, 0.1)
+    factor = min(max(base_occupancy_factor + noise, 0.05), 0.98)
+    return {
+        "ParkingLot1": {
             "capacity": capacity,
             "occupied": round(capacity * factor),
         }
-    return parking
+    }
 
 
-def build_predictions(rng, hotspots):
+def build_predictions(rng, hotspots, data):
     predictions = {}
-    for road in ROADS:
-        base = hotspots.get(road, 0.3)
+    for dest in data["destinations"]:
+        base = hotspots.get(dest["category"], 0.3)
         noise = rng.uniform(-0.07, 0.07)
-        predictions[road] = round(min(max(base + noise, 0.05), 0.95), 2)
+        predictions[dest["name"]] = round(min(max(base + noise, 0.05), 0.95), 2)
     return predictions
 
 
@@ -147,9 +117,10 @@ def main():
     rng = random.Random(args.seed)
     base_occupancy_factor, hotspots = TIME_PROFILES[args.time]
 
-    graph = build_graph()
-    parking = build_parking(rng, base_occupancy_factor)
-    predictions = build_predictions(rng, hotspots)
+    data = load_real_destinations()
+    graph = build_graph(data)
+    parking = build_parking(rng, base_occupancy_factor, data)
+    predictions = build_predictions(rng, hotspots, data)
 
     outputs = {
         "vitap_graph.json": graph,
@@ -157,13 +128,15 @@ def main():
         "vitap_predictions.json": predictions,
     }
 
-    for filename, data in outputs.items():
+    for filename, output_data in outputs.items():
         path = PROJECT_FOLDER / filename
         with open(path, "w", encoding="utf-8") as file:
-            json.dump(data, file, indent=2)
+            json.dump(output_data, file, indent=2)
         print(f"Wrote {path.name}")
 
     print(f"\nGenerated with time profile '{args.time}', seed {args.seed}.")
+    print("Destination names/coordinates: EXTERNAL_MAP_REFERENCE (real OSM data).")
+    print("Gate/lot/roads: SAMPLE. Capacity/occupancy/congestion: SYNTHETIC.")
 
 
 if __name__ == "__main__":

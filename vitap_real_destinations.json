@@ -1,0 +1,20 @@
+{
+  "_provenance_note": "Pulled from Jyothireddy-pula/Parking_nav_ (configs/campuses/vitap.yaml), which sourced it from public OpenStreetMap via the Overpass API on 2026-09-13. These are real VIT-AP building names and coordinates, but OSM-derived only — not yet physically GPS-surveyed or satellite-corrected. Provenance label matches the source repo: EXTERNAL_MAP_REFERENCE.",
+  "source_url": "https://github.com/Jyothireddy-pula/Parking_nav_/blob/main/configs/campuses/vitap.yaml",
+  "retrieved": "2026-09-21",
+  "destinations": [
+    {"id": "vitap-osm-1485919486", "name": "AB-1", "category": "academic_block", "lat": 16.495673, "lng": 80.500528, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-750542242",  "name": "AB-2", "category": "academic_block", "lat": 16.495620, "lng": 80.498022, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-1255690439", "name": "CB", "category": "administrative_building", "lat": 16.494387, "lng": 80.499217, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-1321555307", "name": "Food Street", "category": "cafeteria", "lat": 16.493761, "lng": 80.498390, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-1434460208", "name": "MH-1", "category": "hostel", "lat": 16.494185, "lng": 80.500627, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-1434460210", "name": "MH-2", "category": "hostel", "lat": 16.493550, "lng": 80.501323, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-1434908865", "name": "MH-2 Food Store", "category": "cafeteria", "lat": 16.493774, "lng": 80.500964, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-1434460214", "name": "MH-3", "category": "hostel", "lat": 16.492118, "lng": 80.501363, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-1434890457", "name": "MH-6", "category": "hostel", "lat": 16.491991, "lng": 80.499746, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-1485935404", "name": "MH-7", "category": "hostel", "lat": 16.492680, "lng": 80.500436, "provenance": "EXTERNAL_MAP_REFERENCE"},
+    {"id": "vitap-osm-1485935405", "name": "LH-1", "category": "hostel", "lat": 16.491970, "lng": 80.496657, "provenance": "EXTERNAL_MAP_REFERENCE"}
+  ],
+  "gate_placeholder": {"name": "PlaceholderGate", "lat": 16.4911715, "lng": 80.5018052, "provenance": "SAMPLE"},
+  "parking_lot_placeholder": {"name": "PlaceholderLot", "capacity": 50, "usable_capacity": 45, "provenance": "SAMPLE"}
+}

@@ -192,27 +192,35 @@ This project currently uses Python’s built-in modules:
 
 The routing and optimization algorithms are implemented manually in Python. No external graph library, such as NetworkX, is currently required.
 
-## VIT-AP dataset (synthetic)
+## VIT-AP dataset
 
 `generate_vitap_dataset.py` produces `vitap_graph.json`, `vitap_parking.json`,
-and `vitap_predictions.json` — a second dataset themed to VIT-AP University
-(Amaravati), in the same schema as the `mock_*.json` files.
+and `vitap_predictions.json` — a second dataset in the same schema as the
+`mock_*.json` files, built from `vitap_real_destinations.json`.
 
-- **Real:** gate names (`MainGate`, `Gate2`, `Gate3`) and destination names
-  (academic blocks, hostel zone, food court, sports complex) reflect VIT-AP's
-  actual named landmarks.
-- **Simulated:** exact distances, parking capacities, occupancy, and
-  congestion values. No public real-time feed of VIT-AP parking/traffic
-  exists, so these are generated with a fixed random seed and time-of-day
-  profiles (e.g. higher food-court congestion at midday) rather than
-  hand-typed or claimed as measured data.
+Provenance is field-by-field, not "real vs. fake" as a whole — see
+[PROVENANCE.md](PROVENANCE.md) for the full breakdown and what was searched
+for. Summary:
+
+- **`EXTERNAL_MAP_REFERENCE` (real):** the 11 destination names/coordinates
+  (AB-1, AB-2, CB, MH-1/2/3/6/7, LH-1, Food Street, MH-2 Food Store) are
+  real VIT-AP locations pulled from public OpenStreetMap data.
+- **`SAMPLE` (fabricated placeholder):** the single gate and single parking
+  lot, and every road distance between them (straight-line, not walked).
+  No public source for VIT-AP's real gates/lots exists.
+- **`SYNTHETIC` (no real source exists):** parking capacity/occupancy and
+  congestion values, seeded with time-of-day shape rather than uniform
+  noise.
+
+A public paper on VIT-AP parking-slot detection was found
+([EAI Endorsed Transactions, 2023](https://eudl.eu/doi/10.4108/eetinis.v10i4.4294))
+but publishes no downloadable dataset. No other public VIT-AP parking/traffic
+dataset was found anywhere searched (GitHub, Kaggle, Zenodo, HuggingFace,
+ResearchGate).
 
 Regenerate with:
 
     python generate_vitap_dataset.py --time morning|midday|evening --seed 42
-
-Swap in a real sensor/API feed later by replacing this script's output while
-keeping the same file schema — the rest of the app doesn't need to change.
 
 ## Future improvements
 
