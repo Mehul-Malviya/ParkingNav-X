@@ -64,6 +64,20 @@ class SimulationResult:
     overflow_events: list = field(default_factory=list)
 
 
+def _congestion_level(load: int, capacity) -> str:
+    """Matches Part 3's exact enum: free|moderate|heavy|blocked."""
+    if not capacity or capacity <= 0:
+        return "free"
+    ratio = load / capacity
+    if ratio == 0:
+        return "free"
+    if ratio < 0.5:
+        return "moderate"
+    if ratio < 1.0:
+        return "heavy"
+    return "blocked"
+
+
 def _arrival_rate_at(profile: dict, t: int) -> float:
     if profile["type"] == "constant":
         return profile["rate"]
@@ -193,6 +207,7 @@ class SimulationEngine:
                         self.twin_service.update_parking_state(
                             scenario.campus_id, result.parking_lot_id, lot["occupied_spaces"],
                             "simulation", "SYNTHETIC", datetime.now(timezone.utc).isoformat(), conn,
+                            commit=False,
                         )
                     else:
                         requested_lot = result.parking_lot_id if result else None
@@ -208,6 +223,7 @@ class SimulationEngine:
                         self.twin_service.update_parking_state(
                             scenario.campus_id, rv.assigned_lot_id, lot["occupied_spaces"],
                             "simulation", "SYNTHETIC", datetime.now(timezone.utc).isoformat(), conn,
+                            commit=False,
                         )
                         if nx.has_path(working_graph, rv.assigned_lot_id, rv.vehicle.entry_gate):
                             distance = nx.shortest_path_length(working_graph, rv.assigned_lot_id, rv.vehicle.entry_gate, weight="weight_distance_meters")
@@ -226,6 +242,28 @@ class SimulationEngine:
 
             for gate_id, queue in gate_queues.items():
                 gates[gate_id]["queue_length"] = len(queue)
+
+            now_iso = datetime.now(timezone.utc).isoformat()
+            for gate_id, gate in gates.items():
+                self.twin_service.update_gate_state(
+                    scenario.campus_id, gate_id, gate["queue_length"], 0,
+                    "simulation", "SYNTHETIC", now_iso, conn, commit=False,
+                )
+            for road_id, load in road_load.items():
+                road_capacity = roads[road_id].get("capacity")
+                self.twin_service.update_road_state(
+                    scenario.campus_id, road_id, load, _congestion_level(load, road_capacity),
+                    "simulation", "SYNTHETIC", now_iso, conn, commit=False,
+                )
+            for rv in running_vehicles:
+                if rv.state not in ("arrival",):  # only persist vehicles that have actually started their lifecycle
+                    self.twin_service.update_vehicle_state(
+                        scenario.campus_id, rv.vehicle.vehicle_id, rv.state, "simulation", now_iso, conn,
+                        destination_id=rv.vehicle.destination_id,
+                        assigned_parking_lot_id=rv.assigned_lot_id,
+                        commit=False,
+                    )
+            conn.commit()  # one batched commit per tick instead of one per write
 
             overflow_this_tick = {e["parking_lot_id"] for e in overflow_events if e["tick"] == tick}
             timesteps_metrics.append({

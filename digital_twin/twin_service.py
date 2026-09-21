@@ -41,7 +41,7 @@ class DigitalTwinService:
         conn.commit()
 
     def update_parking_state(self, campus_id, lot_id, occupied_spaces, source, provenance,
-                              observation_timestamp, conn, now: datetime = None):
+                              observation_timestamp, conn, now: datetime = None, commit: bool = True):
         if not source or not provenance:
             raise ValueError("Both 'source' and 'provenance' are required for a parking state update.")
 
@@ -79,11 +79,12 @@ class DigitalTwinService:
             (campus_id, lot_id, occupied_spaces, available_spaces, occupancy_percentage,
              observation_timestamp, ingestion_timestamp, source, provenance),
         )
-        conn.commit()
+        if commit:
+            conn.commit()
         return self.get_parking_state(campus_id, lot_id, conn, now=now)
 
     def update_gate_state(self, campus_id, gate_id, current_queue_length, throughput_last_5min,
-                           source, provenance, observation_timestamp, conn, now: datetime = None):
+                           source, provenance, observation_timestamp, conn, now: datetime = None, commit: bool = True):
         if not source or not provenance:
             raise ValueError("Both 'source' and 'provenance' are required for a gate state update.")
         if current_queue_length < 0:
@@ -109,11 +110,12 @@ class DigitalTwinService:
             (campus_id, gate_id, current_queue_length, throughput_last_5min,
              observation_timestamp, ingestion_timestamp, source, provenance),
         )
-        conn.commit()
+        if commit:
+            conn.commit()
         return self._gate_state_row(campus_id, gate_id, conn, now=now)
 
     def update_road_state(self, campus_id, road_id, current_load, congestion_level,
-                           source, provenance, observation_timestamp, conn, now: datetime = None):
+                           source, provenance, observation_timestamp, conn, now: datetime = None, commit: bool = True):
         if not source or not provenance:
             raise ValueError("Both 'source' and 'provenance' are required for a road state update.")
         if current_load < 0:
@@ -132,11 +134,12 @@ class DigitalTwinService:
             (campus_id, road_id, current_load, congestion_level,
              observation_timestamp, ingestion_timestamp, source, provenance),
         )
-        conn.commit()
+        if commit:
+            conn.commit()
 
     def update_vehicle_state(self, campus_id, vehicle_id, state, source, timestamp, conn,
                               destination_id=None, assigned_parking_lot_id=None,
-                              current_node_id=None, route=None, arrival_time=None):
+                              current_node_id=None, route=None, arrival_time=None, commit: bool = True):
         conn.execute(
             """INSERT INTO vehicle_state (campus_id, vehicle_id, arrival_time, destination_id,
                  assigned_parking_lot_id, current_node_id, route, state, source, timestamp)
@@ -148,7 +151,8 @@ class DigitalTwinService:
             (campus_id, vehicle_id, arrival_time, destination_id, assigned_parking_lot_id,
              current_node_id, json.dumps(route) if route else None, state, source, timestamp),
         )
-        conn.commit()
+        if commit:
+            conn.commit()
 
     def get_parking_state(self, campus_id, lot_id, conn, now: datetime = None):
         row = conn.execute(

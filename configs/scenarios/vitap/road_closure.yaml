@@ -1,0 +1,18 @@
+# SYNTHETIC scenario: closes the only gate-to-lot road, to demonstrate
+# constraint enforcement (with a single gate/lot campus, every vehicle
+# should fail to reach parking).
+scenario_id: vitap-road-closure
+campus_id: vitap
+name: ROAD_CLOSURE
+duration_minutes: 60
+vehicle_count: 20
+arrival_rate_profile:
+  type: constant
+  rate: 0.3
+event_conditions: null
+availability_overrides:
+  closed_gates: []
+  closed_parking_lots: []
+  closed_roads: [vitap-road-gate-to-lot]
+prediction_error_injection_level: 0.0
+random_seed: 9
