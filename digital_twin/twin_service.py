@@ -9,7 +9,7 @@ module's simulation engine uses (distinguished only by provenance/source).
 import json
 from datetime import datetime, timezone
 
-from digital_twin.models import FRESHNESS_THRESHOLDS_MINUTES, FreshnessState
+from digital_twin.models import FRESHNESS_THRESHOLDS_MINUTES, FreshnessState, Provenance
 
 
 def _parse_ts(ts: str) -> datetime:
@@ -17,6 +17,16 @@ def _parse_ts(ts: str) -> datetime:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt
+
+
+def _validate_provenance(provenance) -> None:
+    """Never ambiguous: provenance must be one of the known values, not
+    just any non-empty string."""
+    if provenance not in {p.value for p in Provenance}:
+        raise ValueError(
+            f"Unknown provenance '{provenance}'. Must be one of: "
+            f"{', '.join(p.value for p in Provenance)}."
+        )
 
 
 def compute_freshness(observation_timestamp: str, entity_type: str, now: datetime = None) -> str:
@@ -44,6 +54,7 @@ class DigitalTwinService:
                               observation_timestamp, conn, now: datetime = None, commit: bool = True):
         if not source or not provenance:
             raise ValueError("Both 'source' and 'provenance' are required for a parking state update.")
+        _validate_provenance(provenance)
 
         lot = conn.execute(
             "SELECT usable_capacity FROM parking_lots WHERE campus_id=? AND parking_lot_id=?",
@@ -87,6 +98,7 @@ class DigitalTwinService:
                            source, provenance, observation_timestamp, conn, now: datetime = None, commit: bool = True):
         if not source or not provenance:
             raise ValueError("Both 'source' and 'provenance' are required for a gate state update.")
+        _validate_provenance(provenance)
         if current_queue_length < 0:
             raise ValueError(f"Rejected: current_queue_length cannot be negative for gate '{gate_id}'.")
 
@@ -118,6 +130,7 @@ class DigitalTwinService:
                            source, provenance, observation_timestamp, conn, now: datetime = None, commit: bool = True):
         if not source or not provenance:
             raise ValueError("Both 'source' and 'provenance' are required for a road state update.")
+        _validate_provenance(provenance)
         if current_load < 0:
             raise ValueError(f"Rejected: current_load cannot be negative for road '{road_id}'.")
 
@@ -224,3 +237,124 @@ class DigitalTwinService:
         for table in ("parking_lot_state", "gate_state", "road_state", "vehicle_state", "campus_state_snapshot"):
             conn.execute(f"DELETE FROM {table} WHERE campus_id=?", (campus_id,))
         conn.commit()
+
+    def apply_event_state(self, campus_id, event_id, active, conn, timestamp: str = None):
+        """Activates/deactivates a configured EVENTS row for this campus.
+        Rejects an unknown event_id rather than silently no-opping. Does
+        NOT decide what effect follows (demand multiplier application is
+        the simulation engine's job, reading this + the event's own
+        configured fields) -- this only tracks which event is currently on."""
+        event = conn.execute(
+            "SELECT event_id FROM events WHERE campus_id=? AND event_id=?", (campus_id, event_id)
+        ).fetchone()
+        if not event:
+            raise ValueError(f"Unknown event '{event_id}' for campus '{campus_id}'.")
+
+        timestamp = timestamp or datetime.now(timezone.utc).isoformat()
+        if active:
+            conn.execute(
+                """INSERT INTO active_events (campus_id, event_id, activated_at, deactivated_at)
+                   VALUES (?, ?, ?, NULL)
+                   ON CONFLICT(campus_id, event_id) DO UPDATE SET
+                     activated_at=excluded.activated_at, deactivated_at=NULL""",
+                (campus_id, event_id, timestamp),
+            )
+        else:
+            conn.execute(
+                "UPDATE active_events SET deactivated_at=? WHERE campus_id=? AND event_id=?",
+                (timestamp, campus_id, event_id),
+            )
+        conn.commit()
+
+    def get_active_events(self, campus_id, conn):
+        rows = conn.execute(
+            "SELECT * FROM active_events WHERE campus_id=? AND deactivated_at IS NULL", (campus_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def validate_state(self, campus_id, conn) -> list:
+        """Structural re-check of whatever is currently stored -- a
+        sanity pass, not a write path. Returns a list of error strings
+        (empty = consistent)."""
+        errors = []
+        for row in conn.execute("SELECT * FROM parking_lot_state WHERE campus_id=?", (campus_id,)):
+            lot = conn.execute(
+                "SELECT usable_capacity FROM parking_lots WHERE campus_id=? AND parking_lot_id=?",
+                (campus_id, row["parking_lot_id"]),
+            ).fetchone()
+            if lot and (row["occupied_spaces"] < 0 or row["occupied_spaces"] > lot["usable_capacity"]):
+                errors.append(f"Inconsistent parking state for '{row['parking_lot_id']}'.")
+        for row in conn.execute("SELECT * FROM gate_state WHERE campus_id=?", (campus_id,)):
+            if row["current_queue_length"] < 0:
+                errors.append(f"Inconsistent gate state for '{row['gate_id']}'.")
+        for row in conn.execute("SELECT * FROM road_state WHERE campus_id=?", (campus_id,)):
+            if row["current_load"] < 0:
+                errors.append(f"Inconsistent road state for '{row['road_id']}'.")
+        return errors
+
+    def restore_snapshot(self, campus_id, snapshot_id, conn):
+        """Overwrites CURRENT state with a prior snapshot's contents,
+        preserving that snapshot's original provenance/source/timestamps
+        rather than stamping them as new. For read-only inspection of a
+        past state without mutating current state, use
+        get_state_at_timestamp instead."""
+        row = conn.execute(
+            "SELECT * FROM campus_state_snapshot WHERE campus_id=? AND snapshot_id=?",
+            (campus_id, snapshot_id),
+        ).fetchone()
+        if not row:
+            raise ValueError(f"Unknown snapshot_id '{snapshot_id}' for campus '{campus_id}'.")
+
+        full_state = json.loads(row["full_state"])
+        for table in ("parking_lot_state", "gate_state", "road_state", "vehicle_state"):
+            conn.execute(f"DELETE FROM {table} WHERE campus_id=?", (campus_id,))
+
+        for p in full_state.get("parking", []):
+            conn.execute(
+                """INSERT INTO parking_lot_state (campus_id, parking_lot_id, occupied_spaces, available_spaces,
+                     occupancy_percentage, predicted_occupancy, status, observation_timestamp,
+                     ingestion_timestamp, source, provenance)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (campus_id, p["parking_lot_id"], p["occupied_spaces"], p["available_spaces"],
+                 p["occupancy_percentage"], p.get("predicted_occupancy"), p["status"],
+                 p["observation_timestamp"], p["ingestion_timestamp"], p["source"], p["provenance"]),
+            )
+        for g in full_state.get("gates", []):
+            conn.execute(
+                """INSERT INTO gate_state (campus_id, gate_id, current_queue_length, throughput_last_5min,
+                     status, observation_timestamp, ingestion_timestamp, source, provenance)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (campus_id, g["gate_id"], g["current_queue_length"], g["throughput_last_5min"],
+                 g["status"], g["observation_timestamp"], g["ingestion_timestamp"], g["source"], g["provenance"]),
+            )
+        for r in full_state.get("roads", []):
+            conn.execute(
+                """INSERT INTO road_state (campus_id, road_id, current_load, congestion_level,
+                     status, observation_timestamp, ingestion_timestamp, source, provenance)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (campus_id, r["road_id"], r["current_load"], r["congestion_level"],
+                 r["status"], r["observation_timestamp"], r["ingestion_timestamp"], r["source"], r["provenance"]),
+            )
+        for v in full_state.get("vehicles", []):
+            conn.execute(
+                """INSERT INTO vehicle_state (campus_id, vehicle_id, arrival_time, destination_id,
+                     assigned_parking_lot_id, current_node_id, route, state, source, timestamp)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (campus_id, v["vehicle_id"], v.get("arrival_time"), v.get("destination_id"),
+                 v.get("assigned_parking_lot_id"), v.get("current_node_id"), v.get("route"),
+                 v["state"], v["source"], v["timestamp"]),
+            )
+        conn.commit()
+
+    def get_state_at_timestamp(self, campus_id, timestamp, conn):
+        """Read-only: the most recent snapshot at or before `timestamp`.
+        Does not mutate current state -- use restore_snapshot for that."""
+        row = conn.execute(
+            """SELECT * FROM campus_state_snapshot
+               WHERE campus_id=? AND timestamp <= ?
+               ORDER BY timestamp DESC LIMIT 1""",
+            (campus_id, timestamp),
+        ).fetchone()
+        if not row:
+            return None
+        return {**dict(row), "full_state": json.loads(row["full_state"])}

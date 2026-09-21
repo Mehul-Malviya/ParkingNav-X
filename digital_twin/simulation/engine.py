@@ -18,6 +18,7 @@ road_load metric transparent and deterministic; a finer-grained "vehicle is
 occupying this edge for N ticks" model is a drop-in replacement later.
 """
 
+import json
 import random
 import uuid
 from dataclasses import dataclass, field
@@ -292,7 +293,20 @@ class SimulationEngine:
             })
 
         completed_at = datetime.now(timezone.utc).isoformat()
-        conn.execute("UPDATE simulation_runs SET completed_at=?, status='completed' WHERE run_id=?", (completed_at, run_id))
+        summary_metrics = {
+            "total_vehicles": len(vehicle_metrics),
+            "completed_vehicles": sum(1 for v in vehicle_metrics if v["final_state"] == "completed"),
+            "parked_vehicles": sum(1 for v in vehicle_metrics if v["final_state"] == "parked"),
+            "failed_vehicles": len(overflow_events),
+            "peak_occupancy_by_lot": {
+                lot_id: max((ts.get(f"parking_occupancy_{lot_id}", 0) for ts in timesteps_metrics), default=0)
+                for lot_id in parking_lots
+            },
+        }
+        conn.execute(
+            "UPDATE simulation_runs SET completed_at=?, status='completed', metrics_json=?, overflow_events_json=? WHERE run_id=?",
+            (completed_at, json.dumps(summary_metrics), json.dumps(overflow_events), run_id),
+        )
         conn.commit()
 
         return SimulationResult(
