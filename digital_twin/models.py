@@ -7,6 +7,15 @@ class Provenance(str, Enum):
     REAL = "REAL"
     SYNTHETIC = "SYNTHETIC"
     SAMPLE = "SAMPLE"
+    # Extended per a second Member 1 spec version -- purely additive, no
+    # conflict with the three values above. Not all are produced by this
+    # module today (e.g. PREDICTION/DERIVED belong to other members'
+    # modules), but the enum accepts them so state written by those modules
+    # through this same Digital Twin never needs an ambiguous provenance.
+    HISTORICAL = "HISTORICAL"
+    PREDICTION = "PREDICTION"
+    DERIVED = "DERIVED"
+    COUNTERFACTUAL = "COUNTERFACTUAL"
 
 
 class EntityStatus(str, Enum):
