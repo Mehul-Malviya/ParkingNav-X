@@ -1,0 +1,370 @@
+{
+  "campus_id": "vitap",
+  "name": "VIT-AP University",
+  "configuration_version": "VITAP_CONFIG_V1",
+  "timezone": "Asia/Kolkata",
+  "description": "Destination names/coordinates are real (EXTERNAL_MAP_REFERENCE, from public OpenStreetMap). Gate, parking lot, and every road are fabricated SAMPLE placeholders pending a physical GPS survey. See PROVENANCE.md.",
+  "status": "OPEN",
+  "gates": [
+    {
+      "gate_id": "vitap-gate-placeholder",
+      "name": "Placeholder Gate (SAMPLE - not a confirmed real gate)",
+      "coordinates": {
+        "lat": 16.4911715,
+        "lng": 80.5018052
+      },
+      "gate_type": "vehicle",
+      "status": "OPEN",
+      "capacity": 30,
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    }
+  ],
+  "parking_lots": [
+    {
+      "parking_lot_id": "vitap-lot-placeholder",
+      "name": "Placeholder Lot (SAMPLE - not a real surveyed lot)",
+      "vehicle_access_point": "vitap-gate-placeholder",
+      "capacity": 50,
+      "usable_capacity": 45,
+      "status": "OPEN",
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    }
+  ],
+  "destinations": [
+    {
+      "destination_id": "vitap-osm-1485919486",
+      "name": "AB-1",
+      "category": "academic_block",
+      "coordinates": {
+        "lat": 16.495673,
+        "lng": 80.500528
+      },
+      "entrance_id": "vitap-osm-1485919486",
+      "pedestrian_access_point": "vitap-osm-1485919486",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-750542242",
+      "name": "AB-2",
+      "category": "academic_block",
+      "coordinates": {
+        "lat": 16.49562,
+        "lng": 80.498022
+      },
+      "entrance_id": "vitap-osm-750542242",
+      "pedestrian_access_point": "vitap-osm-750542242",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-1255690439",
+      "name": "CB",
+      "category": "administrative_building",
+      "coordinates": {
+        "lat": 16.494387,
+        "lng": 80.499217
+      },
+      "entrance_id": "vitap-osm-1255690439",
+      "pedestrian_access_point": "vitap-osm-1255690439",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-1321555307",
+      "name": "Food Street",
+      "category": "cafeteria",
+      "coordinates": {
+        "lat": 16.493761,
+        "lng": 80.49839
+      },
+      "entrance_id": "vitap-osm-1321555307",
+      "pedestrian_access_point": "vitap-osm-1321555307",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-1434460208",
+      "name": "MH-1",
+      "category": "hostel",
+      "coordinates": {
+        "lat": 16.494185,
+        "lng": 80.500627
+      },
+      "entrance_id": "vitap-osm-1434460208",
+      "pedestrian_access_point": "vitap-osm-1434460208",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-1434460210",
+      "name": "MH-2",
+      "category": "hostel",
+      "coordinates": {
+        "lat": 16.49355,
+        "lng": 80.501323
+      },
+      "entrance_id": "vitap-osm-1434460210",
+      "pedestrian_access_point": "vitap-osm-1434460210",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-1434908865",
+      "name": "MH-2 Food Store",
+      "category": "cafeteria",
+      "coordinates": {
+        "lat": 16.493774,
+        "lng": 80.500964
+      },
+      "entrance_id": "vitap-osm-1434908865",
+      "pedestrian_access_point": "vitap-osm-1434908865",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-1434460214",
+      "name": "MH-3",
+      "category": "hostel",
+      "coordinates": {
+        "lat": 16.492118,
+        "lng": 80.501363
+      },
+      "entrance_id": "vitap-osm-1434460214",
+      "pedestrian_access_point": "vitap-osm-1434460214",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-1434890457",
+      "name": "MH-6",
+      "category": "hostel",
+      "coordinates": {
+        "lat": 16.491991,
+        "lng": 80.499746
+      },
+      "entrance_id": "vitap-osm-1434890457",
+      "pedestrian_access_point": "vitap-osm-1434890457",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-1485935404",
+      "name": "MH-7",
+      "category": "hostel",
+      "coordinates": {
+        "lat": 16.49268,
+        "lng": 80.500436
+      },
+      "entrance_id": "vitap-osm-1485935404",
+      "pedestrian_access_point": "vitap-osm-1485935404",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "destination_id": "vitap-osm-1485935405",
+      "name": "LH-1",
+      "category": "hostel",
+      "coordinates": {
+        "lat": 16.49197,
+        "lng": 80.496657
+      },
+      "entrance_id": "vitap-osm-1485935405",
+      "pedestrian_access_point": "vitap-osm-1485935405",
+      "nearest_parking_lots": [
+        "vitap-lot-placeholder"
+      ],
+      "status": "OPEN",
+      "provenance": "EXTERNAL_MAP_REFERENCE",
+      "verification_state": "UNVERIFIED"
+    }
+  ],
+  "roads": [
+    {
+      "road_id": "vitap-road-gate-to-lot",
+      "name": "Placeholder Gate to Placeholder Lot (SAMPLE straight line)",
+      "start_node_id": "vitap-gate-placeholder",
+      "end_node_id": "vitap-lot-placeholder",
+      "length_meters": 275,
+      "driveable": true,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1485919486",
+      "name": "Placeholder Lot to AB-1 (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1485919486",
+      "length_meters": 519,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-750542242",
+      "name": "Placeholder Lot to AB-2 (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-750542242",
+      "length_meters": 638,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1255690439",
+      "name": "Placeholder Lot to CB (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1255690439",
+      "length_meters": 452,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1321555307",
+      "name": "Placeholder Lot to Food Street (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1321555307",
+      "length_meters": 464,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1434460208",
+      "name": "Placeholder Lot to MH-1 (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1434460208",
+      "length_meters": 358,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1434460210",
+      "name": "Placeholder Lot to MH-2 (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1434460210",
+      "length_meters": 269,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1434908865",
+      "name": "Placeholder Lot to MH-2 Food Store (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1434908865",
+      "length_meters": 303,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1434460214",
+      "name": "Placeholder Lot to MH-3 (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1434460214",
+      "length_meters": 115,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1434890457",
+      "name": "Placeholder Lot to MH-6 (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1434890457",
+      "length_meters": 238,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1485935404",
+      "name": "Placeholder Lot to MH-7 (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1485935404",
+      "length_meters": 222,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    },
+    {
+      "road_id": "vitap-road-lot-to-1485935405",
+      "name": "Placeholder Lot to LH-1 (SAMPLE straight line)",
+      "start_node_id": "vitap-lot-placeholder",
+      "end_node_id": "vitap-osm-1485935405",
+      "length_meters": 556,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE"
+    }
+  ]
+}

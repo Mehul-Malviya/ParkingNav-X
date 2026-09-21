@@ -1,0 +1,111 @@
+{
+  "campus_id": "sample",
+  "name": "Sample Campus",
+  "configuration_version": "SAMPLE_CONFIG_V1",
+  "timezone": "UTC",
+  "description": "Fully fabricated development/test campus. Never presented as real.",
+  "status": "OPEN",
+  "gates": [
+    {
+      "gate_id": "sample-gate-1",
+      "name": "Sample Gate 1",
+      "gate_type": "vehicle",
+      "status": "OPEN",
+      "capacity": 10,
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    }
+  ],
+  "parking_lots": [
+    {
+      "parking_lot_id": "sample-lot-1",
+      "name": "Sample Lot 1",
+      "vehicle_access_point": "sample-gate-1",
+      "capacity": 20,
+      "usable_capacity": 18,
+      "status": "OPEN",
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "parking_lot_id": "sample-lot-2",
+      "name": "Sample Lot 2",
+      "vehicle_access_point": "sample-road-junction",
+      "capacity": 15,
+      "usable_capacity": 15,
+      "status": "OPEN",
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    }
+  ],
+  "destinations": [
+    {
+      "destination_id": "sample-dest-1",
+      "name": "Sample Destination 1",
+      "category": "academic_block",
+      "entrance_id": "sample-dest-1",
+      "pedestrian_access_point": "sample-dest-1",
+      "nearest_parking_lots": ["sample-lot-1", "sample-lot-2"],
+      "status": "OPEN",
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    }
+  ],
+  "roads": [
+    {
+      "road_id": "sample-road-1",
+      "name": "Gate to Junction",
+      "start_node_id": "sample-gate-1",
+      "end_node_id": "sample-road-junction",
+      "length_meters": 100,
+      "driveable": true,
+      "walkable": true,
+      "one_way": false,
+      "capacity": 20,
+      "status": "OPEN",
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "road_id": "sample-road-2",
+      "name": "Junction to Lot 1",
+      "start_node_id": "sample-road-junction",
+      "end_node_id": "sample-lot-1",
+      "length_meters": 60,
+      "driveable": true,
+      "walkable": true,
+      "one_way": false,
+      "capacity": 20,
+      "status": "OPEN",
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "road_id": "sample-road-3",
+      "name": "Lot 1 to Destination 1",
+      "start_node_id": "sample-lot-1",
+      "end_node_id": "sample-dest-1",
+      "length_meters": 40,
+      "driveable": false,
+      "walkable": true,
+      "one_way": false,
+      "status": "OPEN",
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    },
+    {
+      "road_id": "sample-road-4",
+      "name": "Junction to Lot 2",
+      "start_node_id": "sample-road-junction",
+      "end_node_id": "sample-lot-2",
+      "length_meters": 80,
+      "driveable": true,
+      "walkable": true,
+      "one_way": false,
+      "capacity": 15,
+      "status": "OPEN",
+      "provenance": "SAMPLE",
+      "verification_state": "UNVERIFIED"
+    }
+  ]
+}
