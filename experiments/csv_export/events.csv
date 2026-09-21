@@ -1,0 +1,2 @@
+campus_id,event_id,event_type,name,start_time,end_time,expected_demand_multiplier,affected_zones,status
+sample,sample-event-1,exam,Sample Exam Week,2026-10-01T00:00:00Z,2026-10-05T00:00:00Z,1.5,"[""sample-lot-1""]",scheduled

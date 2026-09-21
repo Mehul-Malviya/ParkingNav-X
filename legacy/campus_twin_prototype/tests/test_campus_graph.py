@@ -3,7 +3,7 @@ from pathlib import Path
 from campus_twin.config import load_campus_config
 from campus_twin.graph import build_campus_graph, validate_campus_graph
 
-PROJECT_FOLDER = Path(__file__).resolve().parent
+PROJECT_FOLDER = Path(__file__).resolve().parent.parent
 CONFIGS = PROJECT_FOLDER / "data" / "campus_configs"
 
 

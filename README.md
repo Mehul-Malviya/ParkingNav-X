@@ -1,5 +1,34 @@
 # Parking Nav X
 
+## Repository layout
+
+```
+digital_twin/       Current, active Member 1 subsystem: campus config,
+                     graph, Digital Twin state, simulation engine,
+                     scenarios, FastAPI app, CLI tools.
+migrations/          SQLite schema migrations for digital_twin/.
+configs/             Campus (configs/campuses/) and scenario
+                     (configs/scenarios/) YAML files.
+scripts/             Standalone CLIs: load_campus_config.py,
+                     gps_survey_to_config.py.
+tests/               Tests for the active digital_twin/ subsystem
+                     (run: python -m pytest tests/).
+tests/fixtures/      Test fixtures (sample GPX/CSV survey data).
+experiments/runs/    Simulation run output (Parquet), git-ignored.
+data/                Real-data notes and prototype dataset generators
+                     (see data/vitap_dataset_prototype/).
+docs/                Reports and provenance documentation.
+legacy/              Archived, superseded code — not part of the active
+                     test suite. See legacy/README.md.
+```
+
+The sections below describe the *original* project (now archived under
+`legacy/flat_optimizer/`) as it was received, before the `digital_twin/`
+subsystem was built. See `docs/MEMBER1_SUBSYSTEM_REPORT.md` for the
+current system's own documentation.
+
+---
+
 Parking Nav X is a Python-based smart parking recommendation system.
 
 It helps a driver choose the best parking area by considering:

@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
-from digital_twin.db import get_connection
+from digital_twin.db import init_db
 from digital_twin.graph_service import CampusGraphService
 from digital_twin.twin_service import DigitalTwinService
 
@@ -25,7 +25,7 @@ _twin_service = DigitalTwinService()
 
 
 def get_db():
-    conn = get_connection()
+    conn = init_db()
     try:
         yield conn
     finally:

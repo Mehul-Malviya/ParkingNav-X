@@ -1,0 +1,16 @@
+edge_id,campus_id,from_node_id,to_node_id,road_id,weight_time_seconds,weight_distance_meters,is_walkable,is_driveable,status
+1,vitap,vitap-gate-placeholder,vitap-lot-placeholder,vitap-road-gate-to-lot,212.0,275.0,1,1,open
+2,vitap,vitap-lot-placeholder,vitap-osm-1485919486,vitap-road-lot-to-1485919486,399.0,519.0,1,0,open
+3,vitap,vitap-lot-placeholder,vitap-osm-750542242,vitap-road-lot-to-750542242,491.0,638.0,1,0,open
+4,vitap,vitap-lot-placeholder,vitap-osm-1255690439,vitap-road-lot-to-1255690439,348.0,452.0,1,0,open
+5,vitap,vitap-lot-placeholder,vitap-osm-1321555307,vitap-road-lot-to-1321555307,357.0,464.0,1,0,open
+6,vitap,vitap-lot-placeholder,vitap-osm-1434460208,vitap-road-lot-to-1434460208,275.0,358.0,1,0,open
+7,vitap,vitap-lot-placeholder,vitap-osm-1434460210,vitap-road-lot-to-1434460210,207.0,269.0,1,0,open
+8,vitap,vitap-lot-placeholder,vitap-osm-1434908865,vitap-road-lot-to-1434908865,233.0,303.0,1,0,open
+9,vitap,vitap-lot-placeholder,vitap-osm-1434460214,vitap-road-lot-to-1434460214,88.0,115.0,1,0,open
+10,vitap,vitap-lot-placeholder,vitap-osm-1434890457,vitap-road-lot-to-1434890457,183.0,238.0,1,0,open
+11,vitap,vitap-lot-placeholder,vitap-osm-1485935404,vitap-road-lot-to-1485935404,171.0,222.0,1,0,open
+12,vitap,vitap-lot-placeholder,vitap-osm-1485935405,vitap-road-lot-to-1485935405,428.0,556.0,1,0,open
+13,sample,sample-gate-1,sample-lot-1,sample-road-1,90.0,120.0,1,1,open
+14,sample,sample-gate-1,sample-lot-2,sample-road-2,110.0,150.0,1,1,open
+15,sample,sample-lot-1,sample-dest-1,sample-road-3,45.0,60.0,1,0,open

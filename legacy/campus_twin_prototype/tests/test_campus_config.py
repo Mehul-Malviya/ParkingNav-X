@@ -4,7 +4,7 @@ import pytest
 
 from campus_twin.config import ConfigError, load_campus_config, validate_campus_config
 
-PROJECT_FOLDER = Path(__file__).resolve().parent
+PROJECT_FOLDER = Path(__file__).resolve().parent.parent
 CONFIGS = PROJECT_FOLDER / "data" / "campus_configs"
 
 
