@@ -1,0 +1,363 @@
+# VIT-AP campus config.
+# Destination names/coordinates: REAL, sourced from public OpenStreetMap.
+# Gate, parking lot, and every road are fabricated SAMPLE placeholders pending a physical GPS survey.
+# Road geometry's middle point is an interpolated midpoint, not a walked path --
+# still a straight-line approximation, only structurally not just two raw endpoints. See PROVENANCE.md.
+campus:
+  campus_id: vitap
+  name: VIT-AP University
+  description: Amaravati, Andhra Pradesh, India.
+  timezone: Asia/Kolkata
+  configuration_version: VITAP_CONFIG_V1
+
+gates:
+  - gate_id: vitap-gate-placeholder
+    name: "Placeholder Gate (SAMPLE - not a confirmed real gate)"
+    latitude: 16.4911715
+    longitude: 80.5018052
+    capacity: 30
+    status: open
+
+parking_lots:
+  - parking_lot_id: vitap-lot-placeholder
+    name: "Placeholder Lot (SAMPLE - not a real surveyed lot)"
+    latitude: 16.4911715
+    longitude: 80.5018052
+    total_capacity: 50
+    usable_capacity: 45
+    status: open
+
+destinations:
+  - destination_id: vitap-osm-1485919486
+    name: "AB-1"
+    category: academic_block
+    latitude: 16.495673
+    longitude: 80.500528
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-750542242
+    name: "AB-2"
+    category: academic_block
+    latitude: 16.49562
+    longitude: 80.498022
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-1255690439
+    name: "CB"
+    category: administrative_building
+    latitude: 16.494387
+    longitude: 80.499217
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-1321555307
+    name: "Food Street"
+    category: cafeteria
+    latitude: 16.493761
+    longitude: 80.49839
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-1434460208
+    name: "MH-1"
+    category: hostel
+    latitude: 16.494185
+    longitude: 80.500627
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-1434460210
+    name: "MH-2"
+    category: hostel
+    latitude: 16.49355
+    longitude: 80.501323
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-1434908865
+    name: "MH-2 Food Store"
+    category: cafeteria
+    latitude: 16.493774
+    longitude: 80.500964
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-1434460214
+    name: "MH-3"
+    category: hostel
+    latitude: 16.492118
+    longitude: 80.501363
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-1434890457
+    name: "MH-6"
+    category: hostel
+    latitude: 16.491991
+    longitude: 80.499746
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-1485935404
+    name: "MH-7"
+    category: hostel
+    latitude: 16.49268
+    longitude: 80.500436
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+  - destination_id: vitap-osm-1485935405
+    name: "LH-1"
+    category: hostel
+    latitude: 16.49197
+    longitude: 80.496657
+    nearest_gate_ids: [vitap-gate-placeholder]
+    nearest_parking_lot_ids: [vitap-lot-placeholder]
+
+roads:
+  - road_id: vitap-road-gate-to-lot
+    name: "Placeholder Gate to Placeholder Lot (SAMPLE)"
+    start_node_id: vitap-gate-placeholder
+    end_node_id: vitap-lot-placeholder
+    length_meters: 275
+    expected_travel_time_seconds: 212
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.4911715, lng: 80.5018052 }
+  - road_id: vitap-road-lot-to-1485919486
+    name: "Placeholder Lot to AB-1 (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1485919486
+    length_meters: 519
+    expected_travel_time_seconds: 399
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.493422, lng: 80.501167 }
+      - { lat: 16.495673, lng: 80.500528 }
+  - road_id: vitap-road-lot-to-750542242
+    name: "Placeholder Lot to AB-2 (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-750542242
+    length_meters: 638
+    expected_travel_time_seconds: 491
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.493396, lng: 80.499914 }
+      - { lat: 16.49562, lng: 80.498022 }
+  - road_id: vitap-road-lot-to-1255690439
+    name: "Placeholder Lot to CB (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1255690439
+    length_meters: 452
+    expected_travel_time_seconds: 348
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.492779, lng: 80.500511 }
+      - { lat: 16.494387, lng: 80.499217 }
+  - road_id: vitap-road-lot-to-1321555307
+    name: "Placeholder Lot to Food Street (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1321555307
+    length_meters: 464
+    expected_travel_time_seconds: 357
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.492466, lng: 80.500098 }
+      - { lat: 16.493761, lng: 80.49839 }
+  - road_id: vitap-road-lot-to-1434460208
+    name: "Placeholder Lot to MH-1 (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1434460208
+    length_meters: 358
+    expected_travel_time_seconds: 275
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.492678, lng: 80.501216 }
+      - { lat: 16.494185, lng: 80.500627 }
+  - road_id: vitap-road-lot-to-1434460210
+    name: "Placeholder Lot to MH-2 (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1434460210
+    length_meters: 269
+    expected_travel_time_seconds: 207
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.492361, lng: 80.501564 }
+      - { lat: 16.49355, lng: 80.501323 }
+  - road_id: vitap-road-lot-to-1434908865
+    name: "Placeholder Lot to MH-2 Food Store (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1434908865
+    length_meters: 303
+    expected_travel_time_seconds: 233
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.492473, lng: 80.501385 }
+      - { lat: 16.493774, lng: 80.500964 }
+  - road_id: vitap-road-lot-to-1434460214
+    name: "Placeholder Lot to MH-3 (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1434460214
+    length_meters: 115
+    expected_travel_time_seconds: 88
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.491645, lng: 80.501584 }
+      - { lat: 16.492118, lng: 80.501363 }
+  - road_id: vitap-road-lot-to-1434890457
+    name: "Placeholder Lot to MH-6 (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1434890457
+    length_meters: 238
+    expected_travel_time_seconds: 183
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.491581, lng: 80.500776 }
+      - { lat: 16.491991, lng: 80.499746 }
+  - road_id: vitap-road-lot-to-1485935404
+    name: "Placeholder Lot to MH-7 (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1485935404
+    length_meters: 222
+    expected_travel_time_seconds: 171
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.491926, lng: 80.501121 }
+      - { lat: 16.49268, lng: 80.500436 }
+  - road_id: vitap-road-lot-to-1485935405
+    name: "Placeholder Lot to LH-1 (SAMPLE)"
+    start_node_id: vitap-lot-placeholder
+    end_node_id: vitap-osm-1485935405
+    length_meters: 556
+    expected_travel_time_seconds: 428
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.491571, lng: 80.499231 }
+      - { lat: 16.49197, lng: 80.496657 }
+
+edges:
+  - from_node_id: vitap-gate-placeholder
+    to_node_id: vitap-lot-placeholder
+    road_id: vitap-road-gate-to-lot
+    weight_time_seconds: 212
+    weight_distance_meters: 275
+    is_walkable: true
+    is_driveable: true
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1485919486
+    road_id: vitap-road-lot-to-1485919486
+    weight_time_seconds: 399
+    weight_distance_meters: 519
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-750542242
+    road_id: vitap-road-lot-to-750542242
+    weight_time_seconds: 491
+    weight_distance_meters: 638
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1255690439
+    road_id: vitap-road-lot-to-1255690439
+    weight_time_seconds: 348
+    weight_distance_meters: 452
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1321555307
+    road_id: vitap-road-lot-to-1321555307
+    weight_time_seconds: 357
+    weight_distance_meters: 464
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1434460208
+    road_id: vitap-road-lot-to-1434460208
+    weight_time_seconds: 275
+    weight_distance_meters: 358
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1434460210
+    road_id: vitap-road-lot-to-1434460210
+    weight_time_seconds: 207
+    weight_distance_meters: 269
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1434908865
+    road_id: vitap-road-lot-to-1434908865
+    weight_time_seconds: 233
+    weight_distance_meters: 303
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1434460214
+    road_id: vitap-road-lot-to-1434460214
+    weight_time_seconds: 88
+    weight_distance_meters: 115
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1434890457
+    road_id: vitap-road-lot-to-1434890457
+    weight_time_seconds: 183
+    weight_distance_meters: 238
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1485935404
+    road_id: vitap-road-lot-to-1485935404
+    weight_time_seconds: 171
+    weight_distance_meters: 222
+    is_walkable: true
+    is_driveable: false
+    status: open
+  - from_node_id: vitap-lot-placeholder
+    to_node_id: vitap-osm-1485935405
+    road_id: vitap-road-lot-to-1485935405
+    weight_time_seconds: 428
+    weight_distance_meters: 556
+    is_walkable: true
+    is_driveable: false
+    status: open
