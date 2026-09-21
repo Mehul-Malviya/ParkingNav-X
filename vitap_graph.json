@@ -1,0 +1,66 @@
+{
+  "MainGate": {
+    "RoadPlaza": 120,
+    "ParkingMainGate": 40
+  },
+  "Gate2": {
+    "RoadSports": 90,
+    "RoadPlaza": 260
+  },
+  "Gate3": {
+    "RoadSports": 70,
+    "RoadHostelZone": 300
+  },
+  "RoadPlaza": {
+    "MainGate": 120,
+    "Gate2": 260,
+    "RoadAcademic1": 180,
+    "RoadAcademic2": 210,
+    "RoadHostelZone": 340,
+    "RoadFoodCourt": 150
+  },
+  "RoadAcademic1": {
+    "RoadPlaza": 180,
+    "ParkingAcademic1": 60,
+    "RoadFoodCourt": 130
+  },
+  "RoadAcademic2": {
+    "RoadPlaza": 210,
+    "ParkingAcademic2": 70,
+    "RoadFoodCourt": 160
+  },
+  "RoadHostelZone": {
+    "RoadPlaza": 340,
+    "Gate3": 300,
+    "ParkingHostelZone": 90
+  },
+  "RoadFoodCourt": {
+    "RoadPlaza": 150,
+    "RoadAcademic1": 130,
+    "RoadAcademic2": 160,
+    "ParkingFoodCourt": 50
+  },
+  "RoadSports": {
+    "Gate2": 90,
+    "Gate3": 70,
+    "ParkingSports": 80
+  },
+  "ParkingMainGate": {
+    "MainGate": 40
+  },
+  "ParkingAcademic1": {
+    "RoadAcademic1": 60
+  },
+  "ParkingAcademic2": {
+    "RoadAcademic2": 70
+  },
+  "ParkingHostelZone": {
+    "RoadHostelZone": 90
+  },
+  "ParkingFoodCourt": {
+    "RoadFoodCourt": 50
+  },
+  "ParkingSports": {
+    "RoadSports": 80
+  }
+}

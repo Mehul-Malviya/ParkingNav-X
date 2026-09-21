@@ -192,6 +192,28 @@ This project currently uses Python’s built-in modules:
 
 The routing and optimization algorithms are implemented manually in Python. No external graph library, such as NetworkX, is currently required.
 
+## VIT-AP dataset (synthetic)
+
+`generate_vitap_dataset.py` produces `vitap_graph.json`, `vitap_parking.json`,
+and `vitap_predictions.json` — a second dataset themed to VIT-AP University
+(Amaravati), in the same schema as the `mock_*.json` files.
+
+- **Real:** gate names (`MainGate`, `Gate2`, `Gate3`) and destination names
+  (academic blocks, hostel zone, food court, sports complex) reflect VIT-AP's
+  actual named landmarks.
+- **Simulated:** exact distances, parking capacities, occupancy, and
+  congestion values. No public real-time feed of VIT-AP parking/traffic
+  exists, so these are generated with a fixed random seed and time-of-day
+  profiles (e.g. higher food-court congestion at midday) rather than
+  hand-typed or claimed as measured data.
+
+Regenerate with:
+
+    python generate_vitap_dataset.py --time morning|midday|evening --seed 42
+
+Swap in a real sensor/API feed later by replacing this script's output while
+keeping the same file schema — the rest of the app doesn't need to change.
+
 ## Future improvements
 
 Possible future upgrades include:

@@ -1,0 +1,26 @@
+{
+  "ParkingMainGate": {
+    "capacity": 60,
+    "occupied": 50
+  },
+  "ParkingAcademic1": {
+    "capacity": 220,
+    "occupied": 155
+  },
+  "ParkingAcademic2": {
+    "capacity": 200,
+    "occupied": 151
+  },
+  "ParkingHostelZone": {
+    "capacity": 150,
+    "occupied": 112
+  },
+  "ParkingFoodCourt": {
+    "capacity": 90,
+    "occupied": 76
+  },
+  "ParkingSports": {
+    "capacity": 70,
+    "occupied": 58
+  }
+}
