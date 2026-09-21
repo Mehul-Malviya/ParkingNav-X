@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from digital_twin.db import get_connection
+from digital_twin.db import init_db
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader, ScenarioValidator
 
@@ -40,7 +40,7 @@ def main():
     if args.seed is not None:
         scenario.random_seed = args.seed
 
-    conn = get_connection(args.db)
+    conn = init_db(args.db)
     errors = ScenarioValidator.validate(scenario, conn)
     if errors:
         raise SystemExit("Scenario invalid:\n" + "\n".join(f"- {e}" for e in errors))

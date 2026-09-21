@@ -15,7 +15,7 @@ from digital_twin.config_loader import load_campus_config
 from digital_twin.db import apply_migrations, get_connection
 from digital_twin.twin_service import DigitalTwinService
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIGS = PROJECT_ROOT / "configs" / "campuses"
 
 

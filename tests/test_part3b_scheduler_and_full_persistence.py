@@ -17,7 +17,7 @@ from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import AllocationStrategy, AssignmentResult
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIGS = PROJECT_ROOT / "configs" / "campuses"
 SCENARIOS = PROJECT_ROOT / "configs" / "scenarios" / "sample"
 

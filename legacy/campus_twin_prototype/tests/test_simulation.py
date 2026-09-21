@@ -7,7 +7,7 @@ from campus_twin.scenarios import (
 )
 from campus_twin.simulation import SimulationEngine
 
-PROJECT_FOLDER = Path(__file__).resolve().parent
+PROJECT_FOLDER = Path(__file__).resolve().parent.parent
 CONFIGS = PROJECT_FOLDER / "data" / "campus_configs"
 
 

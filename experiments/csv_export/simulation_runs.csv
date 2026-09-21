@@ -1,0 +1,2 @@
+run_id,campus_id,scenario_id,random_seed,strategy_name,configuration_version,started_at,completed_at,status,metrics_json,overflow_events_json
+vitap-normal-day-71bf1875,vitap,vitap-normal-day,7,digital_twin.simulation.demo_strategies.DemoNearestAvailableStrategy,VITAP_CONFIG_V1,2026-09-21T18:12:42.412060+00:00,2026-09-21T18:12:43.436476+00:00,completed,"{""total_vehicles"": 60, ""completed_vehicles"": 34, ""parked_vehicles"": 25, ""failed_vehicles"": 0, ""peak_occupancy_by_lot"": {""vitap-lot-placeholder"": 45}}",[]

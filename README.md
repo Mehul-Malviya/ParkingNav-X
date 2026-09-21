@@ -1,5 +1,34 @@
 # Parking Nav X
 
+## Repository layout
+
+```
+digital_twin/       Current, active Member 1 subsystem: campus config,
+                     graph, Digital Twin state, simulation engine,
+                     scenarios, FastAPI app, CLI tools.
+migrations/          SQLite schema migrations for digital_twin/.
+configs/             Campus (configs/campuses/) and scenario
+                     (configs/scenarios/) YAML files.
+scripts/             Standalone CLIs: load_campus_config.py,
+                     gps_survey_to_config.py.
+tests/               Tests for the active digital_twin/ subsystem
+                     (run: python -m pytest tests/).
+tests/fixtures/      Test fixtures (sample GPX/CSV survey data).
+experiments/runs/    Simulation run output (Parquet), git-ignored.
+data/                Real-data notes and prototype dataset generators
+                     (see data/vitap_dataset_prototype/).
+docs/                Reports and provenance documentation.
+legacy/              Archived, superseded code — not part of the active
+                     test suite. See legacy/README.md.
+```
+
+The sections below describe the *original* project (now archived under
+`legacy/flat_optimizer/`) as it was received, before the `digital_twin/`
+subsystem was built. See `docs/MEMBER1_SUBSYSTEM_REPORT.md` for the
+current system's own documentation.
+
+---
+
 Parking Nav X is a Python-based smart parking recommendation system.
 
 It helps a driver choose the best parking area by considering:
@@ -91,7 +120,7 @@ ParkingNav_X/
 
 ### Campus graph
 
-`data/mock/mock_graph.json` represents the campus road network.
+`legacy/flat_optimizer/data/mock_graph.json` represents the campus road network.
 
 Each location is a graph node, and each number is the travel cost between two connected locations.
 
@@ -109,7 +138,7 @@ Gate1 → RoadB costs 5
 
 ### Parking data
 
-`data/mock/mock_parking.json` stores the capacity and occupied spaces for every parking area.
+`legacy/flat_optimizer/data/mock_parking.json` stores the capacity and occupied spaces for every parking area.
 
 Example:
 
@@ -122,7 +151,7 @@ ParkingB is 90% full.
 
 ### Congestion predictions
 
-`data/mock/mock_predictions.json` stores congestion-risk values between `0` and `1`.
+`legacy/flat_optimizer/data/mock_predictions.json` stores congestion-risk values between `0` and `1`.
 
 "RoadD": 0.9
 
@@ -149,13 +178,18 @@ route cost × distance weight
 
 Lower score means a better parking recommendation.
 
-## Running the application in VS Code
+## Running the legacy application (archived)
 
-1. Open the `ParkingNav_X` folder in VS Code.
-2. Open `main.py`.
+The section above describes `legacy/flat_optimizer/`, not the active
+`digital_twin/` system. Note its imports were already broken as received
+(reference an `optimization.*` package that was never actually present),
+so this won't currently produce the output below without further fixes.
+
+1. Open the repo root in VS Code.
+2. Open `legacy/flat_optimizer/main.py`.
 3. Click the normal ▶ Run button.
 
-Expected output:
+Expected output (once the import issue is fixed):
 
 --- Parking Nav X ---
 Recommended parking: ParkingA
@@ -163,19 +197,17 @@ Route: Gate1 → RoadA → RoadC → ParkingA
 Route cost: 9
 Overall score: 15.0
 
+Its own tests are under `legacy/flat_optimizer/tests/` (e.g.
+`test_dijkstra.py`, `test_optimizer.py`), same caveat.
 
-## Running tests in VS Code
+## Running the active system
 
-Each test file can be run directly.
-
-1. Open a file inside `tests/optimization/`.
-2. Click the normal ▶ Run button.
-
-For example:
-
-test_dijkstra.py
-test_optimizer.py
-test_rerouting.py
+```bash
+python scripts/load_campus_config.py --config configs/campuses/vitap.yaml
+python -m pytest tests/
+python -m digital_twin.cli.run --campus vitap --scenario configs/scenarios/vitap/normal_day.yaml --strategy digital_twin.simulation.demo_strategies.DemoNearestAvailableStrategy
+uvicorn digital_twin.api.app:app --reload
+```
 
 
 A successful test prints a message such as:
@@ -192,15 +224,18 @@ This project currently uses Python’s built-in modules:
 
 The routing and optimization algorithms are implemented manually in Python. No external graph library, such as NetworkX, is currently required.
 
-## VIT-AP dataset
+## VIT-AP dataset (archived prototype)
 
-`generate_vitap_dataset.py` produces `vitap_graph.json`, `vitap_parking.json`,
-and `vitap_predictions.json` — a second dataset in the same schema as the
-`mock_*.json` files, built from `vitap_real_destinations.json`.
+`data/vitap_dataset_prototype/generate_vitap_dataset.py` produces
+`vitap_graph.json`, `vitap_parking.json`, and `vitap_predictions.json` — a
+second dataset in the same schema as `legacy/flat_optimizer/data/mock_*.json`,
+built from `vitap_real_destinations.json` in that same folder. Predates
+`configs/campuses/vitap.yaml`, which is the current system's real VIT-AP
+config.
 
 Provenance is field-by-field, not "real vs. fake" as a whole — see
-[PROVENANCE.md](PROVENANCE.md) for the full breakdown and what was searched
-for. Summary:
+[docs/PROVENANCE.md](docs/PROVENANCE.md) for the full breakdown and what was
+searched for. Summary:
 
 - **`EXTERNAL_MAP_REFERENCE` (real):** the 11 destination names/coordinates
   (AB-1, AB-2, CB, MH-1/2/3/6/7, LH-1, Food Street, MH-2 Food Store) are
@@ -220,6 +255,7 @@ ResearchGate).
 
 Regenerate with:
 
+    cd data/vitap_dataset_prototype
     python generate_vitap_dataset.py --time morning|midday|evening --seed 42
 
 ## Future improvements

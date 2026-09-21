@@ -6,7 +6,7 @@ Validates a scenario YAML without running a simulation, for quick iteration.
 import argparse
 import sys
 
-from digital_twin.db import get_connection
+from digital_twin.db import init_db
 from digital_twin.simulation.scenario import ScenarioLoader, ScenarioValidator
 
 
@@ -17,7 +17,7 @@ def main():
     args = parser.parse_args()
 
     scenario = ScenarioLoader.load(args.config)
-    conn = get_connection(args.db)
+    conn = init_db(args.db)
     errors = ScenarioValidator.validate(scenario, conn)
 
     if errors:

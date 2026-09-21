@@ -1,0 +1,13 @@
+campus_id,destination_id,name,category,latitude,longitude,department_names,searchable_aliases,nearest_gate_ids,nearest_parking_lot_ids,configuration_version
+vitap,vitap-osm-1485919486,AB-1,academic_block,16.495673,80.500528,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-750542242,AB-2,academic_block,16.49562,80.498022,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-1255690439,CB,administrative_building,16.494387,80.499217,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-1321555307,Food Street,cafeteria,16.493761,80.49839,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-1434460208,MH-1,hostel,16.494185,80.500627,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-1434460210,MH-2,hostel,16.49355,80.501323,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-1434908865,MH-2 Food Store,cafeteria,16.493774,80.500964,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-1434460214,MH-3,hostel,16.492118,80.501363,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-1434890457,MH-6,hostel,16.491991,80.499746,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-1485935404,MH-7,hostel,16.49268,80.500436,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+vitap,vitap-osm-1485935405,LH-1,hostel,16.49197,80.496657,,[],"[""vitap-gate-placeholder""]","[""vitap-lot-placeholder""]",VITAP_CONFIG_V1
+sample,sample-dest-1,Sample Destination 1,academic_block,10.0015,20.002,,[],"[""sample-gate-1""]","[""sample-lot-1"", ""sample-lot-2""]",SAMPLE_CONFIG_V1

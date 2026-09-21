@@ -1,0 +1,2 @@
+campus_id,parking_lot_id,occupied_spaces,available_spaces,occupancy_percentage,predicted_occupancy,status,observation_timestamp,ingestion_timestamp,source,provenance
+vitap,vitap-lot-placeholder,25,20,55.56,,open,2026-09-21T18:12:43.425481+00:00,2026-09-21T18:12:43.425481+00:00,simulation,SYNTHETIC
