@@ -1,4 +1,0 @@
-campus_id,parking_lot_id,name,latitude,longitude,boundary_polygon,zone,status,total_capacity,usable_capacity,reserved_capacity,restricted_capacity,temporarily_unavailable_capacity,configuration_version
-vitap,vitap-lot-placeholder,Placeholder Lot (SAMPLE - not a real surveyed lot),16.4911715,80.5018052,,,open,50,45,0,0,0,VITAP_CONFIG_V1
-sample,sample-lot-1,Sample Lot 1,10.001,20.001,,,open,20,18,0,0,0,SAMPLE_CONFIG_V1
-sample,sample-lot-2,Sample Lot 2,10.002,20.0005,,,open,15,15,0,0,0,SAMPLE_CONFIG_V1
