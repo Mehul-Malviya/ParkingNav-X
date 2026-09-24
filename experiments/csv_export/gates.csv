@@ -1,3 +1,0 @@
-campus_id,gate_id,name,latitude,longitude,capacity,status,metadata,configuration_version
-vitap,vitap-gate-placeholder,Placeholder Gate (SAMPLE - not a confirmed real gate),16.4911715,80.5018052,30,open,{},VITAP_CONFIG_V1
-sample,sample-gate-1,Sample Gate 1,10.0,20.0,10,open,{},SAMPLE_CONFIG_V1

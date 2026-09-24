@@ -1,3 +1,0 @@
-campus_id,name,description,timezone,active_configuration_version,created_at
-vitap,VIT-AP University,"Amaravati, Andhra Pradesh, India.",Asia/Kolkata,VITAP_CONFIG_V1,2026-09-21T18:12:34.906553+00:00
-sample,Sample Campus,Fully fabricated development/test campus.,UTC,SAMPLE_CONFIG_V1,2026-09-21T18:12:34.920644+00:00

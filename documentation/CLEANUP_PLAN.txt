@@ -1,0 +1,87 @@
+================================================================================
+REPOSITORY CLEANUP PLAN
+================================================================================
+
+DUPLICATES & OLD FILES TO REMOVE:
+================================================================================
+
+1. OLD CAMPUS CONFIG
+   [REMOVE] configs/campuses/vitap.yaml (OLD v1 - replaced by vitap_v2.yaml)
+   [KEEP] configs/campuses/vitap_v2.yaml (NEW v2 - complete & fixed)
+
+2. OLD DATA
+   [REMOVE] data/vitap_dataset_prototype/ (old placeholder JSON, replaced by CSV)
+   [KEEP] data/vitap_occupancy_data_complete_30days.csv (production data)
+   [KEEP] data/vitap_gate_state_complete_30days.csv (production data)
+   [KEEP] data/vitap_road_state_complete_30days.csv (production data)
+   [KEEP] data/vitap_academic_calendar.csv (production data)
+   [KEEP] data/vitap_events.csv (production data)
+
+3. OLD IMPORT SCRIPTS
+   [REMOVE] import_complete_data.py (v1 - had errors, replaced by v2)
+   [KEEP] import_complete_data_v2.py (v2 - working, production-ready)
+
+4. GENERATOR SCRIPTS
+   [KEEP] data/generate_complete_occupancy_data.py (for reproducibility)
+
+5. SAMPLE/REFERENCE CONFIGS (optional - keep for examples)
+   [OPTIONAL] configs/campuses/sample.yaml (reference only)
+   [KEEP] configs/scenarios/vitap/ (current scenarios)
+   [OPTIONAL] configs/scenarios/sample/ (reference only)
+
+6. ARCHIVED CODE (already isolated)
+   [KEEP] legacy/ (archived code, not used)
+
+================================================================================
+PRODUCTION FILES TO KEEP
+================================================================================
+
+configs/campuses/
+├── vitap_v2.yaml (KEEP - production config)
+└── sample.yaml (optional - for reference)
+
+configs/scenarios/vitap/
+├── normal_day.yaml
+├── high_demand_event.yaml
+├── parking_closure.yaml
+├── gate_closure.yaml
+└── road_closure.yaml
+
+data/
+├── vitap_occupancy_data_complete_30days.csv (KEEP)
+├── vitap_gate_state_complete_30days.csv (KEEP)
+├── vitap_road_state_complete_30days.csv (KEEP)
+├── vitap_academic_calendar.csv (KEEP)
+├── vitap_events.csv (KEEP)
+└── generate_complete_occupancy_data.py (KEEP - for reproducibility)
+
+Root level:
+├── import_complete_data_v2.py (KEEP - working import script)
+└── DATASET_ORGANIZATION.txt (KEEP - documentation)
+
+docs/
+├── AUDIT_VIT_AP_CAMPUS_DATA.md (KEEP)
+├── PIN_TO_PIN_VALIDATION_CHECKLIST.md (KEEP)
+├── CAMPUS_DATA_STATUS_MATRIX.md (KEEP)
+└── VVIT_AP_DATA_COMPLETION_REPORT.md (KEEP)
+
+================================================================================
+EXECUTION PLAN
+================================================================================
+
+1. Archive old campus config
+   mv configs/campuses/vitap.yaml configs/campuses/vitap.yaml.old
+
+2. Remove old data prototype
+   rm -rf data/vitap_dataset_prototype
+
+3. Remove old import script
+   rm import_complete_data.py
+
+4. (Optional) Remove sample configs if not needed
+   rm configs/campuses/sample.yaml
+   rm -rf configs/scenarios/sample
+
+5. Clean up any other duplicates
+
+================================================================================
