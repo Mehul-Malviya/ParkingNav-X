@@ -1,6 +1,6 @@
 # Reusable prompt: generating a realistic synthetic dataset for a campus system
 
-Use this prompt (with an AI assistant that has code-execution ability, e.g. Claude Code)
+Use this prompt (with an AI assistant that has code-execution ability)
 whenever you need a "real-looking" dataset for a location where no public real-time
 data feed exists.
 

@@ -823,5 +823,4 @@ VIT-AP Amaravati: ~600 acres according to public sources = 240 hectares.
 
 **Document version:** 1.0  
 **Last updated:** 2026-09-24  
-**Auditor:** Claude Haiku 4.5  
 **Status:** Ready for action items

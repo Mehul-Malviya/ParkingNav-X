@@ -22,3 +22,4 @@ Thumbs.db
 # Local virtualenvs, if anyone creates one in-repo.
 .venv/
 venv/
+.claude/
