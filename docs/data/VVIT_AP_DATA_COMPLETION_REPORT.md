@@ -396,10 +396,8 @@ With complete campus config and historical data:
 - ✅ `data/vitap_events.csv` — 10 major events
 
 ### Documentation Files
-- ✅ `docs/AUDIT_VIT_AP_CAMPUS_DATA.md` — Complete audit (9 sections)
-- ✅ `docs/PIN_TO_PIN_VALIDATION_CHECKLIST.md` — Connectivity validation
-- ✅ `docs/CAMPUS_DATA_STATUS_MATRIX.md` — Feature matrix (40 components)
-- ✅ `docs/VITAP_DATA_COMPLETION_REPORT.md` — This file
+- ✅ `docs/data/VVIT_AP_DATA_COMPLETION_REPORT.md` — This file
+- ✅ `docs/data/PROVENANCE.md` — Real vs synthetic, field by field
 
 ---
 
