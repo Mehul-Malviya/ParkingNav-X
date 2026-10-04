@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.hypothesis/
 
 # The active system's SQLite database is created fresh on first use
 # (see digital_twin/db.py) and never committed -- it's local dev/test

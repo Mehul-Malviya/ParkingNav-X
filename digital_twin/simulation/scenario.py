@@ -26,6 +26,11 @@ class ScenarioConfig:
     availability_overrides: dict        # {"closed_gates": [], "closed_parking_lots": [], "closed_roads": []}
     prediction_error_injection_level: float
     random_seed: int
+    # Ablation flags (Phase 7, E6): control which components are active
+    use_prediction: bool = True         # Enable Member 2's occupancy forecasts
+    use_optimization: bool = True       # Enable Member 3's optimizer (vs. baseline)
+    use_uncertainty: bool = True        # Include uncertainty intervals in decisions
+    proactive: bool = True              # Use proactive routing (vs. reactive)
 
 
 class ScenarioLoader:
@@ -56,6 +61,10 @@ class ScenarioLoader:
             ),
             prediction_error_injection_level=raw.get("prediction_error_injection_level", 0.0),
             random_seed=raw["random_seed"],
+            use_prediction=raw.get("use_prediction", True),
+            use_optimization=raw.get("use_optimization", True),
+            use_uncertainty=raw.get("use_uncertainty", True),
+            proactive=raw.get("proactive", True),
         )
 
 

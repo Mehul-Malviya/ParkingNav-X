@@ -1,0 +1,37 @@
+# E2: High-demand event scenario (placement drive)
+# Main showcase: event-aware demand multiplier in action
+scenario_id: vitap-event-placement
+campus_id: vitap
+name: PLACEMENT_EVENT
+description: "Placement drive 9:30-11:00, demand multiplier 1.8x in academic zones"
+duration_minutes: 180
+vehicle_count: 100  # More vehicles to saturate
+arrival_rate_profile:
+  type: profile
+  points:
+    - { time: 0, rate: 0.15 }
+    - { time: 45, rate: 0.55 }  # 8:45 AM
+    - { time: 90, rate: 0.35 }  # 10:30 AM
+    - { time: 150, rate: 0.1 }
+
+event_conditions:
+  event_id: placement
+  demand_multiplier: 1.8
+  start_tick: 30  # 9:30 AM (assuming sim starts at 8:00)
+  duration_ticks: 90  # 2 hours
+  affected_zones: [academic, research]
+  compliance_rate: 0.85
+
+availability_overrides:
+  closed_gates: []
+  closed_parking_lots: []
+  closed_roads: []
+
+prediction_error_injection_level: 0.0
+random_seed: 42
+
+# Ablation flags (unused in phase 7, set for future E6)
+use_prediction: true
+use_optimization: true
+use_uncertainty: true
+proactive: true

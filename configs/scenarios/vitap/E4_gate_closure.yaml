@@ -1,0 +1,33 @@
+# E4: Gate closure during peak hours
+# Tests: queue buildup, diversion to other gates, extra travel
+scenario_id: vitap-gate-closure
+campus_id: vitap
+name: GATE_CLOSURE
+description: "Main gate closed 8:45-9:45 (peak), vehicles queued at backup gates"
+duration_minutes: 180
+vehicle_count: 80
+
+arrival_rate_profile:
+  type: profile
+  points:
+    - { time: 0, rate: 0.15 }
+    - { time: 45, rate: 0.55 }  # 8:45 AM (disruption starts)
+    - { time: 90, rate: 0.35 }  # 10:30 AM
+    - { time: 150, rate: 0.1 }
+
+event_conditions: null
+
+# Disruption: close Gate 1 throughout scenario (time-based closures are future work)
+availability_overrides:
+  closed_gates:
+    - vitap-gate-1
+  closed_parking_lots: []
+  closed_roads: []
+
+prediction_error_injection_level: 0.0
+random_seed: 44
+
+use_prediction: true
+use_optimization: true
+use_uncertainty: true
+proactive: true

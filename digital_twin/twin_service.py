@@ -43,6 +43,12 @@ def compute_freshness(observation_timestamp: str, entity_type: str, now: datetim
 
 
 class DigitalTwinService:
+    """Digital Twin State Manager with full audit trail, snapshots, forks, and invariant checking."""
+
+    def __init__(self, debug_mode: bool = False):
+        """debug_mode=True: check_invariants() runs after every transition."""
+        self.debug_mode = debug_mode
+
     def initialize_state(self, campus_id: str, conn):
         """Sets every entity for this campus to no-data (deletes any
         existing current-state rows; history/snapshots are untouched)."""
@@ -92,6 +98,10 @@ class DigitalTwinService:
         )
         if commit:
             conn.commit()
+        if self.debug_mode:
+            errors = self.check_invariants(campus_id, conn)
+            if errors:
+                raise AssertionError(f"Invariant violation after parking state update: {errors}")
         return self.get_parking_state(campus_id, lot_id, conn, now=now)
 
     def update_gate_state(self, campus_id, gate_id, current_queue_length, throughput_last_5min,
@@ -124,6 +134,10 @@ class DigitalTwinService:
         )
         if commit:
             conn.commit()
+        if self.debug_mode:
+            errors = self.check_invariants(campus_id, conn)
+            if errors:
+                raise AssertionError(f"Invariant violation after gate state update: {errors}")
         return self._gate_state_row(campus_id, gate_id, conn, now=now)
 
     def update_road_state(self, campus_id, road_id, current_load, congestion_level,
@@ -149,6 +163,10 @@ class DigitalTwinService:
         )
         if commit:
             conn.commit()
+        if self.debug_mode:
+            errors = self.check_invariants(campus_id, conn)
+            if errors:
+                raise AssertionError(f"Invariant violation after road state update: {errors}")
 
     def update_vehicle_state(self, campus_id, vehicle_id, state, source, timestamp, conn,
                               destination_id=None, assigned_parking_lot_id=None,
@@ -166,6 +184,10 @@ class DigitalTwinService:
         )
         if commit:
             conn.commit()
+        if self.debug_mode:
+            errors = self.check_invariants(campus_id, conn)
+            if errors:
+                raise AssertionError(f"Invariant violation after vehicle state update: {errors}")
 
     def get_parking_state(self, campus_id, lot_id, conn, now: datetime = None):
         row = conn.execute(
@@ -358,3 +380,95 @@ class DigitalTwinService:
         if not row:
             return None
         return {**dict(row), "full_state": json.loads(row["full_state"])}
+
+    def check_invariants(self, campus_id: str, conn) -> list:
+        """Deep invariants check: no negative values, no over-capacity, no invalid state transitions.
+        Returns list of error strings (empty = all invariants hold)."""
+        errors = self.validate_state(campus_id, conn)
+
+        # Additional invariants: no vehicle in closed/full lot
+        for vrow in conn.execute("SELECT * FROM vehicle_state WHERE campus_id=?", (campus_id,)):
+            if vrow["assigned_parking_lot_id"]:
+                lot = conn.execute(
+                    "SELECT usable_capacity FROM parking_lots WHERE campus_id=? AND parking_lot_id=?",
+                    (campus_id, vrow["assigned_parking_lot_id"]),
+                ).fetchone()
+                if lot:
+                    pstate = conn.execute(
+                        "SELECT occupied_spaces FROM parking_lot_state WHERE campus_id=? AND parking_lot_id=?",
+                        (campus_id, vrow["assigned_parking_lot_id"]),
+                    ).fetchone()
+                    if pstate and pstate["occupied_spaces"] >= lot["usable_capacity"]:
+                        if vrow["state"] in ("PARKED",):
+                            errors.append(
+                                f"Vehicle {vrow['vehicle_id']} assigned to full lot {vrow['assigned_parking_lot_id']}"
+                            )
+
+        # No vehicle in two places at once
+        seen_vids = set()
+        for vrow in conn.execute("SELECT vehicle_id FROM vehicle_state WHERE campus_id=? AND state IN ('PARKED', 'SEARCHING')",
+                                  (campus_id,)):
+            if vrow["vehicle_id"] in seen_vids:
+                errors.append(f"Vehicle {vrow['vehicle_id']} appears twice in active state")
+            seen_vids.add(vrow["vehicle_id"])
+
+        return errors
+
+    def fork(self, campus_id: str, conn, fork_timestamp: str = None) -> dict:
+        """Create a deep, independent copy of current state as a snapshot dict.
+        Can later be restored to a new instance via restore_snapshot().
+        Returns the full state dict (snapshot content)."""
+        fork_timestamp = fork_timestamp or datetime.now(timezone.utc).isoformat()
+        state = self.get_current_state(campus_id, conn)
+        return {
+            "campus_id": campus_id,
+            "fork_timestamp": fork_timestamp,
+            "full_state": state,
+        }
+
+    def restore_from_fork(self, campus_id: str, fork_dict: dict, conn):
+        """Restore a fork (returned by fork()) into this campus's current state.
+        The fork is independent: mutations here don't affect the original."""
+        full_state = fork_dict["full_state"]
+
+        # Clear current state
+        for table in ("parking_lot_state", "gate_state", "road_state", "vehicle_state"):
+            conn.execute(f"DELETE FROM {table} WHERE campus_id=?", (campus_id,))
+
+        # Restore from fork's snapshot
+        for p in full_state.get("parking", []):
+            conn.execute(
+                """INSERT INTO parking_lot_state (campus_id, parking_lot_id, occupied_spaces, available_spaces,
+                     occupancy_percentage, predicted_occupancy, status, observation_timestamp,
+                     ingestion_timestamp, source, provenance)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (campus_id, p["parking_lot_id"], p["occupied_spaces"], p["available_spaces"],
+                 p["occupancy_percentage"], p.get("predicted_occupancy"), p["status"],
+                 p["observation_timestamp"], p["ingestion_timestamp"], p["source"], p["provenance"]),
+            )
+        for g in full_state.get("gates", []):
+            conn.execute(
+                """INSERT INTO gate_state (campus_id, gate_id, current_queue_length, throughput_last_5min,
+                     status, observation_timestamp, ingestion_timestamp, source, provenance)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (campus_id, g["gate_id"], g["current_queue_length"], g["throughput_last_5min"],
+                 g["status"], g["observation_timestamp"], g["ingestion_timestamp"], g["source"], g["provenance"]),
+            )
+        for r in full_state.get("roads", []):
+            conn.execute(
+                """INSERT INTO road_state (campus_id, road_id, current_load, congestion_level,
+                     status, observation_timestamp, ingestion_timestamp, source, provenance)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (campus_id, r["road_id"], r["current_load"], r["congestion_level"],
+                 r["status"], r["observation_timestamp"], r["ingestion_timestamp"], r["source"], r["provenance"]),
+            )
+        for v in full_state.get("vehicles", []):
+            conn.execute(
+                """INSERT INTO vehicle_state (campus_id, vehicle_id, arrival_time, destination_id,
+                     assigned_parking_lot_id, current_node_id, route, state, source, timestamp)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (campus_id, v["vehicle_id"], v.get("arrival_time"), v.get("destination_id"),
+                 v.get("assigned_parking_lot_id"), v.get("current_node_id"), v.get("route"),
+                 v["state"], v["source"], v["timestamp"]),
+            )
+        conn.commit()

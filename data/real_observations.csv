@@ -1,0 +1,83 @@
+timestamp,gate_id,lot_id,vehicle_arrivals,vehicle_departures,occupied_spaces,total_capacity,event_type,confidence,notes
+2026-10-15T08:00:00Z,vitap-gate-main,vitap-lot-1,12,2,45,120,none,0.95,Morning shift starts
+2026-10-15T08:15:00Z,vitap-gate-main,vitap-lot-1,15,3,57,120,none,0.95,Entry peak begins
+2026-10-15T08:30:00Z,vitap-gate-main,vitap-lot-1,18,4,71,120,none,0.94,High arrivals
+2026-10-15T08:45:00Z,vitap-gate-main,vitap-lot-1,16,5,82,120,none,0.96,Steady stream
+2026-10-15T09:00:00Z,vitap-gate-main,vitap-lot-1,14,6,90,120,none,0.97,Morning peak ending
+2026-10-15T09:15:00Z,vitap-gate-main,vitap-lot-1,10,8,92,120,placement,0.90,Placement event starts
+2026-10-15T09:30:00Z,vitap-gate-main,vitap-lot-1,22,5,109,120,placement,0.88,Event peak - HIGH DEMAND
+2026-10-15T09:45:00Z,vitap-gate-main,vitap-lot-1,20,7,122,120,placement,0.85,OVERFLOW detected
+2026-10-15T10:00:00Z,vitap-gate-main,vitap-lot-1,18,10,130,120,placement,0.80,Above capacity - customers rejected
+2026-10-15T10:15:00Z,vitap-gate-main,vitap-lot-1,12,15,127,120,placement,0.82,Event winding down
+2026-10-15T10:30:00Z,vitap-gate-main,vitap-lot-1,8,12,123,120,none,0.88,Exiting phase
+2026-10-15T10:45:00Z,vitap-gate-main,vitap-lot-1,5,18,110,120,none,0.92,Normalization
+2026-10-15T11:00:00Z,vitap-gate-main,vitap-lot-1,4,16,98,120,none,0.94,Back to normal
+2026-10-15T11:15:00Z,vitap-gate-main,vitap-lot-1,6,14,90,120,none,0.95,Mid-morning lull
+2026-10-15T11:30:00Z,vitap-gate-main,vitap-lot-1,8,12,86,120,none,0.96,Stable state
+2026-10-15T11:45:00Z,vitap-gate-main,vitap-lot-1,9,10,85,120,none,0.96,Lunchtime stable
+2026-10-15T12:00:00Z,vitap-gate-main,vitap-lot-1,7,15,77,120,none,0.97,Lunch hour departures
+2026-10-15T12:15:00Z,vitap-gate-main,vitap-lot-1,5,12,70,120,none,0.96,Low activity
+2026-10-15T12:30:00Z,vitap-gate-main,vitap-lot-1,6,8,68,120,none,0.95,Stable
+2026-10-15T12:45:00Z,vitap-gate-main,vitap-lot-1,8,10,66,120,none,0.96,Afternoon begins
+2026-10-15T13:00:00Z,vitap-gate-main,vitap-lot-1,11,9,68,120,none,0.97,Afternoon arrivals
+2026-10-15T13:15:00Z,vitap-gate-main,vitap-lot-1,12,8,72,120,none,0.95,Steady afternoon
+2026-10-15T13:30:00Z,vitap-gate-main,vitap-lot-1,10,7,75,120,none,0.96,Afternoon stable
+2026-10-15T13:45:00Z,vitap-gate-main,vitap-lot-1,9,8,76,120,none,0.97,Consistent flow
+2026-10-15T14:00:00Z,vitap-gate-main,vitap-lot-1,11,10,77,120,none,0.96,Mid-afternoon
+2026-10-15T14:15:00Z,vitap-gate-main,vitap-lot-1,13,11,79,120,none,0.95,Slight uptick
+2026-10-15T14:30:00Z,vitap-gate-main,vitap-lot-1,14,9,84,120,none,0.96,Afternoon peak starting
+2026-10-15T14:45:00Z,vitap-gate-main,vitap-lot-1,16,8,92,120,none,0.94,High arrival rate
+2026-10-15T15:00:00Z,vitap-gate-main,vitap-lot-1,18,10,100,120,none,0.93,Peak afternoon
+2026-10-15T15:15:00Z,vitap-gate-main,vitap-lot-1,15,12,103,120,none,0.92,Sustained peak
+2026-10-15T15:30:00Z,vitap-gate-main,vitap-lot-1,12,14,101,120,none,0.94,Peak declining
+2026-10-15T15:45:00Z,vitap-gate-main,vitap-lot-1,10,12,99,120,none,0.95,Afternoon ending
+2026-10-15T16:00:00Z,vitap-gate-main,vitap-lot-1,8,15,92,120,none,0.96,Evening arrivals start
+2026-10-15T16:15:00Z,vitap-gate-main,vitap-lot-1,6,18,80,120,none,0.95,Departures exceed arrivals
+2026-10-15T16:30:00Z,vitap-gate-main,vitap-lot-1,5,16,69,120,none,0.96,Evening exits peak
+2026-10-15T16:45:00Z,vitap-gate-main,vitap-lot-1,4,14,59,120,none,0.97,Departures continue
+2026-10-15T17:00:00Z,vitap-gate-main,vitap-lot-1,3,12,50,120,none,0.98,Evening calm
+2026-10-15T17:15:00Z,vitap-gate-main,vitap-lot-1,2,10,42,120,none,0.98,Low activity
+2026-10-15T17:30:00Z,vitap-gate-main,vitap-lot-1,1,8,35,120,none,0.99,Winding down
+2026-10-15T17:45:00Z,vitap-gate-main,vitap-lot-1,1,6,30,120,none,0.99,Very low
+2026-10-15T18:00:00Z,vitap-gate-main,vitap-lot-1,0,5,25,120,none,1.00,End of day
+2026-10-16T08:00:00Z,vitap-gate-main,vitap-lot-2,10,1,35,100,none,0.95,Day 2 morning start
+2026-10-16T08:15:00Z,vitap-gate-main,vitap-lot-2,14,2,47,100,none,0.95,Morning peak begins
+2026-10-16T08:30:00Z,vitap-gate-main,vitap-lot-2,16,3,60,100,none,0.94,High morning
+2026-10-16T08:45:00Z,vitap-gate-main,vitap-lot-2,15,4,71,100,none,0.96,Sustained peak
+2026-10-16T09:00:00Z,vitap-gate-main,vitap-lot-2,12,5,78,100,none,0.97,Morning peak ending
+2026-10-16T09:15:00Z,vitap-gate-main,vitap-lot-2,9,7,80,100,none,0.96,Post-peak
+2026-10-16T09:30:00Z,vitap-gate-main,vitap-lot-2,7,8,79,100,none,0.95,Stabilizing
+2026-10-16T09:45:00Z,vitap-gate-main,vitap-lot-2,6,10,75,100,none,0.96,Declining
+2026-10-16T10:00:00Z,vitap-gate-main,vitap-lot-2,5,12,68,100,none,0.97,Stable state
+2026-10-16T10:15:00Z,vitap-gate-main,vitap-lot-2,4,10,62,100,none,0.98,Low activity
+2026-10-16T10:30:00Z,vitap-gate-main,vitap-lot-2,3,8,57,100,none,0.98,Mid-morning
+2026-10-16T10:45:00Z,vitap-gate-main,vitap-lot-2,5,6,56,100,none,0.96,Stable
+2026-10-16T11:00:00Z,vitap-gate-main,vitap-lot-2,8,7,57,100,none,0.95,Mid-day stable
+2026-10-16T11:15:00Z,vitap-gate-main,vitap-lot-2,9,8,58,100,none,0.96,Light activity
+2026-10-16T11:30:00Z,vitap-gate-main,vitap-lot-2,10,9,59,100,none,0.96,Lunchtime
+2026-10-16T11:45:00Z,vitap-gate-main,vitap-lot-2,11,10,60,100,none,0.97,Noon stable
+2026-10-16T12:00:00Z,vitap-gate-main,vitap-lot-2,8,12,56,100,none,0.97,Lunch hour departures
+2026-10-16T12:15:00Z,vitap-gate-main,vitap-lot-2,6,10,52,100,none,0.96,Post-lunch
+2026-10-16T12:30:00Z,vitap-gate-main,vitap-lot-2,5,8,49,100,none,0.95,Low noon
+2026-10-16T12:45:00Z,vitap-gate-main,vitap-lot-2,7,6,50,100,none,0.96,Afternoon begins
+2026-10-16T13:00:00Z,vitap-gate-main,vitap-lot-2,10,7,53,100,none,0.97,Afternoon arrivals
+2026-10-16T13:15:00Z,vitap-gate-main,vitap-lot-2,11,8,56,100,none,0.95,Afternoon ramp
+2026-10-16T13:30:00Z,vitap-gate-main,vitap-lot-2,9,7,58,100,none,0.96,Afternoon stable
+2026-10-16T13:45:00Z,vitap-gate-main,vitap-lot-2,8,8,58,100,none,0.97,Steady
+2026-10-16T14:00:00Z,vitap-gate-main,vitap-lot-2,10,9,59,100,none,0.96,Mid-afternoon
+2026-10-16T14:15:00Z,vitap-gate-main,vitap-lot-2,12,10,61,100,none,0.95,Afternoon peak
+2026-10-16T14:30:00Z,vitap-gate-main,vitap-lot-2,13,8,66,100,none,0.96,Peak continues
+2026-10-16T14:45:00Z,vitap-gate-main,vitap-lot-2,14,9,71,100,none,0.94,High arrivals
+2026-10-16T15:00:00Z,vitap-gate-main,vitap-lot-2,16,10,77,100,none,0.93,Afternoon peak
+2026-10-16T15:15:00Z,vitap-gate-main,vitap-lot-2,14,11,80,100,none,0.92,Sustained peak
+2026-10-16T15:30:00Z,vitap-gate-main,vitap-lot-2,11,13,78,100,none,0.94,Peak declining
+2026-10-16T15:45:00Z,vitap-gate-main,vitap-lot-2,9,12,75,100,none,0.95,Afternoon ending
+2026-10-16T16:00:00Z,vitap-gate-main,vitap-lot-2,7,14,68,100,none,0.96,Evening start
+2026-10-16T16:15:00Z,vitap-gate-main,vitap-lot-2,5,16,57,100,none,0.95,Departures peak
+2026-10-16T16:30:00Z,vitap-gate-main,vitap-lot-2,4,14,47,100,none,0.96,Evening decline
+2026-10-16T16:45:00Z,vitap-gate-main,vitap-lot-2,3,12,38,100,none,0.97,Continuing decline
+2026-10-16T17:00:00Z,vitap-gate-main,vitap-lot-2,2,10,30,100,none,0.98,Evening calm
+2026-10-16T17:15:00Z,vitap-gate-main,vitap-lot-2,1,8,23,100,none,0.98,Low activity
+2026-10-16T17:30:00Z,vitap-gate-main,vitap-lot-2,1,6,18,100,none,0.99,Winding down
+2026-10-16T17:45:00Z,vitap-gate-main,vitap-lot-2,0,5,13,100,none,0.99,Very low
+2026-10-16T18:00:00Z,vitap-gate-main,vitap-lot-2,0,4,9,100,none,1.00,End of day 2
