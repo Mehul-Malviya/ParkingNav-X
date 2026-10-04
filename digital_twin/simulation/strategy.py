@@ -22,6 +22,7 @@ class Vehicle:
     entry_gate: str
     destination_id: Optional[str]
     arrival_tick: int
+    complies_with_strategy: bool = True  # False = ignores strategy, goes to nearest lot
 
 
 @dataclass
@@ -50,6 +51,18 @@ class AllocationStrategy(ABC):
         return which parking lot (and optionally gate/route) this vehicle
         should use. Implemented by teammates, NOT by this module."""
 
+    def update_policy(self, state_snapshot: dict, forecast: dict = None) -> None:
+        """Called every 5 minutes (decision cycle). Strategy can update its
+        internal policy/parameters based on current state and Member 2's forecast.
+
+        Args:
+            state_snapshot: full campus state snapshot (JSON-serializable)
+            forecast: predicted state 15/30 min ahead (or None if unavailable)
+
+        Default: no-op. B1/B2 don't use forecasts; Member 3's optimizer overrides.
+        """
+        pass
+
 
 class FixedLotStrategy(AllocationStrategy):
     """Test-only strategy: always assigns the configured lot, regardless
@@ -60,3 +73,52 @@ class FixedLotStrategy(AllocationStrategy):
 
     def assign(self, vehicle: Vehicle, campus_state: CampusState) -> AssignmentResult:
         return AssignmentResult(parking_lot_id=self.lot_id, gate_id=vehicle.entry_gate)
+
+
+class FirstAvailableStrategy(AllocationStrategy):
+    """B1 Baseline: assign first open, non-full lot (in sorted order).
+
+    Deterministic: always picks the same lot for identical state.
+    Simple: no optimization, no forecasting.
+    """
+
+    def assign(self, vehicle: Vehicle, campus_state: CampusState) -> AssignmentResult:
+        for lot_id in sorted(campus_state.parking_lots.keys()):
+            lot = campus_state.parking_lots[lot_id]
+            if (lot["status"] == "open" and
+                lot["occupied_spaces"] < lot["usable_capacity"]):
+                return AssignmentResult(parking_lot_id=lot_id)
+        return AssignmentResult(parking_lot_id=None)
+
+
+class NearestAvailableStrategy(AllocationStrategy):
+    """B2 Baseline: assign nearest open, non-full lot by shortest path distance.
+
+    Greedy: minimize immediate travel time.
+    Deterministic: breaks ties by lot_id order.
+    """
+
+    def assign(self, vehicle: Vehicle, campus_state: CampusState) -> AssignmentResult:
+        import networkx as nx
+
+        candidates = []
+        for lot_id in campus_state.parking_lots.keys():
+            lot = campus_state.parking_lots[lot_id]
+            if (lot["status"] == "open" and
+                lot["occupied_spaces"] < lot["usable_capacity"]):
+                try:
+                    dist = nx.shortest_path_length(
+                        campus_state.graph,
+                        vehicle.entry_gate,
+                        lot_id,
+                        weight="weight_distance_meters"
+                    )
+                    candidates.append((dist, lot_id))
+                except (nx.NetworkXNoPath, nx.NodeNotFound):
+                    continue
+
+        if not candidates:
+            return AssignmentResult(parking_lot_id=None)
+
+        candidates.sort()
+        return AssignmentResult(parking_lot_id=candidates[0][1])

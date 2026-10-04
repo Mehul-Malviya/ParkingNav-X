@@ -20,6 +20,7 @@ occupying this edge for N ticks" model is a drop-in replacement later.
 
 import json
 import random
+import signal
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -27,12 +28,20 @@ from typing import Optional
 
 import networkx as nx
 
+from digital_twin.simulation.metrics_recorder import MetricsRecorder
+
 from digital_twin.graph_service import CampusGraphService
 from digital_twin.simulation.scenario import ScenarioConfig
-from digital_twin.simulation.strategy import AllocationStrategy, CampusState, Vehicle
+from digital_twin.simulation.strategy import AllocationStrategy, AssignmentResult, CampusState, Vehicle, NearestAvailableStrategy
 from digital_twin.twin_service import DigitalTwinService
 
 DWELL_MINUTES_RANGE = (20, 180)
+STRATEGY_TIMEOUT_MS = 1000  # 1 second timeout for strategy.assign()
+
+
+class StrategyTimeoutError(Exception):
+    """Raised when strategy exceeds time budget."""
+    pass
 
 
 @dataclass
@@ -63,6 +72,8 @@ class SimulationResult:
     vehicles: list = field(default_factory=list)     # list of per-vehicle metric dicts
     timesteps: list = field(default_factory=list)    # list of per-timestep metric dicts
     overflow_events: list = field(default_factory=list)
+    infeasibility_rejections: int = 0                # count of assignments rejected due to infeasibility
+    adapter_fallbacks: int = 0                       # count of fallbacks to B2 due to timeout/exception
 
 
 def _congestion_level(load: int, capacity) -> str:
@@ -137,8 +148,18 @@ class SimulationEngine:
         timesteps_metrics = []
         overflow_events = []
         road_load = {r: 0 for r in roads}
+        decision_latencies = []  # log (tick, latency_ms)
+        infeasibility_rejections = 0  # count of assignments rejected as infeasible
+        adapter_fallbacks = 0  # count of fallbacks to B2
 
         for tick in range(scenario.duration_minutes):
+            # Decision cycle: every 5 minutes, call strategy.update_policy()
+            if tick % 5 == 0:
+                decision_start = datetime.now(timezone.utc)
+                state_snapshot = self.twin_service.get_current_state(scenario.campus_id, conn, now=decision_start)
+                strategy.update_policy(state_snapshot, forecast=None)  # No forecast yet (Member 2's job)
+                decision_latency_ms = (datetime.now(timezone.utc) - decision_start).total_seconds() * 1000
+                decision_latencies.append({"tick": tick, "latency_ms": round(decision_latency_ms, 2)})
             for rv in running_vehicles:
                 if rv.vehicle.arrival_tick == tick and rv.state == "arrival":
                     if rv.vehicle.entry_gate in open_gate_ids:
@@ -190,7 +211,21 @@ class SimulationEngine:
                         gates={k: dict(v) for k, v in gates.items()},
                         roads={k: dict(v) for k, v in roads.items()},
                     )
-                    result = strategy.assign(rv.vehicle, state_view)
+
+                    # Compliance-based assignment: strategy vs. nearest-lot
+                    fallback_reason = None
+                    if rv.vehicle.complies_with_strategy:
+                        result, fallback_reason = self._assign_with_adapter(
+                            strategy, rv.vehicle, state_view, parking_lots, open_lot_ids, working_graph
+                        )
+                        if fallback_reason:
+                            adapter_fallbacks += 1
+                    else:
+                        # Non-compliant: go to nearest available lot
+                        nearest = self._nearest_available_lot(
+                            rv.vehicle.entry_gate, open_lot_ids, parking_lots, working_graph
+                        )
+                        result = AssignmentResult(parking_lot_id=nearest)
                     rv.search_end_tick = tick
 
                     lot = parking_lots.get(result.parking_lot_id) if result else None
@@ -198,6 +233,13 @@ class SimulationEngine:
                         lot is not None and lot["status"] == "open"
                         and lot["occupied_spaces"] < lot["usable_capacity"]
                     )
+
+                    # Feasibility guard: verify assignment against live twin state
+                    if result and not feasible:
+                        infeasibility_rejections += 1
+                        rv.state = "completed"  # failed assignment; no retry
+                        overflow_events.append({"tick": tick, "parking_lot_id": result.parking_lot_id, "reason": "infeasible"})
+                        continue
 
                     if feasible:
                         lot["occupied_spaces"] += 1
@@ -309,20 +351,51 @@ class SimulationEngine:
         )
         conn.commit()
 
+        # Record metrics to disk (Phase 8)
+        recorder = MetricsRecorder()
+        try:
+            recorder.record_run(
+                scenario_id=scenario.scenario_id,
+                strategy_name=strategy_name,
+                seed=scenario.random_seed,
+                vehicle_metrics=vehicle_metrics,
+                timestep_metrics=timesteps_metrics,
+                overflow_events=overflow_events,
+                config_dict={"campus_id": scenario.campus_id},
+                decision_latencies=decision_latencies,
+            )
+        except Exception as e:
+            print(f"Warning: metrics recording failed: {e}")
+
         return SimulationResult(
             run_id=run_id, campus_id=scenario.campus_id, scenario_id=scenario.scenario_id,
             random_seed=scenario.random_seed, strategy_name=strategy_name,
             vehicles=vehicle_metrics, timesteps=timesteps_metrics, overflow_events=overflow_events,
-        )
+            infeasibility_rejections=infeasibility_rejections, adapter_fallbacks=adapter_fallbacks,
+        ) # decision_latencies logged above, available for analysis
 
     @staticmethod
     def _generate_arrivals(scenario: ScenarioConfig, rng: random.Random, open_gate_ids, destination_ids) -> list:
         """Deterministic given rng: arrival ticks are weighted by the
-        scenario's arrival_rate_profile shape, entry gate and destination
-        are chosen uniformly via the same seeded rng -- never a fresh,
-        unseeded random call anywhere."""
+        scenario's arrival_rate_profile shape, event-aware demand multiplier,
+        entry gate and destination are chosen uniformly via the same seeded rng.
+
+        Event-aware demand: if event_conditions exists, applies its demand_multiplier
+        to the arrival rate profile during the event window."""
         ticks = list(range(scenario.duration_minutes))
+
+        # Base arrival rate per tick
         weights = [max(0.0001, _arrival_rate_at(scenario.arrival_rate_profile, t)) for t in ticks]
+
+        # Apply event-aware demand multiplier if event is active
+        if scenario.event_conditions:
+            multiplier = scenario.event_conditions.get("demand_multiplier", 1.0)
+            event_start = scenario.event_conditions.get("start_tick", 0)
+            event_duration = scenario.event_conditions.get("duration_ticks", 0)
+            event_end = event_start + event_duration
+            for t in ticks:
+                if event_start <= t < event_end:
+                    weights[t] *= multiplier
 
         vehicles = []
         if not open_gate_ids or scenario.vehicle_count == 0:
@@ -332,10 +405,12 @@ class SimulationEngine:
         for i, tick in enumerate(arrival_ticks):
             gate_id = rng.choice(sorted(open_gate_ids))
             destination_id = rng.choice(sorted(destination_ids)) if destination_ids else None
+            compliance = rng.random() < scenario.event_conditions.get("compliance_rate", 0.85) if scenario.event_conditions else True
             vehicles.append(_RunningVehicle(
                 vehicle=Vehicle(
                     vehicle_id=f"{scenario.scenario_id}-v{i}",
                     entry_gate=gate_id, destination_id=destination_id, arrival_tick=tick,
+                    complies_with_strategy=compliance,
                 )
             ))
         return vehicles
@@ -401,3 +476,64 @@ class SimulationEngine:
         if not open_lot_ids:
             return None
         return sorted(open_lot_ids)[0]
+
+    @staticmethod
+    def _nearest_available_lot(from_node, open_lot_ids, parking_lots, graph):
+        """Non-compliant driver behavior: find nearest open, non-full lot.
+        Uses shortest path distance from current node."""
+        if not open_lot_ids:
+            return None
+        candidates = [
+            (lot_id, nx.shortest_path_length(graph, from_node, lot_id, weight="weight_distance_meters"))
+            for lot_id in open_lot_ids
+            if lot_id in graph and parking_lots[lot_id]["occupied_spaces"] < parking_lots[lot_id]["usable_capacity"]
+        ]
+        if not candidates:
+            return None
+        return min(candidates, key=lambda x: x[1])[0]
+
+    @staticmethod
+    def _assign_with_adapter(strategy: AllocationStrategy, vehicle: Vehicle,
+                             campus_state: CampusState, parking_lots: dict,
+                             open_lot_ids: list, graph) -> tuple:
+        """Adapter pattern: wrap strategy.assign() with timeout + fallback + validation.
+
+        Returns: (AssignmentResult, fallback_reason or None)
+
+        Fallback triggers (apply B2 Nearest-Available):
+        1. Strategy raises exception
+        2. Strategy exceeds time budget
+        3. Strategy returns infeasible result (lot closed/full)
+        """
+        fallback_reason = None
+        result = None
+
+        try:
+            assign_start = datetime.now(timezone.utc)
+            result = strategy.assign(vehicle, campus_state)
+            assign_time_ms = (datetime.now(timezone.utc) - assign_start).total_seconds() * 1000
+
+            # Check timeout
+            if assign_time_ms > STRATEGY_TIMEOUT_MS:
+                fallback_reason = f"timeout_{assign_time_ms:.0f}ms"
+                result = None
+            # Check feasibility
+            elif result and result.parking_lot_id:
+                lot = parking_lots.get(result.parking_lot_id)
+                if not lot or lot["status"] != "open" or lot["occupied_spaces"] >= lot["usable_capacity"]:
+                    fallback_reason = f"infeasible_{result.parking_lot_id}"
+                    result = None
+
+        except Exception as e:
+            fallback_reason = f"exception_{type(e).__name__}"
+            result = None
+
+        # Fallback to B2 (Nearest-Available) if any trigger fired
+        if fallback_reason:
+            try:
+                b2_strategy = NearestAvailableStrategy()
+                result = b2_strategy.assign(vehicle, campus_state)
+            except Exception:
+                result = None
+
+        return result, fallback_reason

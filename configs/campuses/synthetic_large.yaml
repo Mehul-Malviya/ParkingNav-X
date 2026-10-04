@@ -1,0 +1,577 @@
+# Synthetic Large Campus - Generalization Proof
+# ================================================
+# Purpose: Demonstrates that the config loader & graph service work
+# with a DIFFERENT topology (3 gates, 6 lots, new coordinate system)
+# with ZERO code changes. Purely synthetic for testing scalability.
+
+campus:
+  campus_id: synthetic_large
+  name: Synthetic Large Campus
+  description: Fabricated multi-gate, multi-lot test campus to verify generalization
+  timezone: UTC
+  configuration_version: SYNTHETIC_LARGE_V1
+
+# =====================================================
+# GATES (3 entry points - different from sample/vitap)
+# =====================================================
+gates:
+  - gate_id: syn-gate-north
+    name: "North Gate"
+    latitude: 20.0000
+    longitude: 75.0000
+    capacity: 50
+    status: open
+    metadata:
+      gate_type: "main"
+      peak_throughput_per_hour: 180
+
+  - gate_id: syn-gate-south
+    name: "South Gate"
+    latitude: 19.9700
+    longitude: 75.0100
+    capacity: 40
+    status: open
+    metadata:
+      gate_type: "secondary"
+      peak_throughput_per_hour: 120
+
+  - gate_id: syn-gate-east
+    name: "East Gate"
+    latitude: 19.9850
+    longitude: 75.0300
+    capacity: 35
+    status: open
+    metadata:
+      gate_type: "service"
+      peak_throughput_per_hour: 90
+
+# =====================================================
+# PARKING LOTS (6 zones - different sizes & locations)
+# =====================================================
+parking_lots:
+  - parking_lot_id: syn-lot-north-primary
+    name: "North Primary Lot"
+    latitude: 19.9950
+    longitude: 75.0050
+    zone: "north_zone"
+    total_capacity: 150
+    usable_capacity: 135
+    reserved_capacity: 10
+    restricted_capacity: 5
+    temporarily_unavailable_capacity: 0
+    status: open
+
+  - parking_lot_id: syn-lot-north-secondary
+    name: "North Secondary Lot"
+    latitude: 19.9900
+    longitude: 75.0080
+    zone: "north_zone"
+    total_capacity: 100
+    usable_capacity: 90
+    reserved_capacity: 7
+    restricted_capacity: 3
+    temporarily_unavailable_capacity: 0
+    status: open
+
+  - parking_lot_id: syn-lot-central
+    name: "Central Lot"
+    latitude: 19.9850
+    longitude: 75.0100
+    zone: "central_zone"
+    total_capacity: 200
+    usable_capacity: 180
+    reserved_capacity: 15
+    restricted_capacity: 5
+    temporarily_unavailable_capacity: 0
+    status: open
+
+  - parking_lot_id: syn-lot-south-primary
+    name: "South Primary Lot"
+    latitude: 19.9750
+    longitude: 75.0120
+    zone: "south_zone"
+    total_capacity: 140
+    usable_capacity: 126
+    reserved_capacity: 10
+    restricted_capacity: 4
+    temporarily_unavailable_capacity: 0
+    status: open
+
+  - parking_lot_id: syn-lot-south-secondary
+    name: "South Secondary Lot"
+    latitude: 19.9700
+    longitude: 75.0080
+    zone: "south_zone"
+    total_capacity: 90
+    usable_capacity: 81
+    reserved_capacity: 6
+    restricted_capacity: 3
+    temporarily_unavailable_capacity: 0
+    status: open
+
+  - parking_lot_id: syn-lot-east
+    name: "East Lot"
+    latitude: 19.9900
+    longitude: 75.0250
+    zone: "east_zone"
+    total_capacity: 110
+    usable_capacity: 99
+    reserved_capacity: 8
+    restricted_capacity: 3
+    temporarily_unavailable_capacity: 0
+    status: open
+
+# =====================================================
+# DESTINATIONS (6 buildings across zones)
+# =====================================================
+destinations:
+  - destination_id: syn-dest-north-academic
+    name: "North Academic Building"
+    category: academic_block
+    latitude: 19.9960
+    longitude: 75.0040
+    nearest_gate_ids: [syn-gate-north, syn-gate-east]
+    nearest_parking_lot_ids: [syn-lot-north-primary, syn-lot-north-secondary]
+
+  - destination_id: syn-dest-north-admin
+    name: "North Administrative Office"
+    category: administrative_building
+    latitude: 19.9920
+    longitude: 75.0070
+    nearest_gate_ids: [syn-gate-north]
+    nearest_parking_lot_ids: [syn-lot-north-secondary, syn-lot-north-primary]
+
+  - destination_id: syn-dest-central-hub
+    name: "Central Hub"
+    category: academic_block
+    latitude: 19.9850
+    longitude: 75.0100
+    nearest_gate_ids: [syn-gate-north, syn-gate-south, syn-gate-east]
+    nearest_parking_lot_ids: [syn-lot-central, syn-lot-north-primary, syn-lot-south-primary]
+
+  - destination_id: syn-dest-south-academic
+    name: "South Academic Building"
+    category: academic_block
+    latitude: 19.9760
+    longitude: 75.0130
+    nearest_gate_ids: [syn-gate-south, syn-gate-east]
+    nearest_parking_lot_ids: [syn-lot-south-primary, syn-lot-central]
+
+  - destination_id: syn-dest-south-hostel
+    name: "South Hostel Complex"
+    category: hostel
+    latitude: 19.9710
+    longitude: 75.0090
+    nearest_gate_ids: [syn-gate-south]
+    nearest_parking_lot_ids: [syn-lot-south-secondary, syn-lot-south-primary]
+
+  - destination_id: syn-dest-east-facility
+    name: "East Service Facility"
+    category: administrative_building
+    latitude: 19.9900
+    longitude: 75.0260
+    nearest_gate_ids: [syn-gate-east]
+    nearest_parking_lot_ids: [syn-lot-east, syn-lot-central]
+
+# =====================================================
+# ROADS (bidirectional network connecting all zones)
+# =====================================================
+roads:
+  # North zone
+  - road_id: syn-road-gate-north-to-north-primary
+    name: "North Gate to North Primary Lot"
+    start_node_id: syn-gate-north
+    end_node_id: syn-lot-north-primary
+    length_meters: 200
+    expected_travel_time_seconds: 60
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 20.0000, lng: 75.0000 }
+      - { lat: 19.9970, lng: 75.0020 }
+      - { lat: 19.9950, lng: 75.0050 }
+
+  - road_id: syn-road-north-primary-to-north-secondary
+    name: "North Primary to North Secondary Lot"
+    start_node_id: syn-lot-north-primary
+    end_node_id: syn-lot-north-secondary
+    length_meters: 150
+    expected_travel_time_seconds: 45
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 19.9950, lng: 75.0050 }
+      - { lat: 19.9920, lng: 75.0070 }
+      - { lat: 19.9900, lng: 75.0080 }
+
+  # Central zone
+  - road_id: syn-road-north-secondary-to-central
+    name: "North Secondary to Central Lot"
+    start_node_id: syn-lot-north-secondary
+    end_node_id: syn-lot-central
+    length_meters: 180
+    expected_travel_time_seconds: 54
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 19.9900, lng: 75.0080 }
+      - { lat: 19.9875, lng: 75.0090 }
+      - { lat: 19.9850, lng: 75.0100 }
+
+  - road_id: syn-road-gate-south-to-south-primary
+    name: "South Gate to South Primary Lot"
+    start_node_id: syn-gate-south
+    end_node_id: syn-lot-south-primary
+    length_meters: 220
+    expected_travel_time_seconds: 66
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 19.9700, lng: 75.0100 }
+      - { lat: 19.9725, lng: 75.0110 }
+      - { lat: 19.9750, lng: 75.0120 }
+
+  # South zone
+  - road_id: syn-road-south-primary-to-south-secondary
+    name: "South Primary to South Secondary Lot"
+    start_node_id: syn-lot-south-primary
+    end_node_id: syn-lot-south-secondary
+    length_meters: 140
+    expected_travel_time_seconds: 42
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 19.9750, lng: 75.0120 }
+      - { lat: 19.9725, lng: 75.0100 }
+      - { lat: 19.9700, lng: 75.0080 }
+
+  - road_id: syn-road-south-secondary-to-central
+    name: "South Secondary to Central Lot"
+    start_node_id: syn-lot-south-secondary
+    end_node_id: syn-lot-central
+    length_meters: 190
+    expected_travel_time_seconds: 57
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 19.9700, lng: 75.0080 }
+      - { lat: 19.9775, lng: 75.0090 }
+      - { lat: 19.9850, lng: 75.0100 }
+
+  # East zone
+  - road_id: syn-road-gate-east-to-east-lot
+    name: "East Gate to East Lot"
+    start_node_id: syn-gate-east
+    end_node_id: syn-lot-east
+    length_meters: 160
+    expected_travel_time_seconds: 48
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 19.9850, lng: 75.0300 }
+      - { lat: 19.9900, lng: 75.0275 }
+      - { lat: 19.9900, lng: 75.0250 }
+
+  - road_id: syn-road-central-to-east
+    name: "Central to East Lot"
+    start_node_id: syn-lot-central
+    end_node_id: syn-lot-east
+    length_meters: 210
+    expected_travel_time_seconds: 63
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 19.9850, lng: 75.0100 }
+      - { lat: 19.9875, lng: 75.0175 }
+      - { lat: 19.9900, lng: 75.0250 }
+
+# =====================================================
+# EDGES (routing graph - bidirectional)
+# =====================================================
+edges:
+  # North zone edges (bidirectional)
+  - from_node_id: syn-gate-north
+    to_node_id: syn-lot-north-primary
+    road_id: syn-road-gate-north-to-north-primary
+    weight_time_seconds: 60
+    weight_distance_meters: 200
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-north-primary
+    to_node_id: syn-gate-north
+    road_id: syn-road-gate-north-to-north-primary
+    weight_time_seconds: 60
+    weight_distance_meters: 200
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-north-primary
+    to_node_id: syn-lot-north-secondary
+    road_id: syn-road-north-primary-to-north-secondary
+    weight_time_seconds: 45
+    weight_distance_meters: 150
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-north-secondary
+    to_node_id: syn-lot-north-primary
+    road_id: syn-road-north-primary-to-north-secondary
+    weight_time_seconds: 45
+    weight_distance_meters: 150
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  # Central zone edges (bidirectional)
+  - from_node_id: syn-lot-north-secondary
+    to_node_id: syn-lot-central
+    road_id: syn-road-north-secondary-to-central
+    weight_time_seconds: 54
+    weight_distance_meters: 180
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-central
+    to_node_id: syn-lot-north-secondary
+    road_id: syn-road-north-secondary-to-central
+    weight_time_seconds: 54
+    weight_distance_meters: 180
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  # South zone edges (bidirectional)
+  - from_node_id: syn-gate-south
+    to_node_id: syn-lot-south-primary
+    road_id: syn-road-gate-south-to-south-primary
+    weight_time_seconds: 66
+    weight_distance_meters: 220
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-south-primary
+    to_node_id: syn-gate-south
+    road_id: syn-road-gate-south-to-south-primary
+    weight_time_seconds: 66
+    weight_distance_meters: 220
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-south-primary
+    to_node_id: syn-lot-south-secondary
+    road_id: syn-road-south-primary-to-south-secondary
+    weight_time_seconds: 42
+    weight_distance_meters: 140
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-south-secondary
+    to_node_id: syn-lot-south-primary
+    road_id: syn-road-south-primary-to-south-secondary
+    weight_time_seconds: 42
+    weight_distance_meters: 140
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-south-secondary
+    to_node_id: syn-lot-central
+    road_id: syn-road-south-secondary-to-central
+    weight_time_seconds: 57
+    weight_distance_meters: 190
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-central
+    to_node_id: syn-lot-south-secondary
+    road_id: syn-road-south-secondary-to-central
+    weight_time_seconds: 57
+    weight_distance_meters: 190
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  # East zone edges (bidirectional)
+  - from_node_id: syn-gate-east
+    to_node_id: syn-lot-east
+    road_id: syn-road-gate-east-to-east-lot
+    weight_time_seconds: 48
+    weight_distance_meters: 160
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-east
+    to_node_id: syn-gate-east
+    road_id: syn-road-gate-east-to-east-lot
+    weight_time_seconds: 48
+    weight_distance_meters: 160
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-central
+    to_node_id: syn-lot-east
+    road_id: syn-road-central-to-east
+    weight_time_seconds: 63
+    weight_distance_meters: 210
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: syn-lot-east
+    to_node_id: syn-lot-central
+    road_id: syn-road-central-to-east
+    weight_time_seconds: 63
+    weight_distance_meters: 210
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  # Destination nodes connectivity (walkable paths)
+  - from_node_id: syn-lot-north-primary
+    to_node_id: syn-dest-north-academic
+    road_id: syn-road-gate-north-to-north-primary
+    weight_time_seconds: 120
+    weight_distance_meters: 300
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-dest-north-academic
+    to_node_id: syn-lot-north-primary
+    road_id: syn-road-gate-north-to-north-primary
+    weight_time_seconds: 120
+    weight_distance_meters: 300
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-lot-north-secondary
+    to_node_id: syn-dest-north-admin
+    road_id: syn-road-north-primary-to-north-secondary
+    weight_time_seconds: 90
+    weight_distance_meters: 250
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-dest-north-admin
+    to_node_id: syn-lot-north-secondary
+    road_id: syn-road-north-primary-to-north-secondary
+    weight_time_seconds: 90
+    weight_distance_meters: 250
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-lot-central
+    to_node_id: syn-dest-central-hub
+    road_id: syn-road-north-secondary-to-central
+    weight_time_seconds: 100
+    weight_distance_meters: 280
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-dest-central-hub
+    to_node_id: syn-lot-central
+    road_id: syn-road-north-secondary-to-central
+    weight_time_seconds: 100
+    weight_distance_meters: 280
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-lot-south-primary
+    to_node_id: syn-dest-south-academic
+    road_id: syn-road-gate-south-to-south-primary
+    weight_time_seconds: 110
+    weight_distance_meters: 320
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-dest-south-academic
+    to_node_id: syn-lot-south-primary
+    road_id: syn-road-gate-south-to-south-primary
+    weight_time_seconds: 110
+    weight_distance_meters: 320
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-lot-south-secondary
+    to_node_id: syn-dest-south-hostel
+    road_id: syn-road-south-primary-to-south-secondary
+    weight_time_seconds: 95
+    weight_distance_meters: 270
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-dest-south-hostel
+    to_node_id: syn-lot-south-secondary
+    road_id: syn-road-south-primary-to-south-secondary
+    weight_time_seconds: 95
+    weight_distance_meters: 270
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-lot-east
+    to_node_id: syn-dest-east-facility
+    road_id: syn-road-gate-east-to-east-lot
+    weight_time_seconds: 85
+    weight_distance_meters: 240
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: syn-dest-east-facility
+    to_node_id: syn-lot-east
+    road_id: syn-road-gate-east-to-east-lot
+    weight_time_seconds: 85
+    weight_distance_meters: 240
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+# =====================================================
+# EVENTS (optional scenario triggers)
+# =====================================================
+events:
+  - event_id: syn-event-peak
+    event_type: peak_hours
+    name: "Peak Hours"
+    start_time: "2026-10-06T08:00:00Z"
+    end_time: "2026-10-06T10:00:00Z"
+    expected_demand_multiplier: 1.8
+    affected_zones: [north_zone, central_zone, south_zone]
+    status: scheduled
+
+  - event_id: syn-event-exam
+    event_type: exam
+    name: "Exam Period"
+    start_time: "2026-10-15T08:00:00Z"
+    end_time: "2026-10-20T18:00:00Z"
+    expected_demand_multiplier: 2.0
+    affected_zones: [central_zone]
+    status: scheduled

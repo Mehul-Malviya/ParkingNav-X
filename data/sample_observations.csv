@@ -1,0 +1,14 @@
+timestamp,gate_id,lot_id,vehicle_arrivals,vehicle_departures,occupied_spaces,total_capacity,event_type,confidence,notes
+2026-10-15T08:00:00Z,vitap-gate-main,vitap-lot-1,12,2,45,120,none,0.95,Morning entry peak starting
+2026-10-15T08:15:00Z,vitap-gate-main,vitap-lot-1,15,3,57,120,none,0.95,Steady arrivals
+2026-10-15T08:30:00Z,vitap-gate-main,vitap-lot-1,18,5,70,120,none,0.93,Peak morning rush
+2026-10-15T08:45:00Z,vitap-gate-main,vitap-lot-1,16,4,82,120,none,0.94,Still high arrival
+2026-10-15T09:00:00Z,vitap-gate-main,vitap-lot-1,14,6,90,120,none,0.96,Arrival rate declining
+2026-10-15T09:15:00Z,vitap-gate-main,vitap-lot-1,10,8,92,120,placement,0.90,Event starting: placement drive
+2026-10-15T09:30:00Z,vitap-gate-main,vitap-lot-1,22,5,109,120,placement,0.88,Placement event peak - high demand
+2026-10-15T09:45:00Z,vitap-gate-main,vitap-lot-1,20,7,122,120,placement,0.85,Overflow! Occupancy exceeds capacity
+2026-10-15T10:00:00Z,vitap-gate-main,vitap-lot-1,18,10,130,120,placement,0.80,Still above capacity - customers rejected
+2026-10-15T10:15:00Z,vitap-gate-main,vitap-lot-1,12,15,127,120,placement,0.82,Event winding down
+2026-10-15T10:30:00Z,vitap-gate-main,vitap-lot-1,8,12,123,120,none,0.88,Exiting phase
+2026-10-15T10:45:00Z,vitap-gate-main,vitap-lot-1,5,18,110,120,none,0.92,Normalization
+2026-10-15T11:00:00Z,vitap-gate-main,vitap-lot-1,4,16,98,120,none,0.94,Back to normal
