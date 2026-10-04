@@ -75,7 +75,7 @@ uvicorn digital_twin.api.app:app --reload
 | [docs/MEMBER1_SUBSYSTEM_REPORT.md](docs/MEMBER1_SUBSYSTEM_REPORT.md) | How `digital_twin/` works: config, graph, twin state, simulation, API |
 | [docs/STAGE6-8_DEVELOPMENT_ROADMAP.md](docs/STAGE6-8_DEVELOPMENT_ROADMAP.md) | Plan for the next stages: prediction, risk, optimization |
 | [docs/PROJECT_COMPLETION_STATUS.md](docs/PROJECT_COMPLETION_STATUS.md) | Overall pipeline progress |
-| [docs/data/](docs/data/) | VIT-AP data: provenance, audit, validation checklist, completion report, quick start |
+| [docs/data/](docs/data/) | VIT-AP data: provenance, completion report, quick start, dataset-generation prompt |
 | [legacy/README.md](legacy/README.md) | The original flat optimizer (Dijkstra + risk scoring) |
 
 ## About the data

@@ -79,10 +79,8 @@ RESEARCH EVIDENCE ❌ (STAGE 15)
 **Effort:** 2 days (completed)
 
 **Deliverables:**
-- [x] Campus audit report (AUDIT_VIT_AP_CAMPUS_DATA.md - 35 KB)
-- [x] Field-level validation (PIN_TO_PIN_VALIDATION_CHECKLIST.md)
+- [x] Campus audit and field-level validation (superseded by the completion report; in git history)
 - [x] Data provenance tracking (PROVENANCE.md)
-- [x] Feature matrix (CAMPUS_DATA_STATUS_MATRIX.md)
 - [x] Completion report (VVIT_AP_DATA_COMPLETION_REPORT.md)
 
 **What's done:**
@@ -93,8 +91,7 @@ RESEARCH EVIDENCE ❌ (STAGE 15)
 - Pin-to-pin connectivity verified
 
 **Files:**
-- `docs/AUDIT_VIT_AP_CAMPUS_DATA.md`
-- `docs/PIN_TO_PIN_VALIDATION_CHECKLIST.md`
+- `docs/data/VVIT_AP_DATA_COMPLETION_REPORT.md`
 - `docs/data/PROVENANCE.md`
 
 ---

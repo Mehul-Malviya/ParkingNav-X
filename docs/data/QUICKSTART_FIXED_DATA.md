@@ -80,24 +80,13 @@ data/vitap_events.csv (1.7 KB)
   - NO NULL values
 ```
 
-### Documentation (72 KB)
+### Documentation
 ```
-docs/AUDIT_VIT_AP_CAMPUS_DATA.md (35 KB)
-  - Complete 9-part audit
-  - What exists, what's missing, pin-to-pin validation
-  - Field-level value eyeballing
-  - Issues & recommendations
+docs/data/VVIT_AP_DATA_COMPLETION_REPORT.md
+  - What was fixed in the v2 campus config and data
 
-docs/PIN_TO_PIN_VALIDATION_CHECKLIST.md (16 KB)
-  - Line-by-line connectivity checks
-  - Foreign key validation
-  - Constraint enforcement
-  - "Before running experiments" checklist
-
-docs/CAMPUS_DATA_STATUS_MATRIX.md (19 KB)
-  - 40-component feature matrix
-  - What's implemented/partial/missing
-  - Blocking issues & success criteria
+docs/data/PROVENANCE.md
+  - What is real vs synthetic, field by field
 
 docs/VVIT_AP_DATA_COMPLETION_REPORT.md (16 KB)
   - This completion report
@@ -370,10 +359,8 @@ No mixing or confusion: All provenance clear and traceable
 
 ## SUPPORT & DOCUMENTATION
 
-**Detailed audit:** `docs/AUDIT_VIT_AP_CAMPUS_DATA.md`  
-**Connectivity validation:** `docs/PIN_TO_PIN_VALIDATION_CHECKLIST.md`  
-**Feature matrix:** `docs/CAMPUS_DATA_STATUS_MATRIX.md`  
-**Completion report:** `docs/VVIT_AP_DATA_COMPLETION_REPORT.md`
+**Completion report:** `docs/data/VVIT_AP_DATA_COMPLETION_REPORT.md`  
+**Provenance:** `docs/data/PROVENANCE.md`
 
 ---
 
