@@ -21,7 +21,7 @@ class TestFailureCases:
         """Setup: campus + connection."""
         conn = get_connection(':memory:')
         apply_migrations(conn)
-        load_campus_config(Path('configs/campuses/sample.yaml'), conn)
+        load_campus_config(Path('configs/campuses/vitap.yaml'), conn)
         return conn
 
     def test_all_lots_full_vehicles_rejected(self, setup):

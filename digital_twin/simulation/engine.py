@@ -74,6 +74,7 @@ class SimulationResult:
     overflow_events: list = field(default_factory=list)
     infeasibility_rejections: int = 0                # count of assignments rejected due to infeasibility
     adapter_fallbacks: int = 0                       # count of fallbacks to B2 due to timeout/exception
+    metrics: dict = field(default_factory=dict)      # aggregate metrics (avg_search_time_min, etc.)
 
 
 def _congestion_level(load: int, capacity) -> str:
@@ -367,12 +368,58 @@ class SimulationEngine:
         except Exception as e:
             print(f"Warning: metrics recording failed: {e}")
 
+        # Compute aggregate metrics from vehicle and timestep data
+        aggregate_metrics = self._compute_aggregate_metrics(
+            vehicle_metrics, timesteps_metrics, overflow_events, decision_latencies
+        )
+
         return SimulationResult(
             run_id=run_id, campus_id=scenario.campus_id, scenario_id=scenario.scenario_id,
             random_seed=scenario.random_seed, strategy_name=strategy_name,
             vehicles=vehicle_metrics, timesteps=timesteps_metrics, overflow_events=overflow_events,
             infeasibility_rejections=infeasibility_rejections, adapter_fallbacks=adapter_fallbacks,
+            metrics=aggregate_metrics,
         ) # decision_latencies logged above, available for analysis
+
+    @staticmethod
+    def _compute_aggregate_metrics(vehicle_metrics: list, timestep_metrics: list,
+                                   overflow_events: list, decision_latencies: list) -> dict:
+        """Compute aggregate metrics from raw vehicle and timestep logs."""
+        metrics = {}
+
+        # Average search time
+        search_times = [v.get('search_time_min', 0) for v in vehicle_metrics if v.get('search_time_min')]
+        metrics['avg_search_time_min'] = sum(search_times) / len(search_times) if search_times else 0
+
+        # Average wait time
+        wait_times = [v.get('wait_time_min', 0) for v in vehicle_metrics if v.get('wait_time_min')]
+        metrics['avg_wait_time_min'] = sum(wait_times) / len(wait_times) if wait_times else 0
+
+        # Gate queues
+        gate_queues = [ts.get('gate_queue', 0) for ts in timestep_metrics if ts.get('gate_queue') is not None]
+        metrics['avg_gate_queue'] = sum(gate_queues) / len(gate_queues) if gate_queues else 0
+        metrics['max_gate_queue'] = max(gate_queues) if gate_queues else 0
+
+        # Overflow events
+        metrics['overflow_events_count'] = len(overflow_events)
+
+        # Decision latencies
+        if decision_latencies:
+            latencies = [d.get('latency_ms', 0) for d in decision_latencies]
+            metrics['decision_latency_mean_ms'] = sum(latencies) / len(latencies) if latencies else 0
+            metrics['decision_latency_max_ms'] = max(latencies) if latencies else 0
+        else:
+            metrics['decision_latency_mean_ms'] = 0
+            metrics['decision_latency_max_ms'] = 0
+
+        # Counts
+        metrics['total_vehicles'] = len(vehicle_metrics)
+        parked = len([v for v in vehicle_metrics if v.get('state') == 'parked'])
+        rejected = len([v for v in vehicle_metrics if v.get('state') == 'rejected'])
+        metrics['vehicles_parked'] = parked
+        metrics['vehicles_rejected'] = rejected
+
+        return metrics
 
     @staticmethod
     def _generate_arrivals(scenario: ScenarioConfig, rng: random.Random, open_gate_ids, destination_ids) -> list:

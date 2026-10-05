@@ -22,7 +22,7 @@ class TestRobustnessE5:
         """Setup: campus + connection."""
         conn = get_connection(':memory:')
         apply_migrations(conn)
-        load_campus_config(Path('configs/campuses/sample.yaml'), conn)
+        load_campus_config(Path('configs/campuses/vitap.yaml'), conn)
         return conn
 
     def test_e5_noise_0_percent_baseline(self, setup):

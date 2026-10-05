@@ -157,6 +157,26 @@ def validate_campus_config(raw: dict) -> list:
         if node_id not in edge_connected_nodes:
             errors.append(f"Node '{node_id}' is not connected by any edge in ROUTES_GRAPH_EDGES (orphan node).")
 
+    # Check that gates and lots lists are not empty
+    if len(gates) == 0:
+        errors.append("Campus must have at least one gate.")
+    if len(parking_lots) == 0:
+        errors.append("Campus must have at least one parking lot.")
+
+    # Check for road speed (max_speed_kmph) if provided
+    for r in roads:
+        road_id = r.get("road_id")
+        speed = r.get("max_speed_kmph")
+        if speed is not None and speed <= 0:
+            errors.append(f"Road '{road_id}' has non-positive max_speed_kmph.")
+
+    # Check for event multipliers
+    for e in events:
+        event_id = e.get("event_id")
+        multiplier = e.get("expected_demand_multiplier")
+        if multiplier is not None and multiplier <= 0:
+            errors.append(f"Event '{event_id}' has non-positive expected_demand_multiplier.")
+
     return errors
 
 

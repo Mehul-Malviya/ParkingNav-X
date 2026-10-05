@@ -1,0 +1,76 @@
+campus_id: vitap_v1
+scenario_id: E7_replay
+time_start_minute: 480  # 8:00 AM
+duration_minutes: 480   # 8 hours (8 AM - 4 PM)
+description: "E7: Counterfactual replay with real observations. Driven by observed arrival counts from real campus data."
+num_vehicles: 450  # Average from calibration; will be overridden by real observations if use_real_observations=true
+
+# Real data configuration
+use_real_observations: true
+real_data_file: "data/real_observations.csv"
+real_data_gates:
+  - "G1"
+  - "G2"
+real_data_lots:
+  - "LA"
+  - "LB"
+
+# Arrival profile (baseline; will be scaled by real observations if available)
+arrival_rate_profile:
+  type: "piecewise"
+  points:
+    - time: 480     # 8:00 AM
+      rate: 8.0     # veh/min
+    - time: 510     # 8:30 AM
+      rate: 12.0    # peak arrival
+    - time: 570     # 9:30 AM
+      rate: 6.0
+    - time: 720     # 12:00 PM
+      rate: 4.0
+    - time: 900     # 3:00 PM
+      rate: 3.0
+
+# Events (none for baseline replay; adjusted if event day)
+events: []
+
+# Disruptions (none for baseline)
+disruptions: []
+
+# Strategy flags for ablation
+use_prediction: true
+use_optimization: true
+use_uncertainty: true
+proactive: true
+
+# Random seeds for 30 independent runs
+random_seeds:
+  - 42
+  - 43
+  - 44
+  - 45
+  - 46
+  - 47
+  - 48
+  - 49
+  - 50
+  - 51
+  - 52
+  - 53
+  - 54
+  - 55
+  - 56
+  - 57
+  - 58
+  - 59
+  - 60
+  - 61
+  - 62
+  - 63
+  - 64
+  - 65
+  - 66
+  - 67
+  - 68
+  - 69
+  - 70
+  - 71

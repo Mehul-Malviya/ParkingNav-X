@@ -22,7 +22,7 @@ class TestStatisticalVerification:
         """Setup: campus + connection."""
         conn = get_connection(':memory:')
         apply_migrations(conn)
-        load_campus_config(Path('configs/campuses/sample.yaml'), conn)
+        load_campus_config(Path('configs/campuses/vitap.yaml'), conn)
         return conn
 
     def test_arrival_count_matches_nhpp_expectation(self, setup):
