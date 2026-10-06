@@ -175,6 +175,11 @@ def get_timeline(run_id: str) -> List[dict]:
     return []
 
 
+def get_state(run_id: str, tick: int) -> dict:
+    """Alias: get campus state at a specific simulation tick."""
+    return get_campus_state(run_id, tick)
+
+
 def get_campus_state(run_id: str, tick: int) -> dict:
     """
     Get campus state at a specific tick (as StateSnapshot).
@@ -255,6 +260,57 @@ def export_geojson(campus_id: str) -> dict:
         "type": "FeatureCollection",
         "features": features,
     }
+
+
+def make_dataset(campus_id: str, scenario_paths: list, seeds: list, output_path: str) -> dict:
+    """
+    Export ML training dataset from simulation runs (for Member 2).
+
+    Args:
+        campus_id: e.g. "vitap"
+        scenario_paths: list of YAML scenario paths to run
+        seeds: list of random seeds per scenario
+        output_path: path to write CSV (e.g. "data/ml_dataset.csv")
+
+    Returns:
+        {"rows": int, "columns": list, "path": str}
+    """
+    import csv
+    from digital_twin.simulation.engine import SimulationEngine
+    from digital_twin.simulation.scenario import ScenarioLoader
+    from digital_twin.simulation.strategy import FirstAvailableStrategy
+    from pathlib import Path
+
+    engine = SimulationEngine()
+    rows = []
+
+    for scenario_path in scenario_paths:
+        for seed in seeds:
+            scenario = ScenarioLoader.load(scenario_path)
+            scenario.campus_id = campus_id
+            scenario.random_seed = seed
+            result = engine.run(scenario, FirstAvailableStrategy(), _conn)
+            for v in result.vehicles:
+                rows.append({
+                    "scenario_id": scenario.scenario_id,
+                    "seed": seed,
+                    "arrival_time": v.get("arrival_time"),
+                    "assigned_lot_id": v.get("assigned_lot_id"),
+                    "search_time_min": v.get("search_time_seconds", 0) / 60.0,
+                    "wait_time_min": v.get("waiting_time_seconds", 0) / 60.0,
+                    "final_state": v.get("final_state"),
+                    "complied": v.get("complied"),
+                    "travel_distance_m": v.get("outbound_distance_meters", 0),
+                })
+
+    columns = list(rows[0].keys()) if rows else []
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return {"rows": len(rows), "columns": columns, "path": output_path}
 
 
 def validate_scenario(scenario_dict: dict) -> Tuple[bool, List[str]]:

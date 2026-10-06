@@ -4,21 +4,21 @@ scenario_id: vitap-event-placement
 campus_id: vitap
 name: PLACEMENT_EVENT
 description: "Placement drive 9:30-11:00, demand multiplier 1.8x in academic zones"
-duration_minutes: 180
-vehicle_count: 100  # More vehicles to saturate
+duration_minutes: 150
+vehicle_count: 400
+start_time_min: 480
 arrival_rate_profile:
   type: profile
   points:
-    - { time: 0, rate: 0.15 }
-    - { time: 45, rate: 0.55 }  # 8:45 AM
-    - { time: 90, rate: 0.35 }  # 10:30 AM
-    - { time: 150, rate: 0.1 }
+    - { time: 0, rate: 1.0 }
+    - { time: 75, rate: 0.3 }
+    - { time: 150, rate: 0.2 }
 
 event_conditions:
   event_id: placement
   demand_multiplier: 1.8
-  start_tick: 30  # 9:30 AM (assuming sim starts at 8:00)
-  duration_ticks: 90  # 2 hours
+  start_tick: 75   # 9:15 AM (sim tick 75 = wall-clock 555)
+  duration_ticks: 75  # until 10:30 AM (tick 150 = wall-clock 630)
   affected_zones: [academic, research]
   compliance_rate: 0.85
 

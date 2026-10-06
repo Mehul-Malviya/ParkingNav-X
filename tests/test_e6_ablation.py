@@ -20,6 +20,7 @@ class TestAblationE6:
         conn = get_connection(':memory:')
         apply_migrations(conn)
         load_campus_config(Path('configs/campuses/sample.yaml'), conn)
+        load_campus_config(Path('configs/campuses/vitap.yaml'), conn)
         return conn
 
     def run_variant(self, scenario_file, variant_flags, conn, strategy=None):

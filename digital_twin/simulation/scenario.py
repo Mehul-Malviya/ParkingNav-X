@@ -26,6 +26,7 @@ class ScenarioConfig:
     availability_overrides: dict        # {"closed_gates": [], "closed_parking_lots": [], "closed_roads": []}
     prediction_error_injection_level: float
     random_seed: int
+    start_time_min: int = 480           # Wall-clock start (minutes since midnight); 480 = 08:00
     # Ablation flags (Phase 7, E6): control which components are active
     use_prediction: bool = True         # Enable Member 2's occupancy forecasts
     use_optimization: bool = True       # Enable Member 3's optimizer (vs. baseline)
@@ -61,6 +62,7 @@ class ScenarioLoader:
             ),
             prediction_error_injection_level=raw.get("prediction_error_injection_level", 0.0),
             random_seed=raw["random_seed"],
+            start_time_min=raw.get("start_time_min", 480),
             use_prediction=raw.get("use_prediction", True),
             use_optimization=raw.get("use_optimization", True),
             use_uncertainty=raw.get("use_uncertainty", True),
