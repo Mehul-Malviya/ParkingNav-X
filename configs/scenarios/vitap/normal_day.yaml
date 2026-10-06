@@ -3,15 +3,20 @@
 scenario_id: vitap-normal-day
 campus_id: vitap
 name: NORMAL_DAY
-duration_minutes: 180
-vehicle_count: 60
+duration_minutes: 600
+vehicle_count: 400
+start_time_min: 480
 arrival_rate_profile:
   type: profile
   points:
-    - { time: 0, rate: 0.15 }
-    - { time: 45, rate: 0.55 }
-    - { time: 90, rate: 0.35 }
-    - { time: 150, rate: 0.1 }
+    - { time: 0, rate: 0.3 }
+    - { time: 60, rate: 1.2 }
+    - { time: 120, rate: 0.8 }
+    - { time: 240, rate: 0.6 }
+    - { time: 360, rate: 0.9 }
+    - { time: 480, rate: 0.4 }
+    - { time: 540, rate: 0.2 }
+    - { time: 600, rate: 0.1 }
 event_conditions: null
 availability_overrides:
   closed_gates: []

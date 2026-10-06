@@ -112,10 +112,10 @@ parking_lots:
     zone: "sports_zone"
     boundary_polygon: "POLYGON((16.494700 80.498500, 16.495700 80.498500, 16.495700 80.499500, 16.494700 80.499500, 16.494700 80.498500))"
     total_capacity: 100
-    usable_capacity: 90
+    usable_capacity: 84
     reserved_capacity: 7
     restricted_capacity: 3
-    temporarily_unavailable_capacity: 0
+    temporarily_unavailable_capacity: 6
     status: open
     metadata:
       lot_type: "event_and_sports"
@@ -130,10 +130,10 @@ parking_lots:
     zone: "overflow_zone"
     boundary_polygon: "POLYGON((16.489500 80.496500, 16.490500 80.496500, 16.490500 80.497500, 16.489500 80.497500, 16.489500 80.496500))"
     total_capacity: 60
-    usable_capacity: 54
+    usable_capacity: 46
     reserved_capacity: 4
     restricted_capacity: 2
-    temporarily_unavailable_capacity: 0
+    temporarily_unavailable_capacity: 8
     status: open
     metadata:
       lot_type: "overflow"
