@@ -22,6 +22,7 @@ availability_overrides:
 
 prediction_error_injection_level: 0.0
 random_seed: 11
+warmdown_minutes: 30
 use_prediction: true
 use_optimization: true
 use_uncertainty: true

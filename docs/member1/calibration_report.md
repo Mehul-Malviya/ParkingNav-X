@@ -10,14 +10,15 @@
 - **Lots observed:** Lot A (Academic), Lot B (Research)
 - **Interval:** 15-minute aggregate counts
 - **Days collected:** 1 normal day, 1 event day (placement drive)
-- **Data stored at:** `data/real_observations.csv`
+- **Data stored at:** `data/synthetic_observations.csv`
+- **Status:** SYNTHETIC — dates (15–16 Oct 2026) are future dates; data was generated to match realistic VIT-AP patterns. A real counting day is planned before final submission.
 - **Privacy:** aggregate counts only — no plates, no personal data
 
 ---
 
 ## Calibration Method
 
-1. Load real observations (`data/real_observations.csv`)
+1. Load synthetic observations (`data/synthetic_observations.csv`)
 2. Fit arrival rate `λ(t)` per gate by matching simulated mean arrivals to observed counts per 15-min interval
 3. Fit dwell parameters by matching observed occupancy curve shape
 4. Run `digital_twin/validation/calibration.py` → produces MAE and RMSE per lot

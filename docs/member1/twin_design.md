@@ -10,7 +10,7 @@ A Digital Twin is a live, stateful software model of a physical system that:
 1. **Tracks state** — current occupancy, queue lengths, travel times
 2. **Evolves over time** — state changes only through validated transitions
 3. **Forks for what-if** — Member 3 clones the current state, simulates 15 min ahead, picks the best action
-4. **Calibrates against reality** — parameters tuned from real campus observations
+4. **Calibrates against observations** — parameters tuned from campus observations (currently synthetic; real gate-count data planned)
 
 A dashboard only *shows* data. A Digital Twin *models* the system and supports look-ahead reasoning.
 

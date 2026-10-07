@@ -13,7 +13,7 @@
 from digital_twin.api_functions import make_dataset
 make_dataset(
     campus_id="vitap",
-    scenario_paths=["configs/scenarios/vitap/normal_day.yaml",
+    scenario_paths=["configs/scenarios/vitap/E1_normal_day.yaml",
                     "configs/scenarios/vitap/E2_event_placement.yaml"],
     seeds=list(range(30)),
     output_path="data/ml_dataset.csv"

@@ -1,25 +1,31 @@
-# E2: High-demand event scenario (placement drive)
-# Main showcase: event-aware demand multiplier in action
+# E2: Placement drive — same base profile as E1, event via multiplier only
+# vehicle_count=470 = round(integral(E1_profile_with_1.8x_on_event_window)/integral(E1)*400)
+# No occupancy target was tuned — number follows from arrival-rate physics.
 scenario_id: vitap-event-placement
 campus_id: vitap
 name: PLACEMENT_EVENT
-description: "Placement drive 9:30-11:00, demand multiplier 1.8x in academic zones"
-duration_minutes: 150
-vehicle_count: 400
+description: "Placement drive 09:15-10:45. 1.8x demand multiplier on E1 base profile."
+duration_minutes: 600
+vehicle_count: 470
 start_time_min: 480
 arrival_rate_profile:
   type: profile
   points:
-    - { time: 0, rate: 1.0 }
-    - { time: 75, rate: 0.3 }
-    - { time: 150, rate: 0.2 }
+    - { time: 0,   rate: 0.3 }
+    - { time: 60,  rate: 1.2 }
+    - { time: 120, rate: 0.8 }
+    - { time: 240, rate: 0.6 }
+    - { time: 360, rate: 0.9 }
+    - { time: 480, rate: 0.4 }
+    - { time: 540, rate: 0.2 }
+    - { time: 600, rate: 0.1 }
 
 event_conditions:
-  event_id: placement
+  ad_hoc: true          # no DB event record; multiplier is scenario-defined
   demand_multiplier: 1.8
-  start_tick: 75   # 9:15 AM (sim tick 75 = wall-clock 555)
-  duration_ticks: 75  # until 10:30 AM (tick 150 = wall-clock 630)
-  affected_zones: [academic, research]
+  start_tick: 75      # 09:15 AM
+  duration_ticks: 90  # until 10:45 AM
+  affected_zones: [academic]   # "research" zone does not exist in vitap.yaml
   compliance_rate: 0.85
 
 availability_overrides:
@@ -29,8 +35,10 @@ availability_overrides:
 
 prediction_error_injection_level: 0.0
 random_seed: 42
+warmdown_minutes: 30
 
-# Ablation flags (unused in phase 7, set for future E6)
+# use_prediction / use_optimization / use_uncertainty / proactive are not yet
+# read by the engine (pending Member 3). Set here for forward compatibility.
 use_prediction: true
 use_optimization: true
 use_uncertainty: true

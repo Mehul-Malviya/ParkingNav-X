@@ -1,0 +1,10 @@
+{
+  "scenario_id": "vitap-normal-day",
+  "strategy_name": "digital_twin.simulation.strategy.FirstAvailableStrategy",
+  "random_seed": 8,
+  "config_hash": "e0adfaa2",
+  "git_commit": "efc7bcc801c0eaab1ac39c9ca47c7c40608f223c",
+  "recorded_at": "2026-10-07T07:45:44.505304+00:00",
+  "vehicle_count": 400,
+  "timestep_count": 600
+}

@@ -76,14 +76,17 @@ class FixedLotStrategy(AllocationStrategy):
 
 
 class FirstAvailableStrategy(AllocationStrategy):
-    """B1 Baseline: assign first open, non-full lot (in sorted order).
+    """B1 Baseline: assign first open, non-full lot in config (insertion) order.
 
+    Uses dict insertion order, which equals DB/YAML config order (academic →
+    hostel → admin → sports → overflow). This matches the campus designer's
+    intended priority, not alphabetical order.
     Deterministic: always picks the same lot for identical state.
     Simple: no optimization, no forecasting.
     """
 
     def assign(self, vehicle: Vehicle, campus_state: CampusState) -> AssignmentResult:
-        for lot_id in sorted(campus_state.parking_lots.keys()):
+        for lot_id in campus_state.parking_lots.keys():  # Fix 5: config order, not sorted()
             lot = campus_state.parking_lots[lot_id]
             if (lot["status"] == "open" and
                 lot["occupied_spaces"] < lot["usable_capacity"]):

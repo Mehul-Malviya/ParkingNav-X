@@ -29,7 +29,7 @@ class TestScalability:
         conn = setup
 
         # Create scenario with 500 vehicles
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.vehicle_count = 500
         scenario.random_seed = 12345
 
@@ -47,7 +47,7 @@ class TestScalability:
         """Test that 500 vehicles complete in reasonable time."""
         conn = setup
 
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.vehicle_count = 500
 
         engine = SimulationEngine()
@@ -63,7 +63,7 @@ class TestScalability:
         """Test that metrics are reasonable for 500 vehicles."""
         conn = setup
 
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.vehicle_count = 500
 
         engine = SimulationEngine()
@@ -79,7 +79,7 @@ class TestScalability:
         """Test that 1,000 vehicles still produce deterministic results."""
         conn = setup
 
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.vehicle_count = 1000
         scenario.random_seed = 54321
 
@@ -96,7 +96,7 @@ class TestScalability:
         """Test that 1,000 vehicles complete in reasonable time."""
         conn = setup
 
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.vehicle_count = 1000
 
         engine = SimulationEngine()
@@ -112,7 +112,7 @@ class TestScalability:
         """Test that metrics are reasonable for 1,000 vehicles."""
         conn = setup
 
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.vehicle_count = 1000
 
         engine = SimulationEngine()
@@ -131,7 +131,7 @@ class TestScalability:
         conn = setup
 
         for vehicle_count in [100, 500, 1000]:
-            scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+            scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
             scenario.vehicle_count = vehicle_count
 
             engine = SimulationEngine()

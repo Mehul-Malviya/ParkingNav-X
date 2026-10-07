@@ -10,7 +10,7 @@ Discrete-time engine, 1 tick = 1 minute. Same seed → identical output (determi
 
 ---
 
-## Arrival Model — Non-Homogeneous Poisson Process (NHPP)
+## Arrival Model — Time-Varying Demand (Multinomial Sampling)
 
 Rate varies with time of day:  
 `λ(t)` = piecewise linear curve (morning peak, lunch, evening exit)
@@ -19,7 +19,7 @@ Event-aware rate:
 `λ_event(t) = λ(t) × demand_multiplier`  
 (only zones affected by the event get extra demand)
 
-**Thinning (Lewis–Shedler):** generate candidate arrivals at max rate λ_max, then accept each with probability `λ(t) / λ_max`. This gives a correct NHPP from a simple uniform sampler.
+**What the code does:** a fixed expected total (`vehicle_count`) is derived from the profile integral (∫λ(t)dt scaled to target demand). Arrival times are then sampled from the time-varying rate profile using weighted multinomial sampling (`rng.choices(ticks, weights=weights, k=vehicle_count)`). The weight for each tick is the interpolated rate at that tick, optionally scaled by the event multiplier. This is equivalent to conditioning on the total and drawing arrival times from the normalized rate curve — it is NOT Lewis–Shedler thinning.
 
 ---
 
@@ -72,6 +72,28 @@ Models realistic human behaviour without requiring RL or agents.
 
 ---
 
+## Warm-Down Period
+
+Every scenario YAML includes `warmdown_minutes: 30`. During the last 30 minutes of simulation time, **no new vehicle arrivals are generated**. Vehicles that have already entered the system complete their dwell and departure normally.
+
+**Why:** Without warm-down, vehicles arriving near the simulation end would still be in mid-transit (route/parking_search state) when the clock stops, inflating the `in_system_vehicles` metric artificially. The warm-down allows all in-transit vehicles to reach a terminal state before metrics are recorded.
+
+**Effect measured (E2, 30 seeds):** in_system at end-of-sim dropped from ~2.45% to ~1.05%. The residual ~1% are vehicles in the *departure* phase — they have parked, completed their dwell, and are driving out of campus. These are not stalled vehicles; they are completing the journey. Their presence is bounded by the minimum travel-out time (~1–2 min) and cannot be eliminated without extending warmdown further.
+
+---
+
+## Forecast Noise (E5) — Plumbing Ready, Results Pending Member 3
+
+`prediction_error_injection_level` (0.0 / 0.10 / 0.20) is accepted by `ScenarioConfig` and stored in the YAML. The `ForecastNoiseInjector` in `digital_twin/simulation/forecast_noise.py` applies Gaussian noise to forecasts when invoked.
+
+**Current status:** The engine passes `forecast=None` to `strategy.update_policy()`. Neither B1 (FirstAvailableStrategy) nor B2 (NearestAvailableStrategy) reads forecast data. As a result, E5_noise_0, E5_noise_10, and E5_noise_20 produce **identical B1/B2 results** — the noise parameter has no effect on the baselines.
+
+**When E5 becomes meaningful:** once Member 3's optimizer reads `use_prediction` and consumes the noisy forecast, E5 will measure robustness degradation as noise increases. B1/B2 are noise-immune by construction (reactive, no forecast dependency), which is itself a useful baseline for comparison.
+
+**Confirmed:** 30-seed run with seed override shows B1 search = 0.705 min and B2 search = 0.658 min for all three noise levels, bit-for-bit identical.
+
+---
+
 ## Parameters Summary
 
 | Parameter | Value | Source |
@@ -83,3 +105,4 @@ Models realistic human behaviour without requiring RL or agents.
 | Dwell σ (lognormal) | 0.6 | Calibrated from observations |
 | Compliance rate | 0.85 | Assumption (literature range 0.7–0.9) |
 | Decision cycle | 5 min | Design choice |
+| Warm-down | 30 min | Design choice (see section above) |

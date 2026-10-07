@@ -134,5 +134,84 @@ def test_overflow_event_recorded_once_per_timestep_not_per_vehicle(conn):
                 assert value in (True, False)
 
 
+def test_vehicle_accounting_identity(conn):
+    """parked + exited + in_system + rejected must equal total_vehicles_simulated."""
+    import yaml
+    from digital_twin.simulation.strategy import FirstAvailableStrategy
+    from digital_twin.simulation.metrics_recorder import MetricsRecorder
+    import tempfile, json
+    from pathlib import Path as _Path
+
+    raw = yaml.safe_load(open(SCENARIOS / "normal_day.yaml"))
+    scenario = ScenarioLoader.from_dict(raw)
+    result = SimulationEngine().run(scenario, FirstAvailableStrategy(), conn)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        recorder = MetricsRecorder(output_root=tmp)
+        run_dir = recorder.record_run(
+            scenario_id=scenario.scenario_id,
+            strategy_name="B1",
+            seed=scenario.random_seed,
+            vehicle_metrics=result.vehicles,
+            timestep_metrics=result.timesteps,
+            overflow_events=result.overflow_events,
+            config_dict={"campus_id": scenario.campus_id},
+        )
+        with open(_Path(run_dir) / "metrics.json") as f:
+            m = json.load(f)
+
+    sm = m["secondary_metrics"]
+    total = sm["total_vehicles_simulated"]
+    assert sm["parked_vehicles"] + sm["exited_vehicles"] + sm["in_system_vehicles"] + sm["rejected_vehicles"] == total, (
+        f"Accounting identity broken: parked={sm['parked_vehicles']} exited={sm['exited_vehicles']} "
+        f"in_system={sm['in_system_vehicles']} rejected={sm['rejected_vehicles']} != total={total}"
+    )
+
+
+def test_warmdown_reduces_in_system_vehicles(conn):
+    """With warmdown_minutes=30, no new arrivals in the last 30 min.
+    in_system at end should be low (departure-phase vehicles only, < 5%)."""
+    import yaml
+    from digital_twin.simulation.strategy import FirstAvailableStrategy
+
+    raw = yaml.safe_load(open(SCENARIOS / "normal_day.yaml"))
+    raw["warmdown_minutes"] = 30
+    raw["duration_minutes"] = 120
+    raw["vehicle_count"] = 100
+    raw["arrival_rate_profile"] = {"type": "constant", "rate": 1.0}
+    scenario = ScenarioLoader.from_dict(raw)
+
+    result = SimulationEngine().run(scenario, FirstAvailableStrategy(), conn)
+    in_system = sum(1 for v in result.vehicles if v["final_state"] == "in_system")
+    total = len(result.vehicles)
+    pct = in_system / total if total else 0
+    assert pct < 0.05, (
+        f"in_system={in_system}/{total} ({pct:.1%}) exceeds 5% with warmdown=30; "
+        "warmdown should eliminate transit-stuck vehicles"
+    )
+
+
+def test_warmdown_no_arrivals_in_last_N_minutes(conn):
+    """Verify that no vehicle's arrival_tick falls within the warmdown window."""
+    import yaml
+    from digital_twin.simulation.strategy import FirstAvailableStrategy
+
+    DURATION = 120
+    WARMDOWN = 30
+    raw = yaml.safe_load(open(SCENARIOS / "normal_day.yaml"))
+    raw["warmdown_minutes"] = WARMDOWN
+    raw["duration_minutes"] = DURATION
+    raw["vehicle_count"] = 200
+    raw["arrival_rate_profile"] = {"type": "constant", "rate": 2.0}
+    scenario = ScenarioLoader.from_dict(raw)
+
+    result = SimulationEngine().run(scenario, FirstAvailableStrategy(), conn)
+    warmdown_start = DURATION - WARMDOWN
+    late_arrivals = [v for v in result.vehicles if v["arrival_tick"] >= warmdown_start]
+    assert len(late_arrivals) == 0, (
+        f"{len(late_arrivals)} vehicles arrived after tick {warmdown_start} (warmdown boundary)"
+    )
+
+
 if __name__ == "__main__":
     print("Run with pytest: python -m pytest test_part4_part5_simulation.py -v")

@@ -21,11 +21,12 @@ campus:
 # =====================================================
 gates:
   # Main gate - entrance to main campus area
+  # ASSUMED: 2 lanes × 3 veh/min/lane = 6 veh/min service rate (no measurement available)
   - gate_id: vitap-gate-main
     name: "Main Gate"
     latitude: 16.4911715
     longitude: 80.5018052
-    capacity: 40
+    capacity: 6
     status: open
     metadata:
       gate_type: "main"
@@ -34,11 +35,12 @@ gates:
       peak_throughput_per_hour: 150
 
   # Visitor/Secondary gate
+  # ASSUMED: 1 lane × 3 veh/min/lane = 3 veh/min service rate (no measurement available)
   - gate_id: vitap-gate-visitor
     name: "Visitor Gate"
     latitude: 16.4895000
     longitude: 80.4960000
-    capacity: 25
+    capacity: 3
     status: open
     metadata:
       gate_type: "visitor"
@@ -381,6 +383,22 @@ roads:
       - { lat: 16.4895000, lng: 80.4960000 }
       - { lat: 16.489750, lng: 80.496500 }
       - { lat: 16.490000, lng: 80.497000 }
+
+  # Fix 4: Sports lot was unreachable by car from any gate. Added driveable road.
+  # ScenarioValidator only checks entity existence (not graph connectivity), so no error was raised.
+  - road_id: vitap-road-main-gate-to-sports-lot
+    name: "Main Gate to Sports Lot"
+    start_node_id: vitap-gate-main
+    end_node_id: vitap-lot-sports
+    length_meters: 534
+    expected_travel_time_seconds: 107
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 16.4911715, lng: 80.5018052 }
+      - { lat: 16.493186, lng: 80.500153 }
+      - { lat: 16.495200, lng: 80.499000 }
 
   # Academic lot to buildings
   - road_id: vitap-road-academic-lot-to-ab1
@@ -1096,6 +1114,25 @@ edges:
     weight_distance_meters: 140
     is_walkable: true
     is_driveable: false
+    status: open
+
+  # Fix 4: driveable edges main gate ↔ sports lot
+  - from_node_id: vitap-gate-main
+    to_node_id: vitap-lot-sports
+    road_id: vitap-road-main-gate-to-sports-lot
+    weight_time_seconds: 107
+    weight_distance_meters: 534
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: vitap-lot-sports
+    to_node_id: vitap-gate-main
+    road_id: vitap-road-main-gate-to-sports-lot
+    weight_time_seconds: 107
+    weight_distance_meters: 534
+    is_walkable: true
+    is_driveable: true
     status: open
 
   - from_node_id: vitap-lot-sports
