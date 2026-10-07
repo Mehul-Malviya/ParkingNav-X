@@ -32,6 +32,8 @@ class ScenarioConfig:
     use_optimization: bool = True       # Enable Member 3's optimizer (vs. baseline)
     use_uncertainty: bool = True        # Include uncertainty intervals in decisions
     proactive: bool = True              # Use proactive routing (vs. reactive)
+    # Warm-down: no new arrivals in the last N minutes so vehicles can exit before recording ends
+    warmdown_minutes: int = 0
 
 
 class ScenarioLoader:
@@ -67,6 +69,7 @@ class ScenarioLoader:
             use_optimization=raw.get("use_optimization", True),
             use_uncertainty=raw.get("use_uncertainty", True),
             proactive=raw.get("proactive", True),
+            warmdown_minutes=raw.get("warmdown_minutes", 0),
         )
 
 
@@ -105,6 +108,19 @@ class ScenarioValidator:
         for road_id in overrides.get("closed_roads", []):
             if not _exists("roads", "road_id", road_id):
                 errors.append(f"availability_overrides.closed_roads references unknown road '{road_id}' for campus '{scenario.campus_id}'.")
+
+        for tc in overrides.get("timed_closures", []):
+            etype = tc.get("entity_type")
+            eid = tc.get("entity_id")
+            if etype == "parking_lot":
+                if not _exists("parking_lots", "parking_lot_id", eid):
+                    errors.append(f"availability_overrides.timed_closures references unknown parking lot '{eid}' for campus '{scenario.campus_id}'.")
+            elif etype == "gate":
+                if not _exists("gates", "gate_id", eid):
+                    errors.append(f"availability_overrides.timed_closures references unknown gate '{eid}' for campus '{scenario.campus_id}'.")
+            elif etype == "road":
+                if not _exists("roads", "road_id", eid):
+                    errors.append(f"availability_overrides.timed_closures references unknown road '{eid}' for campus '{scenario.campus_id}'.")
 
         if scenario.event_conditions:
             ec = scenario.event_conditions

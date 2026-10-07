@@ -1,0 +1,10 @@
+{
+  "scenario_id": "vitap-event-placement",
+  "strategy_name": "digital_twin.simulation.strategy.FirstAvailableStrategy",
+  "random_seed": 7,
+  "config_hash": "e0adfaa2",
+  "git_commit": "04d07d4e30ea47aba64e858c5d7f1b7dfb4cb6fb",
+  "recorded_at": "2026-10-07T07:49:48.065505+00:00",
+  "vehicle_count": 470,
+  "timestep_count": 600
+}

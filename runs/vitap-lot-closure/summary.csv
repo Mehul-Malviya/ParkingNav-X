@@ -1,0 +1,11 @@
+strategy,metric,n_seeds,mean,sd,ci95,min,max
+B1-FirstAvailable,avg_search_time_min,30,2.452,0.0759,0.0272,2.26,2.59
+B1-FirstAvailable,avg_waiting_time_min,30,0.0,0.0,0.0,0.0,0.0
+B1-FirstAvailable,avg_gate_queue_vehicles,30,0.0,0.0,0.0,0.0,0.0
+B1-FirstAvailable,max_gate_queue_vehicles,30,0,0.0,0.0,0,0
+B1-FirstAvailable,overflow_events_count,30,0,0.0,0.0,0,0
+B2-NearestAvailable,avg_search_time_min,30,2.452,0.0759,0.0272,2.26,2.59
+B2-NearestAvailable,avg_waiting_time_min,30,0.0,0.0,0.0,0.0,0.0
+B2-NearestAvailable,avg_gate_queue_vehicles,30,0.0,0.0,0.0,0.0,0.0
+B2-NearestAvailable,max_gate_queue_vehicles,30,0,0.0,0.0,0,0
+B2-NearestAvailable,overflow_events_count,30,0,0.0,0.0,0,0

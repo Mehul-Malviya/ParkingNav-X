@@ -38,21 +38,24 @@ We use `heapq` (priority queue), not SimPy, to keep the code simple and explaina
 
 ---
 
-## 3. Why non-homogeneous Poisson arrivals? How does thinning work?
+## 3. Why time-varying arrivals? How does arrival sampling work?
 
 **Answer:**
 
-**Why non-homogeneous Poisson (NHPP)?**
+**Why time-varying demand?**
 
-Real arrival patterns vary by time of day: quiet at 7 AM, peak at 9 AM, quiet again at 3 PM. A **homogeneous** Poisson with constant λ is wrong. **Non-homogeneous** lets us define λ(t) as a curve (piecewise linear in config: `[{time: 08:00, rate: 10}, {time: 09:00, rate: 25}, ...]`). This matches real data.
+Real arrival patterns vary by time of day: quiet at 7 AM, peak at 9 AM, quiet again at 3 PM. A constant arrival rate is wrong. We define λ(t) as a piecewise linear curve in YAML config (`[{time: 0, rate: 0.3}, {time: 60, rate: 1.2}, ...]`). This is the standard model for time-varying arrivals in traffic and queueing studies.
 
-**How thinning works (Lewis–Shedler):**
+**How arrival sampling works (what the code actually does):**
 
-1. Generate a *majorizing* homogeneous stream at rate λ_max = max(λ(t) over all t).
-2. For each candidate arrival at time t, accept it with probability λ(t) / λ_max, reject otherwise.
-3. Result: thinned stream where density at time t is exactly λ(t).
+1. Derive `vehicle_count` from the profile integral: `vehicle_count = round(∫λ(t)dt × scale_factor)` where scale_factor is calibrated so E1 baseline produces 400 vehicles.
+2. Build a weight vector: `weights[t] = λ(t)` for each tick t, multiplied by the event `demand_multiplier` during the event window, zeroed during the warm-down period.
+3. Sample `vehicle_count` arrival ticks from `rng.choices(ticks, weights=weights, k=vehicle_count)` — a weighted multinomial draw.
+4. Sort the ticks and construct vehicles.
 
-This is statistically exact: with 30 seeds, the mean arrival count per 15-min interval agrees with ∫λ(t)dt within ±5%.
+This is **weighted multinomial sampling**, not Lewis–Shedler thinning. The distinction: thinning generates a variable-count stream by accepting/rejecting from a max-rate Poisson process; our method fixes the total count and assigns each arrival to a tick proportionally to λ(t). Both reproduce the time-varying shape; ours produces an exact vehicle_count, which is required for reproducibility across seeds.
+
+**Statistical check:** with 30 seeds, the mean arrival count per 15-min interval agrees with the profile integral within ±5%.
 
 **Code location:** `digital_twin/simulation/engine.py` in `_generate_arrivals()`.
 
@@ -96,7 +99,7 @@ This captures the **non-linear** cost of congestion, which is why proactive rout
 Three mechanisms:
 
 1. **Single master seed**: One seed (e.g., 42) is split via `np.random.SeedSequence.spawn()` into independent child streams for:
-   - Arrivals (NHPP thinning)
+   - Arrivals (weighted multinomial sampling on the rate profile)
    - Dwell times (lognormal)
    - Gate service times (exponential or deterministic)
    - Driver compliance (uniform 0–1)
@@ -181,7 +184,7 @@ No crashes, all state remains consistent, metrics honestly reported.
 
 **Validation pipeline (Phase 10):**
 
-1. **Real observations**: 80 data points (2 days, 15-min intervals, 1 gate, 2 lots, VIT-AP). See `data/real_observations.csv`.
+1. **Synthetic observations** (placeholder until real counting done): 80 data points (2 days, 15-min intervals, 1 gate, 2 lots, VIT-AP). See `data/synthetic_observations.csv`. NOTE: dates 15–16 Oct 2026 are future dates; this is synthetic data designed to match realistic patterns.
    - Day 1: Normal + placement event (09:15–10:30), observed overflow (122–130 occupancy vs 120 capacity).
    - Day 2: Normal day without events.
    - Confidence scores 0.80–1.00.
@@ -305,7 +308,7 @@ load_campus_config(Path('configs/campuses/iit_bombay.yaml'), conn)
 
 **What we model:**
 
-✅ Event-aware demand, gate queues, BPR road congestion, parking search, driver compliance, what-if forking, deterministic reproducibility, calibration against real data.
+✅ Event-aware demand, gate queues, BPR road congestion, parking search, driver compliance, what-if forking, deterministic reproducibility, calibration pipeline (currently run on synthetic observations; real gate-count data planned).
 
 **What we don't model (and why):**
 
@@ -327,8 +330,28 @@ load_campus_config(Path('configs/campuses/iit_bombay.yaml'), conn)
 
 ---
 
+## 13. What do the E2 results show? How do B1 and B2 compare?
+
+**Answer:**
+
+E2 is the placement-drive scenario: 470 vehicles, E1 base profile with 1.8× demand multiplier on ticks 75–164 (09:15–10:45). Results from 30-seed batch (95% CI):
+
+| Metric | B1 (First Available) | B2 (Nearest Available) | Δ |
+|--------|----------------------|------------------------|---|
+| avg search time (min) | **5.07 ± 0.24** | **3.14 ± 0.12** | B2 saves 1.93 min/veh |
+| avg travel time (min) | **1.70 ± 0.01** | **1.15 ± 0.00** | B2 saves 0.55 min/veh |
+| avg travel distance (m) | **954 ± 4** | **648 ± 2** | B2 saves 306 m/veh |
+| overflow events | **13.5 ± 1.3** | **5.7 ± 0.9** | B1 saturates academic-main |
+| rejected vehicles | **0.0** | **0.0** | cruising finds space (cap=472 > demand=470) |
+
+**Why rejected = 0:** vehicles that arrive at a full lot now cruise to the next feasible lot (overflow event logged). Rejection only occurs when no lot on campus has usable space (parking_full scenario: 600 veh > 472 cap → ~21 rejections per seed).
+
+**Why B1 has higher distance:** B1 always routes to academic-main first (config order); it fills to 100%, forcing cruising. B2 routes to nearest lot from each gate, distributing load (overflow 100%, hostel 53%, admin-visitor 53%). B1 concentrates demand; B2 balances it.
+
+---
+
 ## Ready for Viva
 
-Print this file, bring it to your viva, and you can explain all 12 points in under 15 minutes (1–2 min per question). Each answer has a code location and a test, so you can back up every claim with evidence.
+Print this file, bring it to your viva, and you can explain all 13 points in under 20 minutes (1–2 min per question). Each answer has a code location and a test, so you can back up every claim with evidence.
 
-**Good luck! 🚀**
+**Good luck!**

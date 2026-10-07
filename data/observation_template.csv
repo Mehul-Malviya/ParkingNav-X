@@ -1,0 +1,14 @@
+timestamp,gate_id,lot_id,vehicle_arrivals,vehicle_departures,occupied_spaces,total_capacity,event_type,confidence,notes
+# HOW TO FILL:
+# timestamp       ISO-8601, UTC, 15-min boundaries (e.g. 2026-11-01T08:00:00Z, 08:15:00Z, ...)
+# gate_id         Must match a gate_id in configs/campuses/vitap.yaml (e.g. vitap-gate-main)
+# lot_id          Must match a lot_id in configs/campuses/vitap.yaml (e.g. vitap-lot-1)
+# vehicle_arrivals  Integer >= 0: vehicles counted entering through gate_id in this 15-min window
+# vehicle_departures Integer >= 0: vehicles counted leaving through gate_id in this 15-min window
+# occupied_spaces  Integer >= 0 and <= total_capacity: spaces occupied at END of interval (head count)
+# total_capacity   Integer > 0: lot physical capacity (copy from vitap.yaml, do not change between rows)
+# event_type       One of: none | placement | graduation | sports | other
+# confidence       Float 0.0–1.0: your confidence in the count (1.0 = certain, 0.7 = estimated)
+# notes            Free text (optional)
+#
+# REMOVE THESE COMMENT LINES BEFORE RUNNING validate_observations.py

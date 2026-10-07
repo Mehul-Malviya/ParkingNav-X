@@ -1,0 +1,10 @@
+{
+  "scenario_id": "vitap-e5-noise-20",
+  "strategy_name": "B1-FirstAvailable",
+  "random_seed": 8,
+  "config_hash": "e0adfaa2",
+  "git_commit": "50251f58340dc0e448790816e938c0e10933cca3",
+  "recorded_at": "2026-10-06T19:03:07.489213+00:00",
+  "vehicle_count": 60,
+  "timestep_count": 180
+}

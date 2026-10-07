@@ -66,7 +66,7 @@ class TestFailureCases:
         engine = SimulationEngine()
 
         # Run normal day
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.random_seed = 42
         result_normal = engine.run(scenario, FirstAvailableStrategy(), conn)
 
@@ -86,33 +86,49 @@ class TestFailureCases:
 
     def test_lot_closure_increases_search_time(self, setup):
         """
-        Failure: A lot closes mid-run. Vehicles should find alternate lots,
-        increasing search time and travel distance. No crash.
+        Lot closure: same demand, same seed — closing the primary lot must
+        increase search time (vehicles end up in higher-occupancy alternatives).
+
+        E3 yaml is NOT used here because it closes 'vitap-lot-1' (old name,
+        doesn't exist in vitap.yaml v2) and uses 80 vehicles vs E1's 400.
+        Instead we run E1 twice with the same seed, adding a closed_lot override
+        to the second run.
         """
+        import yaml as _yaml
         conn = setup
         engine = SimulationEngine()
 
-        # Normal baseline
-        scenario_normal = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
-        scenario_normal.random_seed = 42
+        with open('configs/scenarios/vitap/E1_normal_day.yaml') as f:
+            raw = _yaml.safe_load(f)
+        raw["random_seed"] = 42
+
+        # Baseline: no closure
+        scenario_normal = ScenarioLoader.from_dict(dict(raw))
         result_normal = engine.run(scenario_normal, FirstAvailableStrategy(), conn)
 
-        # Lot closure (E3)
-        scenario_closed = ScenarioLoader.load('configs/scenarios/vitap/E3_lot_closure.yaml')
-        scenario_closed.random_seed = 42
+        # With academic-main closed: primary lot unavailable; others fill more
+        raw_closed = dict(raw)
+        raw_closed["availability_overrides"] = {
+            "closed_gates": [],
+            "closed_parking_lots": ["vitap-lot-academic-main"],
+            "closed_roads": [],
+        }
+        scenario_closed = ScenarioLoader.from_dict(raw_closed)
         result_closed = engine.run(scenario_closed, FirstAvailableStrategy(), conn)
 
-        # Both should complete
         assert len(result_normal.vehicles) > 0
         assert len(result_closed.vehicles) > 0
 
-        # With a lot closed, expect higher search times (vehicles cruising more)
-        search_time_normal = result_normal.metrics.get('avg_search_time_min', 0)
-        search_time_closed = result_closed.metrics.get('avg_search_time_min', 0)
+        # No vehicle should be assigned to the closed lot
+        assigned_closed = {v["assigned_lot_id"] for v in result_closed.vehicles if v["assigned_lot_id"]}
+        assert "vitap-lot-academic-main" not in assigned_closed, "Closed lot should receive zero assignments"
 
-        # Closed lot should increase search (or equal if impact is minimal)
-        assert search_time_closed >= search_time_normal * 0.9, \
-            f"Expected search time increase with lot closure"
+        # With fewer total spaces, search time should be >= normal (lots fill faster)
+        search_normal = result_normal.metrics.get("avg_search_time_min", 0)
+        search_closed = result_closed.metrics.get("avg_search_time_min", 0)
+        assert search_closed >= search_normal * 0.9, (
+            f"Lot closure should not reduce search time: normal={search_normal:.2f}, closed={search_closed:.2f}"
+        )
 
     def test_high_demand_overflow_counted(self, setup):
         """
@@ -160,7 +176,7 @@ class TestFailureCases:
         engine = SimulationEngine()
 
         # Run scenario with no forecast
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.random_seed = 42
         # Note: scenario.forecast = None would be set by strategy adapter
 
@@ -182,7 +198,7 @@ class TestFailureCases:
         engine = SimulationEngine()
 
         # Run a scenario; timeout handling is internal to adapter
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.random_seed = 42
 
         result = engine.run(scenario, FirstAvailableStrategy(), conn)
@@ -208,7 +224,7 @@ class TestFailureCases:
         conn = setup
         engine = SimulationEngine()
 
-        scenario = ScenarioLoader.load('configs/scenarios/vitap/normal_day.yaml')
+        scenario = ScenarioLoader.load('configs/scenarios/vitap/E1_normal_day.yaml')
         scenario.random_seed = 42
 
         result = engine.run(scenario, FirstAvailableStrategy(), conn)
@@ -228,7 +244,7 @@ class TestFailureCases:
         engine = SimulationEngine()
 
         scenarios = [
-            'configs/scenarios/vitap/normal_day.yaml',
+            'configs/scenarios/vitap/E1_normal_day.yaml',
             'configs/scenarios/vitap/E2_event_placement.yaml',
             'configs/scenarios/vitap/E3_lot_closure.yaml',
         ]
@@ -253,7 +269,7 @@ class TestFailureCases:
         conn = setup
         engine = SimulationEngine()
 
-        scenario_path = 'configs/scenarios/vitap/normal_day.yaml'
+        scenario_path = 'configs/scenarios/vitap/E1_normal_day.yaml'
         metrics_list = []
 
         for seed in range(10):

@@ -72,6 +72,7 @@ def test_event_multiplier_increases_arrivals_during_window(conn, engine):
         vehicle_count=30,
         arrival_rate_profile={"type": "constant", "rate": 0.5},
         event_conditions={
+            "ad_hoc": True,
             "demand_multiplier": 2.0,
             "start_tick": 20,
             "duration_ticks": 20,
@@ -100,6 +101,7 @@ def test_compliance_rate_affects_allocation_distribution(conn, engine):
         vehicle_count=100,
         arrival_rate_profile={"type": "constant", "rate": 0.83},
         event_conditions={
+            "ad_hoc": True,
             "demand_multiplier": 1.0,
             "start_tick": 0,
             "duration_ticks": 120,

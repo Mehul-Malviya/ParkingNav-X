@@ -1,4 +1,4 @@
-# E7 — Counterfactual Replay: driven by real campus observations
+# E7 — Counterfactual Replay: driven by synthetic observations (replace with real data before final submission)
 # SYNTHETIC arrival counts disaggregated from 15-min observed intervals.
 # All results labelled: "simulation-based estimate of what ParkingNav-X might have achieved."
 scenario_id: vitap-e7-replay
@@ -22,7 +22,7 @@ arrival_rate_profile:
     - { time: 600, rate: 0.05 }
 
 event_conditions:
-  event_id: placement
+  ad_hoc: true
   demand_multiplier: 1.8
   start_tick: 90
   duration_ticks: 90
@@ -36,6 +36,7 @@ availability_overrides:
 
 prediction_error_injection_level: 0.0
 random_seed: 15102026
+warmdown_minutes: 30
 
 use_prediction: true
 use_optimization: true

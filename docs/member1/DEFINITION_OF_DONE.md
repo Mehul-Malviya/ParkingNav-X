@@ -1,7 +1,7 @@
 # DEFINITION OF DONE — Member 1 (COMPLETE ✅)
 
 **Based on Master Prompt Section 19**  
-**Status: FULLY COMPLETE — All 19 items ticked**  
+**Status: 17/19 COMPLETE — See Real-Data Validation and E6 Ablation items below**  
 **Last updated: 5 October 2026**
 
 ---
@@ -33,12 +33,12 @@
   → Property test: 1000 random sequences never break invariants
 
 ### Demand Model
-- [x] **Event-aware NHPP arrivals, dwell, compliance implemented and verified statistically**  
-  → `digital_twin/simulation/engine.py::_generate_arrivals()` uses Lewis–Shedler thinning  
+- [x] **Event-aware time-varying arrivals, dwell, compliance implemented and verified statistically**  
+  → `digital_twin/simulation/engine.py::_generate_arrivals()` uses weighted multinomial sampling on the rate profile (fixed vehicle_count drawn proportionally to λ(t); NOT Lewis–Shedler thinning)  
   → Event multipliers (1.8×, 1.4×, 2.2×, 1.5×) configurable in YAML  
   → Compliance rate (default 0.85) in `digital_twin/simulation/engine.py::_assign_vehicle()`  
   → Statistical tests: `test_statistical_verification.py` (8 tests)  
-  → Tests verify: NHPP expectations ±5%, event spike, compliance behavior, dwell distribution
+  → Tests verify: arrival timing expectations ±5%, event spike, compliance behavior, dwell distribution
 
 ### Physical Models
 - [x] **Gate queue, BPR roads, search/cruising, reserved capacity implemented and tested**  
@@ -65,18 +65,28 @@
 
 ### Scenarios & Disruptions
 - [x] **All scenarios (E1–E5) run for 30 seeds**  
-  → E1 (normal_day.yaml): 500 vehicles, no events  
-  → E2 (E2_event_placement.yaml): placement event 09:15–10:30, 1.8× multiplier  
-  → E3 (E3_lot_closure.yaml): Lot A closes 09:00–11:00  
-  → E4 (E4_gate_closure.yaml): Gate 1 closes 08:45–09:45  
-  → E5 (E5_noise_0/10/20.yaml): forecast noise injection for robustness  
+  → E1 (E1_normal_day.yaml): 400 vehicles, no events; B1 search 6.65±0.37 min, B2 3.20±0.13 min  
+  → E2 (E2_event_placement.yaml): 470 vehicles, 1.8× multiplier ticks 75–164 (09:15–10:45)  
+     B1: search 5.07±0.24 min, travel_d 954±4 m, overflow 13.5, reject 0  
+     B2: search 3.14±0.12 min, travel_d 648±2 m, overflow 5.7, reject 0  
+     (30-seed, 95% CI; cruising engine — reject=0 while campus has space)  
+  → E3 (E3_lot_closure.yaml): Lot A closes 09:00–11:00 (closes vitap-lot-1; 80 vehicles)  
+  → E4 (E4_gate_closure.yaml): Gate closure disruption scenario  
+  → E5 (E5_noise_0/10/20.yaml): forecast noise injection — **plumbing ready, results pending Member 3**  
   → All run for 30 independent seeds ✓
 
-- [x] **Forecast-noise (0/10/20%) and ablation flags working**  
+- [x] **Forecast-noise (0/10/20%) plumbing implemented** *(results pending Member 3)*  
   → Forecast-noise injector: `digital_twin/simulation/forecast_noise.py`  
-  → Ablation flags: `scenario.use_prediction`, `use_optimization`, `use_uncertainty`, `proactive`  
-  → E5 tests: `test_e5_robustness.py` (8 tests)  
-  → Tests: noise 0%, 10%, 20% robustness, monotonic degradation, crash-resistance
+  → `prediction_error_injection_level` accepted by `ScenarioConfig` and stored in YAML  
+  → E5 tests: `test_e5_robustness.py` (8 tests) — verify engine doesn't crash with noise set  
+  → **Current status:** B1/B2 don't read forecast data; all three noise levels produce identical results (noise-immune baselines). E5 becomes meaningful once Member 3's optimizer consumes `use_prediction` + noisy forecast.
+
+- [ ] **E6 ablation: performance difference between flag variants measured**  
+  → Ablation flags (use_prediction, use_optimization, use_uncertainty, proactive) are accepted by ScenarioConfig  
+  → Plumbing verified: `test_ablation_flags_plumbing.py` confirms flags accepted without crash  
+  → NOT DONE: flags are not yet consumed by SimulationEngine; no E6_ablation.yaml config  
+  → Blocked on: Member 3's optimizer variants (flags only have effect when an optimizer reads them)  
+  → Action: coordinate with Member 3, add E6_ablation.yaml, re-run comparison once optimizer is wired
 
 ### Metrics & Output
 - [x] **5 primary + secondary metrics computed from logs; run artifacts + manifest saved**  
@@ -104,13 +114,14 @@
   → Test: `test_phase9_interfaces.py::test_api_functions()`
 
 ### Real-Data Validation
-- [x] **Real observations cleaned; simulator calibrated; counterfactual replay done and honestly labelled**  
-  → Real data: `data/real_observations.csv` (80 rows, 2 days, 15-min intervals)  
-  → Cleaning: validated (occupancy ≤ capacity, non-negative counts, ≥0.80 confidence)  
-  → Calibration: fitted λ(t), dwell parameters via `digital_twin/validation/calibration.py`  
-  → Counterfactual: E7 replay scenarios (`E7_replay.yaml`) run on real demand  
-  → Honest labelling: all E7 outputs labelled "simulation-based estimate"  
-  → Tests: `test_e7_counterfactual_replay.py` (11 tests)
+- [ ] **Real observations collected; simulator calibrated against real counts; counterfactual replay re-run**  
+  → Current data: `data/synthetic_observations.csv` — SYNTHETIC, generated to match realistic VIT-AP patterns.  
+     Dates 15–16 Oct 2026 are future dates; no real gate-counting has been done yet.  
+  → Real counting day needed: 15-minute aggregate vehicle counts at main gate(s), 1–2 days.  
+  → Calibration pipeline ready: `digital_twin/validation/calibration.py` (run once real CSV is in place)  
+  → E7 replay ready to re-run: `configs/scenarios/vitap/E7_replay.yaml`  
+  → Honest labelling in place: all E7 outputs labelled "simulation-based estimate"  
+  → Tests pass on synthetic data: `test_e7_counterfactual_replay.py` (11 tests)
 
 ### Failure Handling & Robustness
 - [x] **All failure cases tested and demo-able**  
@@ -145,7 +156,7 @@
 
 ### Reproducibility & Finality
 - [x] **Every result in the final deck is regenerable by one command from stored configs + seeds**  
-  → Command: `pytest tests/test_e6_ablation.py -v` (30 seeds, 4 ablation variants, 7 scenarios)  
+  → Command: `pytest tests/ -v` (162 tests across all scenarios and strategies)  
   → Or: `python -m simulation.batch_run --scenarios E1-E7 --seeds 0-29 --strategies B1,B2`  
   → All results: SHA256 deterministic, config hash + git commit in manifest  
   → No hand-edited metrics, no missing data infill, all regenerable ✓
@@ -158,12 +169,12 @@ All 12 viva questions answered with code references:
 
 1. ✅ Why is this a Digital Twin (not a dashboard)?
 2. ✅ Why discrete-event simulation (not fixed time steps)?
-3. ✅ Why non-homogeneous Poisson arrivals? How does thinning work?
+3. ✅ Why time-varying arrivals? How does arrival sampling work?
 4. ✅ Why BPR function? What do 0.15 and 4 mean?
 5. ✅ How do you guarantee reproducibility?
 6. ✅ How do you model events? Where do multipliers come from?
 7. ✅ What happens when every lot is full / gate closes / road blocked?
-8. ✅ How did you validate against real observations? Where does it disagree?
+8. ✅ How did you validate against observations? Where does it disagree? (Note: data is currently synthetic)
 9. ✅ What is compliance rate and why does it matter?
 10. ✅ How does it scale to 1,000 vehicles? What is decision latency?
 11. ✅ How does a new campus load without code changes?
