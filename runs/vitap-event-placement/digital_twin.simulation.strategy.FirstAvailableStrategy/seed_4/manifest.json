@@ -3,8 +3,8 @@
   "strategy_name": "digital_twin.simulation.strategy.FirstAvailableStrategy",
   "random_seed": 4,
   "config_hash": "e0adfaa2",
-  "git_commit": "be1f36230b57e87fb47329828f641c890cd720ab",
-  "recorded_at": "2026-10-07T07:49:38.604757+00:00",
+  "git_commit": "9050c8a2c6748d349afce8c6c3a561cecb2e83ee",
+  "recorded_at": "2026-10-08T13:43:12.392981+00:00",
   "vehicle_count": 470,
   "timestep_count": 600
 }

@@ -339,6 +339,8 @@ E2 is the placement-drive scenario: 470 vehicles, E1 base profile with 1.8× dem
 | Metric | B1 (First Available) | B2 (Nearest Available) | Δ |
 |--------|----------------------|------------------------|---|
 | avg search time (min) | **5.07 ± 0.24** | **3.14 ± 0.12** | B2 saves 1.93 min/veh |
+| avg wait time (min) | **0.00** | **0.00** | identical — gate not a bottleneck |
+| gate queue avg/max | **0.001 / 1.0** | **0.001 / 1.0** | identical — strategy doesn't affect gate |
 | avg travel time (min) | **1.70 ± 0.01** | **1.15 ± 0.00** | B2 saves 0.55 min/veh |
 | avg travel distance (m) | **954 ± 4** | **648 ± 2** | B2 saves 306 m/veh |
 | overflow events | **13.5 ± 1.3** | **5.7 ± 0.9** | B1 saturates academic-main |
@@ -350,8 +352,45 @@ E2 is the placement-drive scenario: 470 vehicles, E1 base profile with 1.8× dem
 
 ---
 
+## 14. Why does closing the academic-main lot (E3) make B1 *faster*, not slower?
+
+**Answer:**
+
+This is a non-obvious result worth knowing cold.
+
+B1 (FirstAvailable) fills lots in sorted ID order. Academic-main is first. On a normal day (E1), academic-main fills to ~100% by mid-morning, making late arrivals spend extra search time at near-full capacity (`search = base × (1 + α/(1−occ+ε))` diverges near occ=1). B1's search time is 6.65 min.
+
+In E3 (academic-main closed ticks 60–180), B1 diverts those vehicles to hostel (162 spaces), admin (72), and sports (84). These lots start the day nearly empty. Lower occupancy = shorter search time per the formula. The 120 min closure window coincides with the morning peak — exactly when academic-main would have been most congested. The net result: **average search time drops to 3.86 min**, because the forced redistribution prevents the high-occupancy penalty.
+
+**What this exposes:** B1 is not a good strategy. Its search-time degrades sharply as occupancy rises. Any strategy that fills one lot to 100% before touching others will produce high search times late in the day. B2 (NearestAvailable) avoids this by balancing across lots; its search time is unaffected by the closure (3.20 min in both E1 and E3) because it never relied on academic-main.
+
+**Why E3 B2 = E1 B2 (search 3.20 min both):**
+B2 assigns each vehicle to the nearest open lot from its entry gate. From gate-main, the nearest is hostel (76 s), not academic-main (90 s). From gate-visitor, the nearest is overflow (56 s). B2 is already routing around academic-main even before the closure — so closing it changes nothing for B2.
+
+---
+
+## 15. Why is the gate queue always 0 in E4 (gate-main closure)? Is that a bug?
+
+**Answer:**
+
+Not a bug — it is physically correct.
+
+**VITAP gate capacities (assumed; measure on counting day):**
+- gate-main: 2 lanes × 3 veh/min/lane = **6 veh/min**
+- gate-visitor: 1 lane × 3 veh/min/lane = **3 veh/min**
+
+In E4, gate-main closes ticks 45–105. All 400 E1-profile vehicles divert to visitor gate. The E1 arrival profile peaks at **1.2 veh/min** total, which divides to at most **1.2 veh/min at visitor gate** after diversion. Service capacity is 3 veh/min. Since 1.2 < 3, every arriving vehicle is admitted immediately — queue depth stays 0.
+
+**gate_congestion.yaml is different:** It uses a 4.0 veh/min burst (ticks 30–90). Vehicles split across both gates (~2 veh/min each). Both gates have enough capacity, so again queue = 0. The 74.5 overflow events in gate_congestion are **parking lot overflow** (lots fill fast under burst demand), not gate queue overflow.
+
+**When does a queue actually form?** Arrival rate must exceed gate service rate. Test `test_gate_queue_grows_under_overload` confirms this: with gate capacity=1 veh/min and burst rate=6 veh/min, the queue grows by tick 5. The logic is correct; VITAP's gates are simply not a bottleneck under the modelled demand.
+
+**When to revisit:** Measure actual gate service time on counting day. If a real gate processes vehicles at e.g. 1 veh/min (long RFID scan), adjust `capacity` in vitap.yaml.
+
+---
+
 ## Ready for Viva
 
-Print this file, bring it to your viva, and you can explain all 13 points in under 20 minutes (1–2 min per question). Each answer has a code location and a test, so you can back up every claim with evidence.
+Print this file, bring it to your viva, and you can explain all 15 points in under 25 minutes (1–2 min per question). Each answer has a code location and a test, so you can back up every claim with evidence.
 
 **Good luck!**

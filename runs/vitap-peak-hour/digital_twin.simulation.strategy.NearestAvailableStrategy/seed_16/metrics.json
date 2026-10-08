@@ -12,9 +12,9 @@
     "lot_peak_occupied_spaces": {
       "vitap-lot-overflow": 46,
       "vitap-lot-sports": 0,
+      "vitap-lot-hostel": 162,
       "vitap-lot-admin-visitor": 72,
-      "vitap-lot-academic-main": 33,
-      "vitap-lot-hostel": 162
+      "vitap-lot-academic-main": 33
     }
   },
   "secondary_metrics": {
