@@ -179,6 +179,7 @@ class SimulationEngine:
         conn.commit()
 
         graph = self.graph_service.build_graph(scenario.campus_id, conn)
+        original_graph = graph  # kept for restoring timed road closures
         working_graph = self._apply_availability_overrides(graph, scenario)
 
         gates = self._load_gates(scenario.campus_id, conn, scenario.availability_overrides)
@@ -221,6 +222,12 @@ class SimulationEngine:
                             alt = sorted(open_gate_ids)[0]
                             gate_queues[alt].extend(gate_queues[eid])
                             gate_queues[eid] = []
+                    elif etype == "road":
+                        # Remove all edges with this road_id from the working graph
+                        edges_to_remove = [(u, v) for u, v, d in working_graph.edges(data=True)
+                                          if d.get("road_id") == eid]
+                        for u, v in edges_to_remove:
+                            working_graph.remove_edge(u, v)
                 elif tick == tc.get("end_tick"):
                     if etype == "parking_lot" and eid in parking_lots:
                         parking_lots[eid]["status"] = "open"
@@ -230,6 +237,11 @@ class SimulationEngine:
                         gates[eid]["status"] = "open"
                         if eid not in open_gate_ids:
                             open_gate_ids.append(eid)
+                    elif etype == "road":
+                        # Restore edges from the original graph
+                        for u, v, d in original_graph.edges(data=True):
+                            if d.get("road_id") == eid and not working_graph.has_edge(u, v):
+                                working_graph.add_edge(u, v, **d)
 
             # Decision cycle: every 5 minutes, call strategy.update_policy()
             if tick % 5 == 0:

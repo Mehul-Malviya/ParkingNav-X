@@ -10,10 +10,10 @@
     "avg_travel_distance_m": 644.4,
     "total_travel_distance_veh_km": 257.7,
     "lot_peak_occupied_spaces": {
-      "vitap-lot-academic-main": 0,
       "vitap-lot-admin-visitor": 32,
       "vitap-lot-hostel": 69,
       "vitap-lot-overflow": 46,
+      "vitap-lot-academic-main": 0,
       "vitap-lot-sports": 0
     }
   },
