@@ -1,6 +1,6 @@
 # Results Summary — Member 1
 
-**Generated:** 2026-10-08 13:29 UTC  
+**Generated:** 2026-10-09 09:46 UTC  
 **Script:** `scripts/generate_results_summary.py`  
 **Source:** `runs/{{scenario_id}}/{{strategy}}/seed_*/metrics.json`  
 **Seeds:** 30 per scenario × strategy (seeds 0–29)  

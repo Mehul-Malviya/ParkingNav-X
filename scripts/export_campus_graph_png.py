@@ -15,6 +15,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import networkx as nx
+import yaml
+
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -41,32 +43,82 @@ def export_campus_graph_png(campus_id: str, config_path: str, output_path: str):
     graph_svc = CampusGraphService()
     graph = graph_svc.build_graph(campus_id, conn)
 
-    # Layout
-    pos = nx.spring_layout(graph, seed=42, k=2, iterations=50)
+    # Layout based on real geographical coordinates (longitude = x, latitude = y)
+    pos = {}
+    for node, data in graph.nodes(data=True):
+        if data.get("longitude") is not None and data.get("latitude") is not None:
+            pos[node] = (data["longitude"], data["latitude"])
+        else:
+            pos[node] = (0, 0)
 
     # Colors by node type
     node_colors = []
     for node in graph.nodes():
         node_type = graph.nodes[node].get("type", "unknown")
         if node_type == "gate":
-            node_colors.append("red")
+            node_colors.append("#e74c3c")  # Modern red
         elif node_type == "parking_lot":
-            node_colors.append("blue")
+            node_colors.append("#2980b9")  # Modern blue
         elif node_type == "destination":
-            node_colors.append("green")
+            node_colors.append("#27ae60")  # Modern green
         else:
             node_colors.append("gray")
 
-    # Draw
-    fig, ax = plt.subplots(figsize=(12, 10))
-    nx.draw_networkx_nodes(
-        graph, pos, node_color=node_colors, node_size=800, ax=ax, alpha=0.9
-    )
-    nx.draw_networkx_edges(graph, pos, edge_color="gray", width=1, ax=ax, alpha=0.5)
-    nx.draw_networkx_labels(graph, pos, font_size=8, ax=ax)
+    # Query human-readable names for all nodes
+    labels = {}
+    for row in conn.execute("SELECT gate_id, name FROM gates WHERE campus_id=?", (campus_id,)):
+        labels[row["gate_id"]] = row["name"]
+    for row in conn.execute("SELECT parking_lot_id, name FROM parking_lots WHERE campus_id=?", (campus_id,)):
+        labels[row["parking_lot_id"]] = row["name"]
+    for row in conn.execute("SELECT destination_id, name FROM destinations WHERE campus_id=?", (campus_id,)):
+        labels[row["destination_id"]] = row["name"]
 
-    ax.set_title(f"Campus Graph: {campus_id}", fontsize=16, fontweight="bold")
+    # Fallback to node_id if name missing
+    for node in graph.nodes():
+        if node not in labels:
+            labels[node] = node
+
+    # Query road geometries from DB
+    road_geometries = []
+    for row in conn.execute("SELECT geometry FROM roads WHERE campus_id=?", (campus_id,)):
+        try:
+            geom = yaml.safe_load(row["geometry"])
+            if isinstance(geom, list):
+                coords = [(pt["lng"], pt["lat"]) for pt in geom if "lng" in pt and "lat" in pt]
+                if len(coords) >= 2:
+                    road_geometries.append(coords)
+        except Exception:
+            pass
+
+    # Draw
+    fig, ax = plt.subplots(figsize=(16, 13))
+
+    # Draw actual curved/segment road geometries from OpenStreetMap geometry array
+    for coords in road_geometries:
+        xs, ys = zip(*coords)
+        ax.plot(xs, ys, color="#95a5a6", linewidth=2.5, alpha=0.7, zorder=1)
+
+    # Draw topological straight graph edges
+    nx.draw_networkx_edges(graph, pos, edge_color="#7f8c8d", width=1.2, ax=ax, alpha=0.5)
+
+    # Draw nodes
+    nx.draw_networkx_nodes(
+        graph, pos, node_color=node_colors, node_size=1200, ax=ax, alpha=0.95
+    )
+
+    # Draw labels with high-contrast white background box
+    for node, (x, y) in pos.items():
+        name = labels.get(node, node)
+        ax.text(
+            x, y + 0.00025, name,
+            fontsize=9.5, fontweight="bold", ha="center", va="bottom",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="#34495e", alpha=0.88, linewidth=1)
+        )
+
+    ax.set_title(f"VIT-AP Geographic Campus Graph & Building Routing Map", fontsize=18, fontweight="bold", pad=20)
     ax.axis("off")
+
+
 
     # Legend
     from matplotlib.patches import Patch
