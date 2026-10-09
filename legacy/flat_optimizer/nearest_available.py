@@ -1,5 +1,6 @@
-from optimization.constraints.parking_constraints import is_parking_available
-from optimization.routing.dijkstra import dijkstra
+from legacy.flat_optimizer.parking_constraints import is_parking_available
+from legacy.flat_optimizer.dijkstra import dijkstra
+
 
 
 def nearest_available_parking(graph, parking_data, start):
