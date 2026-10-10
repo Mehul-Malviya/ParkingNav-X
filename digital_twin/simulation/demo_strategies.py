@@ -17,6 +17,8 @@ class DemoNearestAvailableStrategy(AllocationStrategy):
     the vehicle's current position. A minimal real implementation, not the
     project's final strategy."""
 
+    label = "B2-NearestAvailable"
+
     def assign(self, vehicle, campus_state):
         best_lot, best_distance = None, float("inf")
         for lot_id, lot in campus_state.parking_lots.items():
@@ -42,6 +44,7 @@ class PredictionOnlyStrategy(AllocationStrategy):
     is integrated.
     """
 
+    label = "B3-PredictionOnly"
     FILL_THRESHOLD = 0.80  # avoid lots more than 80% full
 
     def assign(self, vehicle, campus_state):
@@ -89,6 +92,7 @@ class ParkingNavXFullStrategy(AllocationStrategy):
     queue length. This is the target end-state of the ParkingNav-X system.
     """
 
+    label = "P-ParkingNavX"
     FILL_THRESHOLD = 0.85
     GATE_WEIGHT = 0.3      # how much gate queue penalises a lot
 

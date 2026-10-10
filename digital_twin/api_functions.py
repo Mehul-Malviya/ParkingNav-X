@@ -5,23 +5,21 @@ Pure Python functions for FastAPI to wrap. No database coupling.
 All functions are deterministic (seed â†’ identical results).
 """
 
-import json
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import List, Tuple
 
 from digital_twin.config_loader import load_campus_config
-from digital_twin.graph_service import GraphService
+from digital_twin.db import apply_migrations, get_connection
+from digital_twin.graph_service import CampusGraphService
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.simulation.state_snapshot import StateSnapshot
-from digital_twin.db import get_connection, apply_migrations
-
 
 # Module-level state (your FastAPI will manage this)
 _graph_service = None
 _engine = None
 _conn = None
+_results: dict = {}  # run_id -> SimulationResult
 
 
 def init(db_path: str = ":memory:", configs_path: str = "configs"):
@@ -30,7 +28,7 @@ def init(db_path: str = ":memory:", configs_path: str = "configs"):
 
     _conn = get_connection(db_path)
     apply_migrations(_conn)
-    _graph_service = GraphService()
+    _graph_service = CampusGraphService()
     _engine = SimulationEngine()
 
 
@@ -87,10 +85,15 @@ def run_simulation(scenario_dict: dict, strategy_name: str, seed: int) -> str:
     else:
         raise ValueError(f"Unknown strategy: {strategy_name}")
 
+    # Auto-initialize with defaults if init() was never called
+    if _engine is None:
+        init()
+        load_campus(scenario.campus_id)
+
     # Run
     result = _engine.run(scenario, strategy, _conn)
+    _results[result.run_id] = result
 
-    # Result run_id is unique identifier
     return result.run_id
 
 
@@ -124,26 +127,36 @@ def get_metrics(run_id: str) -> dict:
     Returns:
         {primary_metrics, secondary_metrics, ...}
     """
-    # Metrics are in runs/{scenario}/{strategy}/seed_{n}/metrics.json
-    # You'll need to map run_id back to this path
-    # For now, return template
+    result = _results.get(run_id)
+    if result is None:
+        raise KeyError(f"No result found for run_id={run_id!r}. Call run_simulation() first.")
+
+    vehicles = result.vehicles
+    total = len(vehicles)
+    parked = sum(1 for v in vehicles if v.get("final_state") == "parked")
+    exited = sum(1 for v in vehicles if v.get("final_state") == "exited")
+    rejected = sum(1 for v in vehicles if v.get("final_state") == "rejected")
+    success_rate = (parked + exited) / total if total else 0.0
+
+    m = result.metrics
     return {
         "run_id": run_id,
         "primary_metrics": {
-            "avg_search_time_min": 0,
-            "avg_waiting_time_min": 0,
-            "avg_gate_queue_vehicles": 0,
-            "max_gate_queue_vehicles": 0,
-            "overflow_events_count": 0,
-            "total_travel_time_veh_min": 0,
-            "total_travel_distance_veh_km": 0,
+            "avg_search_time_min": m.get("avg_search_time_min", 0),
+            "avg_waiting_time_min": m.get("avg_wait_time_min", 0),
+            "avg_gate_queue_vehicles": m.get("avg_gate_queue", 0),
+            "max_gate_queue_vehicles": m.get("max_gate_queue", 0),
+            "overflow_events_count": len(result.overflow_events),
+            "total_travel_time_veh_min": m.get("total_travel_time_min", 0),
+            "total_travel_distance_veh_km": m.get("total_travel_distance_km", 0),
         },
         "secondary_metrics": {
-            "total_vehicles_simulated": 0,
-            "parked_vehicles": 0,
-            "rejected_vehicles": 0,
-            "allocation_success_rate": 0.0,
-        }
+            "total_vehicles_simulated": total,
+            "parked_vehicles": parked,
+            "exited_vehicles": exited,
+            "rejected_vehicles": rejected,
+            "allocation_success_rate": round(success_rate, 4),
+        },
     }
 
 
@@ -276,10 +289,11 @@ def make_dataset(campus_id: str, scenario_paths: list, seeds: list, output_path:
         {"rows": int, "columns": list, "path": str}
     """
     import csv
+    from pathlib import Path
+
     from digital_twin.simulation.engine import SimulationEngine
     from digital_twin.simulation.scenario import ScenarioLoader
     from digital_twin.simulation.strategy import FirstAvailableStrategy
-    from pathlib import Path
 
     engine = SimulationEngine()
     rows = []
@@ -324,7 +338,7 @@ def validate_scenario(scenario_dict: dict) -> Tuple[bool, List[str]]:
         (is_valid, [error_messages])
     """
     try:
-        scenario = ScenarioLoader.from_dict(scenario_dict)
+        ScenarioLoader.from_dict(scenario_dict)
         # Further validation
         errors = []
         return (len(errors) == 0, errors)

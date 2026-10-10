@@ -298,7 +298,7 @@ load_campus_config(Path('configs/campus/iit_bombay.yaml'), conn)
 - The validator is generic (checks the schema, not hardcoded topology).
 - The shortest-path algorithm (Dijkstra) works on any graph.
 
-**Proof:** `test_part1_campus_config.py::test_generic_campus_load()` loads 3 different campuses (sample 1-gate, vitap 2-gate, synthetic_large 3-gate) and runs a simulation for each. Same code path. Just different configs.
+**Proof:** `test_part1_campus_config.py::test_generic_campus_load()` loads different campuses (sample 1-gate, vitap 2-gate) and runs a simulation for each. Same code path. Just different configs. Scalability is verified separately at 500 and 1000 vehicles using vitap.yaml (see `tests/test_scalability.py`).
 
 ---
 

@@ -45,6 +45,8 @@ class AssignmentResult:
 
 
 class AllocationStrategy(ABC):
+    name: str = ""   # spec-required label; subclasses override via `label` class attr
+
     @abstractmethod
     def assign(self, vehicle: Vehicle, campus_state: CampusState) -> AssignmentResult:
         """Given a vehicle and the current (or predicted) campus state,
@@ -85,6 +87,8 @@ class FirstAvailableStrategy(AllocationStrategy):
     Simple: no optimization, no forecasting.
     """
 
+    label = "B1-FirstAvailable"
+
     def assign(self, vehicle: Vehicle, campus_state: CampusState) -> AssignmentResult:
         for lot_id in campus_state.parking_lots.keys():  # Fix 5: config order, not sorted()
             lot = campus_state.parking_lots[lot_id]
@@ -100,6 +104,8 @@ class NearestAvailableStrategy(AllocationStrategy):
     Greedy: minimize immediate travel time.
     Deterministic: breaks ties by lot_id order.
     """
+
+    label = "B2-NearestAvailable"
 
     def assign(self, vehicle: Vehicle, campus_state: CampusState) -> AssignmentResult:
         import networkx as nx

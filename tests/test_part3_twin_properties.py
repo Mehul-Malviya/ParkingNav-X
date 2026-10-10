@@ -1,4 +1,4 @@
-"""
+﻿"""
 Phase 2 — Digital Twin property tests.
 
 Property-based testing with Hypothesis: for 100,000+ random valid transition
@@ -13,18 +13,19 @@ All transitions respect campus constraints (capacity bounds, status flags, etc.)
 """
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from digital_twin.config_loader import load_campus_config
 from digital_twin.db import apply_migrations, get_connection
 from digital_twin.twin_service import DigitalTwinService
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIGS = PROJECT_ROOT / "configs" / "campuses"
+CONFIGS = PROJECT_ROOT / "configs" / "campus"
 
 
 @pytest.fixture
@@ -148,7 +149,7 @@ def test_snapshot_restore_snapshot_is_byte_identical(conn, twin):
     twin.restore_snapshot("sample", snapshot1_id, conn)
 
     # Second snapshot (should be identical to first)
-    snapshot2_id = twin.snapshot_now("sample", conn, timestamp="t=200")
+    twin.snapshot_now("sample", conn, timestamp="t=200")
     snapshot2 = twin.get_state_at_timestamp("sample", "t=200", conn)
     snapshot2_json = json.dumps(snapshot2["full_state"], sort_keys=True)
 

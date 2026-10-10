@@ -20,7 +20,6 @@ occupying this edge for N ticks" model is a drop-in replacement later.
 
 import json
 import random
-import signal
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -28,11 +27,16 @@ from typing import Optional
 
 import networkx as nx
 
-from digital_twin.simulation.metrics_recorder import MetricsRecorder
-
 from digital_twin.graph_service import CampusGraphService
+from digital_twin.simulation.metrics_recorder import MetricsRecorder
 from digital_twin.simulation.scenario import ScenarioConfig, ScenarioValidator
-from digital_twin.simulation.strategy import AllocationStrategy, AssignmentResult, CampusState, Vehicle, NearestAvailableStrategy
+from digital_twin.simulation.strategy import (
+    AllocationStrategy,
+    AssignmentResult,
+    CampusState,
+    NearestAvailableStrategy,
+    Vehicle,
+)
 from digital_twin.twin_service import DigitalTwinService
 
 DWELL_MINUTES_RANGE = (30, 480)
@@ -152,9 +156,11 @@ def _arrival_rate_at(profile: dict, t: int) -> float:
 
 class SimulationEngine:
     def __init__(self, graph_service: Optional[CampusGraphService] = None,
-                 twin_service: Optional[DigitalTwinService] = None):
+                 twin_service: Optional[DigitalTwinService] = None,
+                 runs_dir: Optional[str] = None):
         self.graph_service = graph_service or CampusGraphService()
         self.twin_service = twin_service or DigitalTwinService()
+        self.runs_dir = runs_dir  # None → uses MetricsRecorder default ("runs")
 
     def run(self, scenario: ScenarioConfig, strategy: AllocationStrategy, conn,
             run_id: Optional[str] = None) -> SimulationResult:
@@ -167,7 +173,7 @@ class SimulationEngine:
 
         run_id = run_id or f"{scenario.scenario_id}-{uuid.uuid4().hex[:8]}"
         started_at = datetime.now(timezone.utc).isoformat()
-        strategy_name = f"{strategy.__class__.__module__}.{strategy.__class__.__name__}"
+        strategy_name = getattr(strategy, "label", strategy.__class__.__name__)
 
         conn.execute(
             """INSERT INTO simulation_runs (run_id, campus_id, scenario_id, random_seed, strategy_name,
@@ -534,7 +540,8 @@ class SimulationEngine:
         conn.commit()
 
         # Record metrics to disk (Phase 8)
-        recorder = MetricsRecorder()
+        recorder_kwargs = {"output_root": self.runs_dir} if self.runs_dir else {}
+        recorder = MetricsRecorder(**recorder_kwargs)
         try:
             recorder.record_run(
                 scenario_id=scenario.scenario_id,

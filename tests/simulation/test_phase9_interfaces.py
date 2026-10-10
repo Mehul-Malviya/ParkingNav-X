@@ -5,11 +5,12 @@ Tests for StateSnapshot and API functions exports.
 """
 
 import json
-from pathlib import Path
-import pytest
 
 from digital_twin.simulation.state_snapshot import (
-    StateSnapshot, LotState, GateState, RoadState, EventState
+    GateState,
+    LotState,
+    RoadState,
+    StateSnapshot,
 )
 
 

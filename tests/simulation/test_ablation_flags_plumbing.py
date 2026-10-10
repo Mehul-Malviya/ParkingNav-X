@@ -10,13 +10,15 @@ that requires Member 3's optimizer variants and belongs in a future
 E6 ablation scenario config.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from digital_twin.config_loader import load_campus_config
+from digital_twin.db import apply_migrations, get_connection
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import FirstAvailableStrategy
-from digital_twin.db import get_connection, apply_migrations
 
 
 class TestAblationFlagsPlumbing:

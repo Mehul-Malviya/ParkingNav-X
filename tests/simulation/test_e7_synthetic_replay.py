@@ -5,15 +5,17 @@ Uses data/synthetic_observations.csv as a placeholder until real gate-count
 data is collected. All tests skip gracefully if the CSV is absent.
 """
 
-import pytest
 import csv
 from pathlib import Path
+
+import pytest
+
 from digital_twin.config_loader import load_campus_config
+from digital_twin.db import apply_migrations, get_connection
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.validation.calibration import CounterfactualReplay, CalibrationReport
-from digital_twin.db import get_connection, apply_migrations
+from digital_twin.validation.calibration import CalibrationReport, CounterfactualReplay
 
 
 class TestE7SyntheticReplay:

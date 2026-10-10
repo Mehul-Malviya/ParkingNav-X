@@ -4,13 +4,15 @@ Tests Section 19 Definition of Done item: "All failure cases tested and demo-abl
 Based on Master Prompt Section 14 (Robustness, Failure Handling, Scalability)
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from digital_twin.config_loader import load_campus_config
+from digital_twin.db import apply_migrations, get_connection
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
-from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.db import get_connection, apply_migrations
+from digital_twin.simulation.strategy import FirstAvailableStrategy
 
 
 class TestFailureCases:
@@ -161,8 +163,6 @@ class TestFailureCases:
         Failure: Invalid scenario config. Should reject with clear error,
         not crash silently.
         """
-        conn = setup
-
         # Try to load non-existent scenario
         with pytest.raises(FileNotFoundError):
             ScenarioLoader.load('configs/scenarios/vitap/nonexistent_scenario.yaml')
@@ -296,9 +296,7 @@ class TestFailureCases:
         assert cv < 1.0, f"Coefficient of variation {cv} suggests instability"
 
 
-# Import numpy for test_no_negative_metrics
-import numpy as np
-
+import numpy as np  # noqa: E402
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

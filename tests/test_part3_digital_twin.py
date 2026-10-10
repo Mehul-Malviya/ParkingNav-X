@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+﻿from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -8,7 +8,7 @@ from digital_twin.db import apply_migrations, get_connection
 from digital_twin.twin_service import DigitalTwinService
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIGS = PROJECT_ROOT / "configs" / "campuses"
+CONFIGS = PROJECT_ROOT / "configs" / "campus"
 
 
 @pytest.fixture

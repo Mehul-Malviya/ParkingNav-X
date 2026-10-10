@@ -12,13 +12,12 @@ Output per run: runs/{scenario_id}/{strategy}/seed_{n}/
   - manifest.json: config hash, git commit, timestamps, versions
 """
 
-import json
-import os
-import subprocess
-from pathlib import Path
-from datetime import datetime, timezone
-from typing import Optional
 import hashlib
+import json
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
 
 try:
     import pandas as pd
@@ -250,7 +249,7 @@ class MetricsRecorder:
                     ["git", "rev-parse", "HEAD"],
                     stderr=subprocess.DEVNULL
                 ).decode().strip()
-            except:
+            except Exception:
                 git_commit = "unknown"
 
         manifest = {

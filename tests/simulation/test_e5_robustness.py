@@ -5,13 +5,15 @@ flags working"
 Based on Master Prompt Section 10 (Scenarios & Disruptions)
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from digital_twin.config_loader import load_campus_config
+from digital_twin.db import apply_migrations, get_connection
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.db import get_connection, apply_migrations
 
 
 class TestRobustnessE5:
@@ -178,9 +180,6 @@ class TestRobustnessE5:
         Test that forecast uncertainty (prediction intervals) widen with noise.
         Wider intervals = lower confidence.
         """
-        conn = setup
-        engine = SimulationEngine()
-
         # This test verifies forecast interval widening is implemented
         # E5 scenarios should have increasing forecast_uncertainty
 
@@ -192,7 +191,7 @@ class TestRobustnessE5:
             # (These are optional; if absent, test passes)
             if hasattr(scenario, 'forecast_noise'):
                 assert scenario.forecast_noise == noise_level, \
-                    f"Scenario noise level mismatch"
+                    "Scenario noise level mismatch"
 
     def test_b1_vs_b2_under_noise(self, setup):
         """

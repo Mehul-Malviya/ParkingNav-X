@@ -32,3 +32,6 @@ Thumbs.db
 .venv/
 venv/
 .claude/
+data/observations/*.csv
+!data/observations/template.csv
+data/member2_synthetic/

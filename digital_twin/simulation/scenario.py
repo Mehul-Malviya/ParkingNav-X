@@ -5,7 +5,7 @@ Every scenario is SYNTHETIC by construction; none is presented as real
 campus behavior.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 

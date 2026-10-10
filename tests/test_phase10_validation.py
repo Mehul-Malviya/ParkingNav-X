@@ -5,7 +5,6 @@ Tests for calibration, honest reporting, and counterfactual scenarios.
 """
 
 import json
-import pytest
 import tempfile
 
 from digital_twin.validation.calibration import (

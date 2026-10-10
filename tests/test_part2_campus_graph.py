@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import pytest
 
@@ -7,7 +7,7 @@ from digital_twin.db import apply_migrations, get_connection
 from digital_twin.graph_service import CampusGraphService
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIGS = PROJECT_ROOT / "configs" / "campuses"
+CONFIGS = PROJECT_ROOT / "configs" / "campus"
 
 
 @pytest.fixture

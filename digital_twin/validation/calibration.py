@@ -5,9 +5,8 @@ Validate simulator against real observations, fit parameters, run counterfactual
 """
 
 import json
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
 import statistics
+from typing import Dict, List
 
 
 class CalibrationReport:
@@ -184,7 +183,8 @@ class CounterfactualReplay:
             {strategy_name: result_metrics, ...}
         """
         from digital_twin.simulation.strategy import (
-            FirstAvailableStrategy, NearestAvailableStrategy
+            FirstAvailableStrategy,
+            NearestAvailableStrategy,
         )
 
         results = {}

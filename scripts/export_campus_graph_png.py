@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import yaml
 
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from digital_twin.config_loader import load_campus_config
@@ -115,7 +114,7 @@ def export_campus_graph_png(campus_id: str, config_path: str, output_path: str):
             bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="#34495e", alpha=0.88, linewidth=1)
         )
 
-    ax.set_title(f"VIT-AP Geographic Campus Graph & Building Routing Map", fontsize=18, fontweight="bold", pad=20)
+    ax.set_title("VIT-AP Geographic Campus Graph & Building Routing Map", fontsize=18, fontweight="bold", pad=20)
     ax.axis("off")
 
 
@@ -143,7 +142,7 @@ if __name__ == "__main__":
         description="Export campus graph as PNG diagram"
     )
     parser.add_argument(
-        "--campus", required=True, help="Campus ID (e.g., vitap, sample, synthetic_large)"
+        "--campus", required=True, help="Campus ID (e.g., vitap, toy_small)"
     )
     parser.add_argument(
         "--config", required=True, help="Path to campus YAML config file"

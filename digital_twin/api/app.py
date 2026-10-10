@@ -2,9 +2,8 @@
 ParkingNav-X REST API
 VIT-AP University Smart Parking Digital Twin
 """
-from pathlib import Path
-from typing import Optional
 import uuid
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,10 +11,10 @@ from pydantic import BaseModel
 
 from digital_twin.config_loader import load_campus_config
 from digital_twin.db import apply_migrations, get_connection
+from digital_twin.simulation.demo_strategies import ParkingNavXFullStrategy, PredictionOnlyStrategy
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.simulation.demo_strategies import PredictionOnlyStrategy, ParkingNavXFullStrategy
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DB_PATH = ROOT / "digital_twin.db"

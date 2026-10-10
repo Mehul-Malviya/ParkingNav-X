@@ -2,14 +2,16 @@
 Scalability Tests: 500 and 1,000 vehicles
 """
 
-import pytest
 import time
 from pathlib import Path
+
+import pytest
+
 from digital_twin.config_loader import load_campus_config
+from digital_twin.db import apply_migrations, get_connection
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
-from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.db import get_connection, apply_migrations
+from digital_twin.simulation.strategy import FirstAvailableStrategy
 
 
 class TestScalability:
@@ -20,7 +22,7 @@ class TestScalability:
         """Setup: campus + connection."""
         conn = get_connection(':memory:')
         apply_migrations(conn)
-        load_campus_config(Path('configs/campus/synthetic_large.yaml'), conn)
+        load_campus_config(Path('configs/campus/vitap.yaml'), conn)
         load_campus_config(Path('configs/campus/vitap.yaml'), conn)
         return conn
 

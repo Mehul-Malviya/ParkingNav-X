@@ -12,7 +12,6 @@ Re-run any time after a new batch to refresh the numbers.
 import json
 import math
 import statistics
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -112,8 +111,6 @@ def main():
             rows = load_metrics(scen_dir, strat)
             if not rows:
                 continue
-            n = len(rows)
-
             # search time (primary_metrics has avg_search_time_min)
             sm, sc = mean_ci(rows, "avg_search_time_min")
             # wait time
@@ -187,7 +184,7 @@ def main():
         "",
         "---",
         "",
-        f"*Regenerate with:* `python scripts/generate_results_summary.py`",
+        "*Regenerate with:* `python scripts/generate_results_summary.py`",
     ]
 
     OUT.parent.mkdir(parents=True, exist_ok=True)

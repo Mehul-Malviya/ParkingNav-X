@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import pytest
 import yaml
@@ -9,7 +9,7 @@ from digital_twin.gps_survey_import import gps_survey_to_config
 from digital_twin.models import ConfigError
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIGS = PROJECT_ROOT / "configs" / "campuses"
+CONFIGS = PROJECT_ROOT / "configs" / "campus"
 FIXTURES = PROJECT_ROOT / "tests" / "fixtures"
 
 

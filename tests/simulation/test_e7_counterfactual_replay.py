@@ -6,14 +6,16 @@ Replace with real gate-count data before final submission and re-run.
 Based on Master Prompt Section 13 (Phase 10 - Real-Campus Validation)
 """
 
-import pytest
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+import pytest
+
 from digital_twin.config_loader import load_campus_config
+from digital_twin.db import apply_migrations, get_connection
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.db import get_connection, apply_migrations
 
 
 class TestCounterfactualReplayE7:
@@ -170,7 +172,6 @@ class TestCounterfactualReplayE7:
         Counterfactual replay with real arrival counts should be deterministic:
         same seed â†’ identical results.
         """
-        obs = synthetic_observations
         conn = setup
         engine = SimulationEngine()
 
@@ -190,7 +191,6 @@ class TestCounterfactualReplayE7:
         """
         Baseline comparison: B2 (Nearest-Available) performance on real-data demand.
         """
-        obs = synthetic_observations
         conn = setup
         engine = SimulationEngine()
 
@@ -227,7 +227,6 @@ class TestCounterfactualReplayE7:
         E7 replay on Day 1 data (with placement event) should capture
         the observed overflow (occupancy > capacity).
         """
-        obs = synthetic_observations
         conn = setup
         engine = SimulationEngine()
 
@@ -253,7 +252,6 @@ class TestCounterfactualReplayE7:
         Verify that simulator can be run on real-data demand patterns
         and produces complete metrics for calibration comparison.
         """
-        obs = synthetic_observations
         conn = setup
         engine = SimulationEngine()
 
@@ -281,7 +279,6 @@ class TestCounterfactualReplayE7:
         E7 should support B2 vs P (full ParkingNav-X) comparison on real data.
         Both should run and produce comparable metrics.
         """
-        obs = synthetic_observations
         conn = setup
         engine = SimulationEngine()
 

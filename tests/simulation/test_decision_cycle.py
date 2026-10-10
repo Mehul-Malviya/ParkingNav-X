@@ -1,4 +1,4 @@
-"""
+﻿"""
 Decision cycle tests (Phase 5–6 gap fix).
 
 Verify:
@@ -8,8 +8,8 @@ Verify:
 4. B1/B2 ignore forecast and keep working
 """
 
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -17,11 +17,15 @@ from digital_twin.config_loader import load_campus_config
 from digital_twin.db import apply_migrations, get_connection
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioConfig
-from digital_twin.simulation.strategy import AllocationStrategy, AssignmentResult, CampusState, Vehicle
-from digital_twin.twin_service import DigitalTwinService
+from digital_twin.simulation.strategy import (
+    AllocationStrategy,
+    AssignmentResult,
+    CampusState,
+    Vehicle,
+)
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIGS = PROJECT_ROOT / "configs" / "campuses"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+CONFIGS = PROJECT_ROOT / "configs" / "campus"
 
 
 @pytest.fixture
@@ -79,7 +83,7 @@ def test_update_policy_called_every_5_ticks(conn, engine):
     )
 
     strategy = CountingStrategy()
-    result = engine.run(scenario, strategy, conn)
+    engine.run(scenario, strategy, conn)
 
     # Decision cycle: every 5 ticks (0, 5, 10, 15, ..., 55)
     # For 60-minute scenario: 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55 = 12 calls
@@ -104,7 +108,7 @@ def test_decision_latency_measured(conn, engine):
     )
 
     strategy = CountingStrategy()
-    result = engine.run(scenario, strategy, conn)
+    engine.run(scenario, strategy, conn)
 
     # Each policy update should have a measurable latency
     assert len(strategy.policy_updates) > 0
@@ -130,7 +134,7 @@ def test_forecast_none_when_member_2_unavailable(conn, engine):
     )
 
     strategy = CountingStrategy()
-    result = engine.run(scenario, strategy, conn)
+    engine.run(scenario, strategy, conn)
 
     # All policy updates should have forecast=None
     assert all(not update["has_forecast"] for update in strategy.policy_updates)

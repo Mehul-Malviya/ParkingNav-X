@@ -1,6 +1,6 @@
 # Interfaces to Teammates — Member 1
 
-**Owner:** Jyothi Reddy Pula (23BCE7882) · VIT-AP · ParkingNav-X
+*** Jyothi Reddy Pula (23BCE7882) · VIT-AP · ParkingNav-X
 
 ---
 

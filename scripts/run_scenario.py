@@ -1,4 +1,4 @@
-"""
+﻿"""
 Run a VIT-AP scenario across all strategies and compare results side by side.
 
 Usage:
@@ -19,19 +19,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from digital_twin.config_loader import load_campus_config
-from digital_twin.db import apply_migrations, get_connection
-from digital_twin.simulation.engine import SimulationEngine
-from digital_twin.simulation.scenario import ScenarioLoader
-from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.simulation.demo_strategies import (
-    DemoNearestAvailableStrategy,
-    PredictionOnlyStrategy,
+from digital_twin.config_loader import load_campus_config  # noqa: E402
+from digital_twin.db import apply_migrations, get_connection  # noqa: E402
+from digital_twin.simulation.demo_strategies import (  # noqa: E402
     ParkingNavXFullStrategy,
+    PredictionOnlyStrategy,
+)
+from digital_twin.simulation.engine import SimulationEngine  # noqa: E402
+from digital_twin.simulation.scenario import ScenarioLoader  # noqa: E402
+from digital_twin.simulation.strategy import (  # noqa: E402
+    FirstAvailableStrategy,
+    NearestAvailableStrategy,
 )
 
 SCENARIO_DIR = ROOT / "configs" / "scenarios" / "vitap"
-CAMPUS_YAML  = ROOT / "configs" / "campuses" / "vitap.yaml"
+CAMPUS_YAML  = ROOT / "configs" / "campus" / "vitap.yaml"
 
 STRATEGIES = [
     ("B1", "First Available",           FirstAvailableStrategy()),
@@ -74,12 +76,12 @@ def main():
     scenario = ScenarioLoader.load(scenario_file)
 
     print(f"\n{'='*100}")
-    print(f"  ParkingNav-X  |  VIT-AP University Smart Parking Digital Twin")
+    print("  ParkingNav-X  |  VIT-AP University Smart Parking Digital Twin")
     print(f"  Scenario  : {scenario_name}")
-    print(f"  Campus    : VIT-AP, Amaravati, Andhra Pradesh")
+    print("  Campus    : VIT-AP, Amaravati, Andhra Pradesh")
     print(f"  Duration  : {scenario.duration_minutes} min  |  Vehicles : {scenario.vehicle_count}")
     print(f"{'='*100}")
-    print(f"  Running all 4 strategies (B1 → B2 → B3 → P) ...\n")
+    print("  Running all 4 strategies (B1 → B2 → B3 → P) ...\n")
 
     results = []
     for code, name, strategy in STRATEGIES:
@@ -119,11 +121,11 @@ def main():
     best_idx = search_times.index(min(search_times))
     best = results[best_idx]
     print(f"\n  Best strategy : [{best[0]}] {best[1]}  (lowest avg search time)")
-    print(f"\n  What each strategy does:")
-    print(f"   B1  First Available     — naive, no optimisation")
-    print(f"   B2  Nearest Available   — picks closest open lot")
-    print(f"   B3  Prediction only     — avoids nearly-full lots using fill-rate forecast")
-    print(f"   P   ParkingNav-X (full) — prediction + gate load balancing + zone routing")
+    print("\n  What each strategy does:")
+    print("   B1  First Available     — naive, no optimisation")
+    print("   B2  Nearest Available   — picks closest open lot")
+    print("   B3  Prediction only     — avoids nearly-full lots using fill-rate forecast")
+    print("   P   ParkingNav-X (full) — prediction + gate load balancing + zone routing")
     print(f"\n  Results saved to: runs/vitap-{scenario_name}/")
     print(f"{'='*100}\n")
 

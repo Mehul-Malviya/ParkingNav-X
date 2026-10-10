@@ -1,4 +1,4 @@
-"""
+﻿"""
 Phase 7 — Scenarios & Disruptions (M4)
 
 Tests that all Phase 7 scenario files run end-to-end with B1 and B2 baselines.
@@ -12,18 +12,19 @@ Scenarios covered:
 """
 
 from pathlib import Path
-import yaml
+
 import pytest
+import yaml
 
 from digital_twin.config_loader import load_campus_config
 from digital_twin.db import apply_migrations, get_connection
 from digital_twin.simulation.engine import SimulationEngine
+from digital_twin.simulation.forecast_noise import ForecastNoiseInjector
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.simulation.forecast_noise import ForecastNoiseInjector
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIGS = PROJECT_ROOT / "configs" / "campuses"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+CONFIGS = PROJECT_ROOT / "configs" / "campus"
 SCENARIOS = PROJECT_ROOT / "configs" / "scenarios" / "vitap"
 
 
@@ -238,7 +239,7 @@ class TestFix2SearchTime:
         """High-demand run (lots near full) should have higher avg search time than low-demand."""
         c = get_connection(str(tmp_path / "t.db"))
         apply_migrations(c)
-        load_campus_config(PROJECT_ROOT / "configs" / "campuses" / "vitap.yaml", c)
+        load_campus_config(PROJECT_ROOT / "configs" / "campus" / "vitap.yaml", c)
         eng = SimulationEngine()
 
         with open(SCENARIOS / "E1_normal_day.yaml") as f:
@@ -278,8 +279,9 @@ class TestFix4SportsLotReachability:
 
     def test_all_open_lots_reachable_from_a_gate(self, conn):
         """After adding vitap-road-main-gate-to-sports-lot, sports lot must be reachable."""
-        from digital_twin.graph_service import CampusGraphService
         import networkx as nx
+
+        from digital_twin.graph_service import CampusGraphService
 
         graph_svc = CampusGraphService()
         graph = graph_svc.build_graph("vitap", conn)
@@ -313,9 +315,12 @@ class TestFix5B1Order:
     def test_b1_uses_config_order_not_alphabetical(self, conn):
         """B1 should assign academic-main before admin-visitor (config order),
         but alphabetically 'admin-visitor' < 'academic-main' would come first."""
-        from digital_twin.simulation.strategy import FirstAvailableStrategy, CampusState
-        from digital_twin.simulation.strategy import Vehicle, AssignmentResult
         from digital_twin.graph_service import CampusGraphService
+        from digital_twin.simulation.strategy import (
+            CampusState,
+            FirstAvailableStrategy,
+            Vehicle,
+        )
 
         graph = CampusGraphService().build_graph("vitap", conn)
 
@@ -384,23 +389,32 @@ class TestCruising:
         Force cruising by using very high demand on a small scenario."""
         c = get_connection(str(PROJECT_ROOT / "runs" / "cruising_test.db"))
         apply_migrations(c)
-        load_campus_config(PROJECT_ROOT / "configs" / "campuses" / "vitap.yaml", c)
+        load_campus_config(PROJECT_ROOT / "configs" / "campus" / "vitap.yaml", c)
         eng = SimulationEngine()
 
         with open(SCENARIOS / "E1_normal_day.yaml") as f:
             raw = yaml.safe_load(f)
 
         # Low demand baseline
-        low = dict(raw); low["vehicle_count"] = 5; low["random_seed"] = 10; low["duration_minutes"] = 60; low["warmdown_minutes"] = 0
+        low = dict(raw)
+        low["vehicle_count"] = 5
+        low["random_seed"] = 10
+        low["duration_minutes"] = 60
+        low["warmdown_minutes"] = 0
         res_low = eng.run(ScenarioLoader.from_dict(low), FirstAvailableStrategy(), c)
 
         # High demand forces lot fills and cruising
-        high = dict(raw); high["vehicle_count"] = 450; high["random_seed"] = 11; high["duration_minutes"] = 60; high["warmdown_minutes"] = 0
+        high = dict(raw)
+        high["vehicle_count"] = 450
+        high["random_seed"] = 11
+        high["duration_minutes"] = 60
+        high["warmdown_minutes"] = 0
         high["arrival_rate_profile"] = {"type": "constant", "rate": 8.0}
         res_high = eng.run(ScenarioLoader.from_dict(high), FirstAvailableStrategy(), c)
         c.close()
 
-        import os; os.remove(PROJECT_ROOT / "runs" / "cruising_test.db")
+        import os
+        os.remove(PROJECT_ROOT / "runs" / "cruising_test.db")
 
         dist_low = [v["travel_distance_meters"] for v in res_low.vehicles if v["travel_distance_meters"] > 0]
         dist_high = [v["travel_distance_meters"] for v in res_high.vehicles if v["travel_distance_meters"] > 0]
@@ -421,7 +435,7 @@ class TestCruising:
         result = engine.run(scenario, FirstAvailableStrategy(), conn)
         rejected = sum(1 for v in result.vehicles if v["final_state"] == "rejected")
         assert rejected > 0, (
-            f"parking_full (600 veh vs 472 capacity): expected rejections, got 0. "
+            "parking_full (600 veh vs 472 capacity): expected rejections, got 0. "
             "True rejection should still occur when no lot has usable space."
         )
 
@@ -502,7 +516,6 @@ class TestTimedClosures:
                     f"tick {ts['tick']}: gate-main should have no queue during closure"
                 )
         # Vehicles must still enter campus (not all rejected due to closed gate)
-        entered = sum(1 for v in result.vehicles if v["final_state"] != "in_system" or True)
         assert len(result.vehicles) > 0, "Should have vehicles in simulation"
 
 
@@ -546,17 +559,14 @@ class TestGateQueueOverload:
 
     def test_gate_queue_grows_under_overload(self, conn, engine):
         """With gate capacity=1 and 6 veh/min burst, queue depth must exceed 0."""
-        import sqlite3
         # Use the sample campus (1 gate with capacity we can control via the scenario)
         # We build a minimal in-memory scenario using vitap config but cap the gate
         # by setting a very low capacity in a direct DB patch after loading.
-        c = conn  # fixture already has vitap loaded
-
         # Patch gate-main capacity to 1 for this test only (in a separate connection)
         c2 = get_connection(":memory:")
         apply_migrations(c2)
         load_campus_config(
-            PROJECT_ROOT / "configs" / "campuses" / "vitap.yaml", c2
+            PROJECT_ROOT / "configs" / "campus" / "vitap.yaml", c2
         )
         c2.execute("UPDATE gates SET capacity = 1 WHERE gate_id = 'vitap-gate-main'")
         c2.execute("UPDATE gates SET capacity = 1 WHERE gate_id = 'vitap-gate-visitor'")

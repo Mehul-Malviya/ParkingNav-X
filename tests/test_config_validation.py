@@ -3,10 +3,12 @@ Config Validator: Comprehensive test suite for all invalid configurations.
 Tests Section 19 Definition of Done item: "Validator rejects all invalid configs with clear messages"
 """
 
-import pytest
 from pathlib import Path
-from digital_twin.config_loader import load_campus_config, CampusConfigError
-from digital_twin.db import get_connection, apply_migrations
+
+import pytest
+
+from digital_twin.config_loader import CampusConfigError, load_campus_config
+from digital_twin.db import apply_migrations, get_connection
 
 
 class TestConfigValidation:

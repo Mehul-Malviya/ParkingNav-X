@@ -20,11 +20,12 @@ Checks:
 Exits with code 0 (clean or warnings only) or 1 (errors found).
 """
 
-import sys
 import csv
-import yaml
-from pathlib import Path
+import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import yaml
 
 REQUIRED_COLUMNS = {
     "timestamp", "gate_id", "lot_id",

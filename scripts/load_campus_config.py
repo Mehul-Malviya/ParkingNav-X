@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from digital_twin.config_loader import load_campus_config
-from digital_twin.db import get_connection, apply_migrations
+from digital_twin.db import apply_migrations, get_connection
 from digital_twin.models import ConfigError
 
 

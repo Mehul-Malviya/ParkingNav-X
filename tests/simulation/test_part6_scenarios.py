@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import pytest
 import yaml
@@ -8,8 +8,8 @@ from digital_twin.db import apply_migrations, get_connection
 from digital_twin.models import ConfigError
 from digital_twin.simulation.scenario import ScenarioLoader, ScenarioValidator
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIGS = PROJECT_ROOT / "configs" / "campuses"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+CONFIGS = PROJECT_ROOT / "configs" / "campus"
 SCENARIOS = PROJECT_ROOT / "configs" / "scenarios" / "sample"
 
 

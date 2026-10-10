@@ -13,8 +13,9 @@ Usage:
 """
 
 from dataclasses import dataclass
-import numpy as np
 from typing import Optional
+
+import numpy as np
 
 
 @dataclass

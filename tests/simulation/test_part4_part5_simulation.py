@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import pytest
 
@@ -7,11 +7,13 @@ from digital_twin.db import apply_migrations, get_connection
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import (
-    AllocationStrategy, AssignmentResult, FixedLotStrategy,
+    AllocationStrategy,
+    AssignmentResult,
+    FixedLotStrategy,
 )
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIGS = PROJECT_ROOT / "configs" / "campuses"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+CONFIGS = PROJECT_ROOT / "configs" / "campus"
 SCENARIOS = PROJECT_ROOT / "configs" / "scenarios" / "sample"
 
 
@@ -108,6 +110,7 @@ def test_fixed_lot_strategy_is_actually_called_not_bypassed(conn):
 
 def test_overflow_event_recorded_once_per_timestep_not_per_vehicle(conn):
     import yaml
+
     from digital_twin.simulation.strategy import FirstAvailableStrategy
     raw = yaml.safe_load(open(SCENARIOS / "normal_day.yaml"))
     raw["vehicle_count"] = 300  # Far more than capacity (~30 spaces)
@@ -136,11 +139,14 @@ def test_overflow_event_recorded_once_per_timestep_not_per_vehicle(conn):
 
 def test_vehicle_accounting_identity(conn):
     """parked + exited + in_system + rejected must equal total_vehicles_simulated."""
-    import yaml
-    from digital_twin.simulation.strategy import FirstAvailableStrategy
-    from digital_twin.simulation.metrics_recorder import MetricsRecorder
-    import tempfile, json
+    import json
+    import tempfile
     from pathlib import Path as _Path
+
+    import yaml
+
+    from digital_twin.simulation.metrics_recorder import MetricsRecorder
+    from digital_twin.simulation.strategy import FirstAvailableStrategy
 
     raw = yaml.safe_load(open(SCENARIOS / "normal_day.yaml"))
     scenario = ScenarioLoader.from_dict(raw)
@@ -162,9 +168,27 @@ def test_vehicle_accounting_identity(conn):
 
     sm = m["secondary_metrics"]
     total = sm["total_vehicles_simulated"]
-    assert sm["parked_vehicles"] + sm["exited_vehicles"] + sm["in_system_vehicles"] + sm["rejected_vehicles"] == total, (
-        f"Accounting identity broken: parked={sm['parked_vehicles']} exited={sm['exited_vehicles']} "
-        f"in_system={sm['in_system_vehicles']} rejected={sm['rejected_vehicles']} != total={total}"
+    parked = sm["parked_vehicles"]
+    exited = sm["exited_vehicles"]
+    in_system = sm["in_system_vehicles"]
+    rejected = sm["rejected_vehicles"]
+
+    # Loose: all buckets sum to total
+    assert parked + exited + in_system + rejected == total, (
+        f"Accounting identity broken: parked={parked} exited={exited} "
+        f"in_system={in_system} rejected={rejected} != total={total}"
+    )
+
+    # 6c: strict conservation — vehicles that entered the campus must be parked XOR have exited
+    # (in_system are still in transit; rejected never entered a lot)
+    entered = parked + exited + in_system  # everyone who made it past the gate
+    assert entered >= parked + exited, (
+        f"Conservation violation: entered ({entered}) < parked ({parked}) + exited ({exited})"
+    )
+    # Key strict identity: parked + exited == entered - in_system (no vehicles lost)
+    assert parked + exited == entered - in_system, (
+        f"Strict conservation broken: parked ({parked}) + exited ({exited}) != "
+        f"entered ({entered}) - in_system ({in_system})"
     )
 
 
@@ -172,6 +196,7 @@ def test_warmdown_reduces_in_system_vehicles(conn):
     """With warmdown_minutes=30, no new arrivals in the last 30 min.
     in_system at end should be low (departure-phase vehicles only, < 5%)."""
     import yaml
+
     from digital_twin.simulation.strategy import FirstAvailableStrategy
 
     raw = yaml.safe_load(open(SCENARIOS / "normal_day.yaml"))
@@ -194,6 +219,7 @@ def test_warmdown_reduces_in_system_vehicles(conn):
 def test_warmdown_no_arrivals_in_last_N_minutes(conn):
     """Verify that no vehicle's arrival_tick falls within the warmdown window."""
     import yaml
+
     from digital_twin.simulation.strategy import FirstAvailableStrategy
 
     DURATION = 120

@@ -6,19 +6,25 @@ Usage:
     python scripts/prove_member1.py
 """
 import json
+import sys
 import time
 from pathlib import Path
-import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from digital_twin.config_loader import load_campus_config
-from digital_twin.db import apply_migrations, get_connection
-from digital_twin.simulation.engine import SimulationEngine
-from digital_twin.simulation.scenario import ScenarioLoader
-from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
-from digital_twin.simulation.demo_strategies import PredictionOnlyStrategy, ParkingNavXFullStrategy
+from digital_twin.config_loader import load_campus_config  # noqa: E402
+from digital_twin.db import apply_migrations, get_connection  # noqa: E402
+from digital_twin.simulation.demo_strategies import (  # noqa: E402
+    ParkingNavXFullStrategy,
+    PredictionOnlyStrategy,
+)
+from digital_twin.simulation.engine import SimulationEngine  # noqa: E402
+from digital_twin.simulation.scenario import ScenarioLoader  # noqa: E402
+from digital_twin.simulation.strategy import (  # noqa: E402
+    FirstAvailableStrategy,
+    NearestAvailableStrategy,
+)
 
 SEP  = "=" * 70
 SEP2 = "-" * 70
@@ -51,7 +57,7 @@ roads = conn.execute("SELECT road_id, name, length_meters FROM roads WHERE campu
 dests = conn.execute("SELECT destination_id, name, category FROM destinations WHERE campus_id='vitap'").fetchall()
 events = conn.execute("SELECT event_id, name, event_type, status FROM events WHERE campus_id='vitap'").fetchall()
 
-print(f"\n  Campus: VIT-AP University, Amaravati, Andhra Pradesh")
+print("\n  Campus: VIT-AP University, Amaravati, Andhra Pradesh")
 print(f"\n  Gates ({len(gates)}):")
 for g in gates:
     print(f"    {g[0]:<20} {g[1]:<30} capacity={g[2]}  status={g[3]}")
@@ -83,11 +89,12 @@ ok(f"Campus loaded: {len(gates)} gates, {len(lots)} lots, {len(roads)} roads, {l
 section("PROOF 2 â€” Digital Twin State Engine (M2: State Manager)")
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-from digital_twin.twin_service import DigitalTwinService
+from digital_twin.twin_service import DigitalTwinService  # noqa: E402
+
 twin = DigitalTwinService(conn)
 state = twin.get_state("vitap")
 
-print(f"\n  Live Digital Twin State Snapshot:")
+print("\n  Live Digital Twin State Snapshot:")
 print(f"  {'Campus ID':<30} : {state.get('campus_id', 'vitap')}")
 print(f"  {'Active parking lots':<30} : {len(state.get('parking_lots', {}))}")
 print(f"  {'Active gates':<30} : {len(state.get('gates', {}))}")
@@ -106,7 +113,8 @@ ok("Digital Twin state engine is live and returning dynamic campus state")
 section("PROOF 3 â€” Reproducibility (Section 34: Same seed = identical results)")
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-import uuid
+import uuid  # noqa: E402
+
 scenario = ScenarioLoader.load(ROOT / "configs/scenarios/vitap/E1_normal_day.yaml")
 engine = SimulationEngine()
 strategy = NearestAvailableStrategy()
@@ -177,7 +185,7 @@ ok("All experiments executed and saved to runs/")
 section("PROOF 5 â€” Strategy Comparison Summary (Section 17: Baselines)")
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-print(f"""
+print("""
   Strategy definitions (from proposal Section 17):
   B1  First Available     â€” assign first feasible available lot (naive)
   B2  Nearest Available   â€” assign closest feasible lot by distance

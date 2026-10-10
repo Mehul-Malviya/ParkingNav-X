@@ -5,8 +5,8 @@ Tests that metrics are recorded to disk with correct structure and 5 primary met
 """
 
 import json
-from pathlib import Path
 import tempfile
+
 import pytest
 
 from digital_twin.simulation.metrics_recorder import MetricsRecorder
