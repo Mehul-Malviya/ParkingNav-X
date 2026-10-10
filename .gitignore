@@ -35,3 +35,5 @@ venv/
 data/observations/*.csv
 !data/observations/template.csv
 data/member2_synthetic/
+
+runs/
