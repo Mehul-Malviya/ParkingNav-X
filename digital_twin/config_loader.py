@@ -7,6 +7,7 @@ the same file produces zero new rows. Validation never silently repairs a
 problem; it raises ConfigError with a clear reason.
 """
 
+import csv
 import json
 import sqlite3
 from datetime import datetime, timezone
@@ -389,7 +390,7 @@ def load_campus_config(path, conn: sqlite3.Connection) -> str:
              json.dumps(d.get("nearest_parking_lot_ids", [])), config_version),
         )
 
-    for e in raw.get("events", []):
+    def _upsert_event(e_campus_id, e):
         conn.execute(
             """INSERT INTO events (campus_id, event_id, event_type, name, start_time, end_time,
                  expected_demand_multiplier, affected_zones, status)
@@ -398,9 +399,23 @@ def load_campus_config(path, conn: sqlite3.Connection) -> str:
                  event_type=excluded.event_type, name=excluded.name, start_time=excluded.start_time,
                  end_time=excluded.end_time, expected_demand_multiplier=excluded.expected_demand_multiplier,
                  affected_zones=excluded.affected_zones, status=excluded.status""",
-            (campus_id, e["event_id"], e["event_type"], e["name"], e.get("start_time"), e.get("end_time"),
-             e.get("expected_demand_multiplier", 1.0), json.dumps(e.get("affected_zones", [])), e.get("status", "scheduled")),
+            (e_campus_id, e["event_id"], e["event_type"], e["name"], e.get("start_time"), e.get("end_time"),
+             float(e.get("expected_demand_multiplier", 1.0)),
+             e["affected_zones"] if isinstance(e.get("affected_zones"), str) else json.dumps(e.get("affected_zones", [])),
+             e.get("status", "scheduled")),
         )
+
+    for e in raw.get("events", []):
+        _upsert_event(campus_id, e)
+
+    # Load events from data/{campus_id}_events.csv if present
+    events_csv = Path(path).parent.parent.parent / "data" / f"{campus_id}_events.csv"
+    if not events_csv.exists():
+        events_csv = Path(__file__).resolve().parent.parent / "data" / f"{campus_id}_events.csv"
+    if events_csv.exists():
+        with open(events_csv, newline="", encoding="utf-8") as fh:
+            for row in csv.DictReader(fh):
+                _upsert_event(campus_id, row)
 
     conn.execute("DELETE FROM routes_graph_edges WHERE campus_id = ?", (campus_id,))
     for e in raw.get("edges", []):

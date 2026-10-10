@@ -56,6 +56,44 @@ class DigitalTwinService:
             conn.execute(f"DELETE FROM {table} WHERE campus_id=?", (campus_id,))
         conn.commit()
 
+    def seed_from_config(self, campus_id: str, conn):
+        """Seed live state from campus config tables (all lots open, occupied=0).
+
+        Gives the Digital Twin a valid baseline state without needing real
+        sensors. Represents campus at start-of-day before any vehicles arrive.
+        """
+        ts = datetime.now(timezone.utc).isoformat()
+        lots = conn.execute(
+            "SELECT parking_lot_id FROM parking_lots WHERE campus_id=? AND status='open'",
+            (campus_id,)
+        ).fetchall()
+        for row in lots:
+            self.update_parking_state(
+                campus_id, row["parking_lot_id"],
+                occupied_spaces=0,
+                source="config_baseline",
+                provenance="SYNTHETIC",
+                observation_timestamp=ts,
+                conn=conn,
+                commit=False,
+            )
+        gates = conn.execute(
+            "SELECT gate_id FROM gates WHERE campus_id=? AND status='open'",
+            (campus_id,)
+        ).fetchall()
+        for row in gates:
+            self.update_gate_state(
+                campus_id, row["gate_id"],
+                current_queue_length=0,
+                throughput_last_5min=0,
+                source="config_baseline",
+                provenance="SYNTHETIC",
+                observation_timestamp=ts,
+                conn=conn,
+                commit=False,
+            )
+        conn.commit()
+
     def update_parking_state(self, campus_id, lot_id, occupied_spaces, source, provenance,
                               observation_timestamp, conn, now: datetime = None, commit: bool = True):
         if not source or not provenance:
