@@ -1,25 +1,25 @@
-# Parking Nav X
+﻿# Parking Nav X
 
 A smart-parking research project for the VIT-AP campus. It models the campus
 (gates, roads, parking lots, destinations) as a **digital twin**, simulates
 vehicles arriving and parking, and is the base for the upcoming
-prediction → risk → optimization stages.
+prediction â†’ risk â†’ optimization stages.
 
 ## Folder layout
 
 ```
 ParkingNav-X/
-├── digital_twin/     The main Python package (campus model, simulation, API, CLI)
-├── configs/
-│   ├── campuses/     Campus definitions: vitap.yaml (real campus), sample.yaml (tiny test campus)
-│   └── scenarios/    Simulation scenarios, one folder per campus (vitap/, sample/)
-├── data/             30-day VIT-AP history CSVs (occupancy, gates, roads) + calendar/events
-├── migrations/       SQLite database schema (applied automatically)
-├── scripts/          Command-line helpers (load a campus, import data, generate data)
-├── tests/            Automated tests for digital_twin/ (+ fixtures/)
-├── docs/             Reports, roadmap, and data documentation
-├── experiments/runs/ Simulation output (created when you run a simulation; not committed)
-└── legacy/           The original prototype optimizer, kept for reference only
+â”œâ”€â”€ digital_twin/     The main Python package (campus model, simulation, API, CLI)
+â”œâ”€â”€ configs/
+â”‚   â”œâ”€â”€ campuses/     Campus definitions: vitap.yaml (real campus), sample.yaml (tiny test campus)
+â”‚   â””â”€â”€ scenarios/    Simulation scenarios, one folder per campus (vitap/, sample/)
+â”œâ”€â”€ data/             30-day VIT-AP history CSVs (occupancy, gates, roads) + calendar/events
+â”œâ”€â”€ migrations/       SQLite database schema (applied automatically)
+â”œâ”€â”€ scripts/          Command-line helpers (load a campus, import data, generate data)
+â”œâ”€â”€ tests/            Automated tests for digital_twin/ (+ fixtures/)
+â”œâ”€â”€ docs/             Reports, roadmap, and data documentation
+â”œâ”€â”€ experiments/runs/ Simulation output (created when you run a simulation; not committed)
+â””â”€â”€ legacy/           The original prototype optimizer, kept for reference only
 ```
 
 ## Setup
@@ -41,7 +41,7 @@ python -m pytest
 Load the VIT-AP campus into the local database (`digital_twin.db`):
 
 ```bash
-python scripts/load_campus_config.py --config configs/campuses/vitap.yaml
+python scripts/load_campus_config.py --config configs/campus/vitap.yaml
 ```
 
 Import the 30-day history CSVs from `data/` into the same database:

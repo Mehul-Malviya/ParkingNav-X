@@ -1,5 +1,5 @@
-# SYNTHETIC starter scenario, referencing a real EVENTS row (sample-event-1
-# in configs/campuses/sample.yaml). The demand_multiplier there is an
+﻿# SYNTHETIC starter scenario, referencing a real EVENTS row (sample-event-1
+# in configs/campus/sample.yaml). The demand_multiplier there is an
 # explicitly-labeled ASSUMPTION field, not a measured fact.
 scenario_id: sample-high-demand-event
 campus_id: sample

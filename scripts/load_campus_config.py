@@ -1,4 +1,4 @@
-"""CLI: python scripts/load_campus_config.py --config configs/campuses/vitap.yaml [--db path]
+﻿"""CLI: python scripts/load_campus_config.py --config configs/campus/vitap.yaml [--db path]
 
 Idempotently loads (upserts) one campus YAML config into the database.
 Running it twice on the same file produces zero new rows.

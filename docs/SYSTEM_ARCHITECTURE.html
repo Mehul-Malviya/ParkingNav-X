@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -29,7 +29,7 @@
 </head>
 <body>
     <div class="container">
-        <h1><span class="emoji">🚗</span>ParkingNav-X: Complete System Architecture</h1>
+        <h1><span class="emoji">ðŸš—</span>ParkingNav-X: Complete System Architecture</h1>
         <p style="font-size: 1.1em; color: #666; margin-bottom: 20px;">
             A smart campus parking digital twin that simulates real-time parking dynamics,
             predicts future demand, optimizes parking allocation, and validates against real observations.
@@ -37,12 +37,12 @@
 
         <!-- WHAT IS WHAT -->
         <div class="section">
-            <h2><span class="emoji">🏗️</span>What Is What (System Components)</h2>
+            <h2><span class="emoji">ðŸ—ï¸</span>What Is What (System Components)</h2>
 
             <h3>1. Campus Configuration (M1)</h3>
             <div class="component">
                 <strong>What:</strong> The blueprint of your campus<br>
-                <strong>Where:</strong> <code>configs/campuses/*.yaml</code><br>
+                <strong>Where:</strong> <code>configs/campus/*.yaml</code><br>
                 <strong>Contains:</strong>
                 <ul>
                     <li><strong>Gates:</strong> Entry/exit points (e.g., Main Gate, Secondary Gate)</li>
@@ -67,7 +67,7 @@
                     <li><strong>Vehicles:</strong> Where is each car? Is it parked? Still searching?</li>
                     <li><strong>Events:</strong> Is there a placement drive happening right now?</li>
                 </ul>
-                <div class="why"><strong>Why?</strong> A real Twin doesn't just show data—it evolves. You can fork it (copy it), simulate what happens next, compare outcomes, then decide. This is what Member 3 (optimizer) uses to make decisions.</div>
+                <div class="why"><strong>Why?</strong> A real Twin doesn't just show dataâ€”it evolves. You can fork it (copy it), simulate what happens next, compare outcomes, then decide. This is what Member 3 (optimizer) uses to make decisions.</div>
             </div>
 
             <h3>3. Simulation Engine (M5)</h3>
@@ -84,7 +84,7 @@
                     <li>Measures overflow (when all lots are full)</li>
                     <li>Every 5 minutes: lets strategy decide new routing policy</li>
                 </ul>
-                <div class="why"><strong>Why?</strong> You need to simulate parking dynamics to know if your strategies work. Don't guess—run it.</div>
+                <div class="why"><strong>Why?</strong> You need to simulate parking dynamics to know if your strategies work. Don't guessâ€”run it.</div>
             </div>
 
             <h3>4. Strategies (B1, B2)</h3>
@@ -131,55 +131,55 @@
 
         <!-- WHAT IS USE -->
         <div class="section">
-            <h2><span class="emoji">⚡</span>What Is Used For (Functionality)</h2>
+            <h2><span class="emoji">âš¡</span>What Is Used For (Functionality)</h2>
 
             <h3>Phase 1: Load Your Campus</h3>
             <div class="box">
-                Load YAML → Parse with pydantic → Validate (no invalid configs) → Build NetworkX graph → Ready to simulate
+                Load YAML â†’ Parse with pydantic â†’ Validate (no invalid configs) â†’ Build NetworkX graph â†’ Ready to simulate
             </div>
 
             <h3>Phase 2: Track State</h3>
             <div class="box">
-                Twin starts with empty campus → As simulation runs, Twin tracks: which lots are full, how long gate queues are, where vehicles are → You can snapshot this state anytime → You can fork it (create a copy) → Member 3 uses forks to test "what if I send 10 more vehicles to Lot-2?"
+                Twin starts with empty campus â†’ As simulation runs, Twin tracks: which lots are full, how long gate queues are, where vehicles are â†’ You can snapshot this state anytime â†’ You can fork it (create a copy) â†’ Member 3 uses forks to test "what if I send 10 more vehicles to Lot-2?"
             </div>
 
             <h3>Phase 3: Generate Arrivals</h3>
             <div class="box">
-                Morning: λ(t) = 20 vehicles/min (high)<br>
-                Noon: λ(t) = 5 vehicles/min (low)<br>
-                Placement event: λ(t) = λ(t) × 1.8 (spike!)<br>
+                Morning: Î»(t) = 20 vehicles/min (high)<br>
+                Noon: Î»(t) = 5 vehicles/min (low)<br>
+                Placement event: Î»(t) = Î»(t) Ã— 1.8 (spike!)<br>
                 Use Non-homogeneous Poisson (thinning algorithm) to generate exactly this pattern
             </div>
 
             <h3>Phase 4: Route & Search</h3>
             <div class="box">
-                Vehicle arrives → Gate queue (wait)<br>
-                → Route to assigned lot (travel via BPR formula)<br>
-                → Search for space (time grows as lot fills)<br>
-                → Park or overflow (if lot full, try next lot)
+                Vehicle arrives â†’ Gate queue (wait)<br>
+                â†’ Route to assigned lot (travel via BPR formula)<br>
+                â†’ Search for space (time grows as lot fills)<br>
+                â†’ Park or overflow (if lot full, try next lot)
             </div>
 
             <h3>Phase 5: Run Simulation</h3>
             <div class="box">
-                Time: 08:00 → 18:00 (10 hours)<br>
-                Every event pops from heapq: ARRIVAL → GATE_SERVICE_DONE → ROAD_DONE → SEARCH_DONE → DEPARTURE<br>
+                Time: 08:00 â†’ 18:00 (10 hours)<br>
+                Every event pops from heapq: ARRIVAL â†’ GATE_SERVICE_DONE â†’ ROAD_DONE â†’ SEARCH_DONE â†’ DEPARTURE<br>
                 Every 5 minutes: DECISION_CYCLE (strategy updates routing)<br>
                 Log everything: vehicle timings, queue lengths, overflow moments
             </div>
 
             <h3>Phase 6: Compare Strategies</h3>
             <div class="box">
-                Run same scenario with B1 → Get metrics<br>
-                Run same scenario with B2 → Get metrics<br>
+                Run same scenario with B1 â†’ Get metrics<br>
+                Run same scenario with B2 â†’ Get metrics<br>
                 Compare: Which strategy had lower search time? Lower overflow?<br>
                 Same seed = same demand, fair comparison
             </div>
 
             <h3>Phase 7: Test Robustness</h3>
             <div class="box">
-                E5: Add noise to forecasts (0%, 10%, 20% error) → Does strategy still work?<br>
-                E3: Close a lot → Does system adapt?<br>
-                E4: Close a gate → Does overflow increase?
+                E5: Add noise to forecasts (0%, 10%, 20% error) â†’ Does strategy still work?<br>
+                E3: Close a lot â†’ Does system adapt?<br>
+                E4: Close a gate â†’ Does overflow increase?
             </div>
 
             <h3>Phase 8: Record Metrics</h3>
@@ -195,9 +195,9 @@
 
             <h3>Phase 9: Export for Team</h3>
             <div class="box">
-                Member 2 (ML): "Give me dataset" → Export occupancy timeseries<br>
-                Member 3 (Optimizer): "Give me state" → Export StateSnapshot JSON + fork capability<br>
-                Member 4 (Platform): "Give me API" → 8 Python functions ready for FastAPI
+                Member 2 (ML): "Give me dataset" â†’ Export occupancy timeseries<br>
+                Member 3 (Optimizer): "Give me state" â†’ Export StateSnapshot JSON + fork capability<br>
+                Member 4 (Platform): "Give me API" â†’ 8 Python functions ready for FastAPI
             </div>
 
             <h3>Phase 10: Validate with Real Data</h3>
@@ -211,77 +211,77 @@
 
         <!-- DATA FLOW -->
         <div class="section">
-            <h2><span class="emoji">🔄</span>How Data Flows (From Source to Destination)</h2>
+            <h2><span class="emoji">ðŸ”„</span>How Data Flows (From Source to Destination)</h2>
 
             <h3>Data Flow Diagram</h3>
-            <div class="flow-diagram">┌─────────────────────────────────────────────────────────────────┐
-│                    PARKING NAV-X DATA FLOW                      │
-└─────────────────────────────────────────────────────────────────┘
+            <div class="flow-diagram">â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                    PARKING NAV-X DATA FLOW                      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 STEP 1: LOAD CAMPUS
-├─ Input: configs/campuses/vitap.yaml
-├─ Parser: digital_twin/config_loader.py (pydantic)
-├─ Output: Campus object + NetworkX graph
-└─ Validator: 13-point checks (no bad data gets through)
+â”œâ”€ Input: configs/campus/vitap.yaml
+â”œâ”€ Parser: digital_twin/config_loader.py (pydantic)
+â”œâ”€ Output: Campus object + NetworkX graph
+â””â”€ Validator: 13-point checks (no bad data gets through)
 
 STEP 2: INITIALIZE SIMULATION
-├─ Input: Campus object + Scenario (normal_day.yaml)
-├─ Create: Empty Twin (all lots empty, all gates open)
-├─ Seed: np.random.SeedSequence(12345) → child streams
-└─ Output: Ready to simulate
+â”œâ”€ Input: Campus object + Scenario (normal_day.yaml)
+â”œâ”€ Create: Empty Twin (all lots empty, all gates open)
+â”œâ”€ Seed: np.random.SeedSequence(12345) â†’ child streams
+â””â”€ Output: Ready to simulate
 
 STEP 3: GENERATE ARRIVALS (Non-homogeneous Poisson)
-├─ Input: Time-of-day λ(t) from scenario config
-├─ Thinning: Use seed stream to generate random arrivals
-├─ Event-aware: Multiply λ(t) by 1.8 during placement drive
-├─ Output: List of vehicles + arrival times
-└─ → Heap: Schedule as ARRIVAL events
+â”œâ”€ Input: Time-of-day Î»(t) from scenario config
+â”œâ”€ Thinning: Use seed stream to generate random arrivals
+â”œâ”€ Event-aware: Multiply Î»(t) by 1.8 during placement drive
+â”œâ”€ Output: List of vehicles + arrival times
+â””â”€ â†’ Heap: Schedule as ARRIVAL events
 
 STEP 4: SIMULATE TIME PROGRESSION
-├─ Loop: pop earliest event from heapq
-├─ Event type determines handler:
-│  ├─ ARRIVAL: Vehicle enters gate queue
-│  ├─ GATE_SERVICE_DONE: Vehicle leaves gate, travels to lot
-│  ├─ ROAD_SEGMENT_DONE: Vehicle arrives at lot
-│  ├─ SEARCH_DONE: Vehicle finds spot (or goes to next lot)
-│  ├─ DEPARTURE: Vehicle leaves campus
-│  └─ DECISION_CYCLE (every 5 min): Strategy updates policy
-├─ After each event: Update Twin state
-├─ After each event: Log to metrics_recorder
-└─ → Output: vehicles.json, intervals.json, overflow_events.json
+â”œâ”€ Loop: pop earliest event from heapq
+â”œâ”€ Event type determines handler:
+â”‚  â”œâ”€ ARRIVAL: Vehicle enters gate queue
+â”‚  â”œâ”€ GATE_SERVICE_DONE: Vehicle leaves gate, travels to lot
+â”‚  â”œâ”€ ROAD_SEGMENT_DONE: Vehicle arrives at lot
+â”‚  â”œâ”€ SEARCH_DONE: Vehicle finds spot (or goes to next lot)
+â”‚  â”œâ”€ DEPARTURE: Vehicle leaves campus
+â”‚  â””â”€ DECISION_CYCLE (every 5 min): Strategy updates policy
+â”œâ”€ After each event: Update Twin state
+â”œâ”€ After each event: Log to metrics_recorder
+â””â”€ â†’ Output: vehicles.json, intervals.json, overflow_events.json
 
 STEP 5: DECISION CYCLE (Every 5 minutes)
-├─ Take snapshot of Twin (current occupancy, queues, etc.)
-├─ Call strategy.decide(state, forecast)
-├─ Strategy returns: new routing assignments
-├─ Validate: Check assignments are feasible
-├─ Apply: Update twin with new assignments
-├─ Measure: How long did decision take? (latency)
-└─ → Log: decision latency + new policy
+â”œâ”€ Take snapshot of Twin (current occupancy, queues, etc.)
+â”œâ”€ Call strategy.decide(state, forecast)
+â”œâ”€ Strategy returns: new routing assignments
+â”œâ”€ Validate: Check assignments are feasible
+â”œâ”€ Apply: Update twin with new assignments
+â”œâ”€ Measure: How long did decision take? (latency)
+â””â”€ â†’ Log: decision latency + new policy
 
 STEP 6: COMPUTE METRICS
-├─ After simulation ends:
-├─ Extract from logs:
-│  ├─ Per-vehicle: search_time, wait_time, final_state
-│  ├─ Per-interval: occupancy, queue_length, overflow_flag
-│  └─ Aggregate: avg, max, counts
-├─ Compute 5 primary metrics (from raw logs, not hand-edited)
-└─ → Output: metrics.json + manifest.json
+â”œâ”€ After simulation ends:
+â”œâ”€ Extract from logs:
+â”‚  â”œâ”€ Per-vehicle: search_time, wait_time, final_state
+â”‚  â”œâ”€ Per-interval: occupancy, queue_length, overflow_flag
+â”‚  â””â”€ Aggregate: avg, max, counts
+â”œâ”€ Compute 5 primary metrics (from raw logs, not hand-edited)
+â””â”€ â†’ Output: metrics.json + manifest.json
 
 STEP 7: EXPORT FOR TEAMMATES
-├─ For Member 2 (ML):
-│  └─ Output: ML dataset (timestamp, lot, occupancy, targets)
-├─ For Member 3 (Optimizer):
-│  └─ Output: StateSnapshot JSON + fork() capability
-└─ For Member 4 (Platform):
-   └─ Output: 8 API functions (Python, ready for FastAPI)
+â”œâ”€ For Member 2 (ML):
+â”‚  â””â”€ Output: ML dataset (timestamp, lot, occupancy, targets)
+â”œâ”€ For Member 3 (Optimizer):
+â”‚  â””â”€ Output: StateSnapshot JSON + fork() capability
+â””â”€ For Member 4 (Platform):
+   â””â”€ Output: 8 API functions (Python, ready for FastAPI)
 
 STEP 8: VALIDATE (E7)
-├─ Input: Real observations (data/real_observations.csv)
-├─ Replay: Feed real arrivals into simulator
-├─ Compare: Real occupancy vs simulated
-├─ Metrics: MAE, RMSE, bias
-└─ → Output: calibration_report.md (honest labeling)
+â”œâ”€ Input: Real observations (data/real_observations.csv)
+â”œâ”€ Replay: Feed real arrivals into simulator
+â”œâ”€ Compare: Real occupancy vs simulated
+â”œâ”€ Metrics: MAE, RMSE, bias
+â””â”€ â†’ Output: calibration_report.md (honest labeling)
             </div>
 
             <h3>Data Structures During Simulation</h3>
@@ -307,19 +307,19 @@ STEP 8: VALIDATE (E7)
                 <tr>
                     <td>Vehicle Log</td>
                     <td>Every vehicle: arrival, departure, times, state</td>
-                    <td>Memory → vehicles.json</td>
+                    <td>Memory â†’ vehicles.json</td>
                     <td>When vehicle created/exits</td>
                 </tr>
                 <tr>
                     <td>Interval Metrics</td>
                     <td>Every 15-min: occupancy by lot, queue by gate</td>
-                    <td>Memory → intervals.json</td>
+                    <td>Memory â†’ intervals.json</td>
                     <td>Every interval</td>
                 </tr>
                 <tr>
                     <td>Overflow Events</td>
                     <td>Every time a lot fills or vehicle rejected</td>
-                    <td>Memory → overflow_events.json</td>
+                    <td>Memory â†’ overflow_events.json</td>
                     <td>When overflow happens</td>
                 </tr>
             </table>
@@ -327,7 +327,7 @@ STEP 8: VALIDATE (E7)
 
         <!-- WHY -->
         <div class="section">
-            <h2><span class="emoji">🎯</span>Why (Design Reasoning)</h2>
+            <h2><span class="emoji">ðŸŽ¯</span>Why (Design Reasoning)</h2>
 
             <h3>Why Digital Twin (Not Just Simulator)?</h3>
             <div class="why">
@@ -351,22 +351,22 @@ STEP 8: VALIDATE (E7)
             <h3>Why BPR Formula for Roads?</h3>
             <div class="why">
                 <strong>Assumption:</strong> "Traffic congestion increases nonlinearly with flow."<br>
-                <strong>Formula:</strong> t = t_free × [1 + 0.15 × (flow/capacity)^4]<br>
-                <strong>Why?</strong> Standard in traffic engineering. When a road is 80% full, travel time doesn't double—it increases exponentially. This is realistic.
+                <strong>Formula:</strong> t = t_free Ã— [1 + 0.15 Ã— (flow/capacity)^4]<br>
+                <strong>Why?</strong> Standard in traffic engineering. When a road is 80% full, travel time doesn't doubleâ€”it increases exponentially. This is realistic.
             </div>
 
             <h3>Why Seed Discipline (Same Seed = Identical Results)?</h3>
             <div class="why">
-                <strong>Without:</strong> Run B1 with seed 42 → B1 gets 100 vehicles. Run B2 with seed 42 → B2 also gets 100 vehicles. Fair. But run B1 again → Different 100 vehicles! Unfair comparison.<br>
+                <strong>Without:</strong> Run B1 with seed 42 â†’ B1 gets 100 vehicles. Run B2 with seed 42 â†’ B2 also gets 100 vehicles. Fair. But run B1 again â†’ Different 100 vehicles! Unfair comparison.<br>
                 <strong>With:</strong> Same seed = same vehicles arrive at same times. B1 vs B2 differ only in strategy, not in random noise. Fair paired comparison.<br>
-                <strong>Implementation:</strong> Master seed → separate child streams for arrivals, dwell, service. Strategies don't see or control the seed.
+                <strong>Implementation:</strong> Master seed â†’ separate child streams for arrivals, dwell, service. Strategies don't see or control the seed.
             </div>
 
             <h3>Why 30 Seeds per Experiment?</h3>
             <div class="why">
                 <strong>1 seed:</strong> Lucky or unlucky. Could be outlier.<br>
                 <strong>30 seeds:</strong> Statistical power. You can say "Strategy B is better than Strategy A with 95% confidence."<br>
-                <strong>Practical:</strong> 30 × 500 vehicles × <10s = 2.5 minutes. Feasible.
+                <strong>Practical:</strong> 30 Ã— 500 vehicles Ã— <10s = 2.5 minutes. Feasible.
             </div>
 
             <h3>Why Real Observations (E7)?</h3>
@@ -382,28 +382,28 @@ STEP 8: VALIDATE (E7)
                 <strong>Assumption:</strong> "Not everyone follows the routing recommendation."<br>
                 <strong>Why?</strong> In real life, drivers have preferences, are impatient, or don't trust the system.<br>
                 <strong>Modeling:</strong> 85% follow recommendation, 15% go to nearest preferred lot.<br>
-                <strong>Impact:</strong> Shows your strategy works even with human unpredictability. No RL or AI needed—just realistic behavior.
+                <strong>Impact:</strong> Shows your strategy works even with human unpredictability. No RL or AI neededâ€”just realistic behavior.
             </div>
 
             <h3>Why 133 Tests?</h3>
             <div class="why">
                 <strong>No tests:</strong> "It works on my machine." Not credible.<br>
                 <strong>10 tests:</strong> You tested some pieces. Not comprehensive.<br>
-                <strong>133 tests:</strong> Unit tests (config), state tests (invariants), simulation tests (conservation law), scenario tests (E1–E7), performance tests (1000 vehicles), real-data tests (calibration).<br>
-                <strong>Impact:</strong> Bulletproof. Any change breaks a test—you catch it immediately.
+                <strong>133 tests:</strong> Unit tests (config), state tests (invariants), simulation tests (conservation law), scenario tests (E1â€“E7), performance tests (1000 vehicles), real-data tests (calibration).<br>
+                <strong>Impact:</strong> Bulletproof. Any change breaks a testâ€”you catch it immediately.
             </div>
         </div>
 
         <!-- FLOW SUMMARY -->
         <div class="section">
-            <h2><span class="emoji">📊</span>End-to-End Example: One Simulation Run</h2>
+            <h2><span class="emoji">ðŸ“Š</span>End-to-End Example: One Simulation Run</h2>
 
             <h3>Scenario: Normal day (E1) with Strategy B1 (First-Available), Seed 42</h3>
 
             <div class="data-point">
                 <strong>Input:</strong><br>
                 - Campus: vitap.yaml (2 gates, 5 lots)<br>
-                - Scenario: E1_normal_day.yaml (no events, λ(t) from 8:00–18:00)<br>
+                - Scenario: E1_normal_day.yaml (no events, Î»(t) from 8:00â€“18:00)<br>
                 - Strategy: B1 (first-available)<br>
                 - Seed: 42
             </div>
@@ -412,11 +412,11 @@ STEP 8: VALIDATE (E7)
                 <strong>Processing:</strong><br>
                 1. Load campus from YAML (gates, lots, roads, zones)<br>
                 2. Initialize Twin: all lots empty, gates open<br>
-                3. Create seed stream: master seed 42 → child streams for arrivals, dwell, service<br>
-                4. Generate 250 vehicles using Poisson(λ(t)) with seed stream<br>
+                3. Create seed stream: master seed 42 â†’ child streams for arrivals, dwell, service<br>
+                4. Generate 250 vehicles using Poisson(Î»(t)) with seed stream<br>
                 5. Schedule arrivals as ARRIVAL events in heapq<br>
-                6. Main loop: pop event → handle → update Twin → log metrics<br>
-                7. Every 5 min: DECISION_CYCLE → B1.decide() → allocate next batch<br>
+                6. Main loop: pop event â†’ handle â†’ update Twin â†’ log metrics<br>
+                7. Every 5 min: DECISION_CYCLE â†’ B1.decide() â†’ allocate next batch<br>
                 8. When simulation ends, compute 5 primary metrics from logs
             </div>
 
@@ -424,7 +424,7 @@ STEP 8: VALIDATE (E7)
                 <strong>Output:</strong><br>
                 - File: <code>runs/E1_normal_day/FirstAvailableStrategy/seed_42/</code><br>
                 - vehicles.json: List of 250 vehicles, each with (id, entry_time, search_time, wait_time, final_state)<br>
-                - intervals.json: 40 intervals (08:00–18:00 by 15-min), each with (occupancy, queue_length, overflow_flag)<br>
+                - intervals.json: 40 intervals (08:00â€“18:00 by 15-min), each with (occupancy, queue_length, overflow_flag)<br>
                 - metrics.json: (avg_search_time=2.3 min, avg_wait_time=1.1 min, max_queue=8, overflow_events=0)<br>
                 - manifest.json: (config_hash, git_commit, seed, timestamp)
             </div>
@@ -432,15 +432,15 @@ STEP 8: VALIDATE (E7)
             <div class="data-point">
                 <strong>Comparison:</strong><br>
                 Run the same scenario with B2 (nearest-available), seed 42<br>
-                → Same 250 vehicles, same times (seed ensures this)<br>
-                → B2 might get avg_search_time=1.8 min (better)<br>
-                → Fair comparison: only strategy differs, not demand
+                â†’ Same 250 vehicles, same times (seed ensures this)<br>
+                â†’ B2 might get avg_search_time=1.8 min (better)<br>
+                â†’ Fair comparison: only strategy differs, not demand
             </div>
 
             <div class="data-point">
                 <strong>Validation (E7):</strong><br>
                 Take real_observations.csv (Day 2, no event)<br>
-                Infer scenario from it: λ(t) from real arrivals, vehicle_count=296<br>
+                Infer scenario from it: Î»(t) from real arrivals, vehicle_count=296<br>
                 Replay through simulator<br>
                 Compare: real occupancy vs simulated<br>
                 Compute: MAE=2.5 vehicles, RMSE=3.1, bias=+0.8 (simulator slightly overestimates)
@@ -449,7 +449,7 @@ STEP 8: VALIDATE (E7)
 
         <!-- QUICK REFERENCE -->
         <div class="section">
-            <h2><span class="emoji">📋</span>Quick Reference: What File Does What</h2>
+            <h2><span class="emoji">ðŸ“‹</span>Quick Reference: What File Does What</h2>
 
             <table>
                 <tr>
@@ -458,7 +458,7 @@ STEP 8: VALIDATE (E7)
                     <th>Key Function</th>
                 </tr>
                 <tr>
-                    <td><code>configs/campuses/</code></td>
+                    <td><code>configs/campus/</code></td>
                     <td>Campus blueprints</td>
                     <td>Describe gates, lots, roads, zones</td>
                 </tr>
@@ -517,11 +517,11 @@ STEP 8: VALIDATE (E7)
 
         <!-- WRAP UP -->
         <div class="section" style="background: #e3f2fd; border-left: 4px solid #1a73e8;">
-            <h2><span class="emoji">✅</span>Summary: The Pipeline</h2>
+            <h2><span class="emoji">âœ…</span>Summary: The Pipeline</h2>
 
             <h3>One-Sentence Summary:</h3>
             <p style="font-size: 1.1em; font-weight: bold; margin: 15px 0;">
-                You describe your campus in YAML → Simulator generates realistic parking demand → Runs strategies → Compares results → Validates against real observations → Exports for team members.
+                You describe your campus in YAML â†’ Simulator generates realistic parking demand â†’ Runs strategies â†’ Compares results â†’ Validates against real observations â†’ Exports for team members.
             </p>
 
             <h3>Key Principles:</h3>
@@ -537,7 +537,7 @@ STEP 8: VALIDATE (E7)
 
             <h3>For Your Viva, You Can Say:</h3>
             <p style="background: #fff9c4; padding: 15px; border-radius: 5px; margin-top: 15px;">
-                <strong>"My simulator is a Digital Twin—not just a model, but a live evolving system.
+                <strong>"My simulator is a Digital Twinâ€”not just a model, but a live evolving system.
                 You load your campus description (YAML), and the simulator generates realistic parking demand using non-homogeneous Poisson arrivals.
                 It routes vehicles using physics (BPR roads), tracks state changes, and measures outcomes.
                 I validated it against 80 real observations and confirmed the simulator's accuracy (MAE < 3 vehicles).

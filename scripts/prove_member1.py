@@ -1,5 +1,5 @@
-"""
-Member 1 — Complete Proof Script
+﻿"""
+Member 1 â€” Complete Proof Script
 Run this to demonstrate all Member 1 deliverables are working correctly.
 
 Usage:
@@ -35,15 +35,15 @@ def show(label, value):
     print(f"  {label:<35} : {value}")
 
 
-# ── Setup ─────────────────────────────────────────────────────────────────────
+# â”€â”€ Setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 conn = get_connection(ROOT / "digital_twin.db")
 apply_migrations(conn)
 
-# ─────────────────────────────────────────────────────────────────────────────
-section("PROOF 1 — Campus Configuration (O1: Digital Twin Design)")
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+section("PROOF 1 â€” Campus Configuration (O1: Digital Twin Design)")
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-load_campus_config(ROOT / "configs/campuses/vitap.yaml", conn)
+load_campus_config(ROOT / "configs/campus/vitap.yaml", conn)
 
 gates = conn.execute("SELECT gate_id, name, capacity, status FROM gates WHERE campus_id='vitap'").fetchall()
 lots  = conn.execute("SELECT parking_lot_id, name, total_capacity, zone FROM parking_lots WHERE campus_id='vitap'").fetchall()
@@ -79,9 +79,9 @@ for e in events:
 ok(f"Campus loaded: {len(gates)} gates, {len(lots)} lots, {len(roads)} roads, {len(dests)} destinations, {len(events)} events")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-section("PROOF 2 — Digital Twin State Engine (M2: State Manager)")
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+section("PROOF 2 â€” Digital Twin State Engine (M2: State Manager)")
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 from digital_twin.twin_service import DigitalTwinService
 twin = DigitalTwinService(conn)
@@ -102,9 +102,9 @@ for lot_id, lot in list(state.get('parking_lots', {}).items())[:3]:
 ok("Digital Twin state engine is live and returning dynamic campus state")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-section("PROOF 3 — Reproducibility (Section 34: Same seed = identical results)")
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+section("PROOF 3 â€” Reproducibility (Section 34: Same seed = identical results)")
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 import uuid
 scenario = ScenarioLoader.load(ROOT / "configs/scenarios/vitap/E1_normal_day.yaml")
@@ -121,12 +121,12 @@ print(f"  Run 1  overflow_events = {m1['overflow_events_count']}")
 print(f"  Run 2  overflow_events = {m2['overflow_events_count']}")
 match = m1['avg_search_time_min'] == m2['avg_search_time_min']
 print(f"\n  Results identical: {match}")
-ok("Deterministic simulation confirmed — same seed produces identical results")
+ok("Deterministic simulation confirmed â€” same seed produces identical results")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-section("PROOF 4 — All 7 Experiments (Section 20: Experiment Plan)")
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+section("PROOF 4 â€” All 7 Experiments (Section 20: Experiment Plan)")
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 EXPERIMENTS = [
     ("E1", "E1_normal_day",      "Normal campus day baseline"),
@@ -173,16 +173,16 @@ for exp_id, scenario_name, description in EXPERIMENTS:
 ok("All experiments executed and saved to runs/")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-section("PROOF 5 — Strategy Comparison Summary (Section 17: Baselines)")
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+section("PROOF 5 â€” Strategy Comparison Summary (Section 17: Baselines)")
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 print(f"""
   Strategy definitions (from proposal Section 17):
-  B1  First Available     — assign first feasible available lot (naive)
-  B2  Nearest Available   — assign closest feasible lot by distance
-  B3  Prediction Only     — use fill-rate forecast to avoid nearly-full lots
-  P   ParkingNav-X (full) — prediction + gate load balancing + zone routing
+  B1  First Available     â€” assign first feasible available lot (naive)
+  B2  Nearest Available   â€” assign closest feasible lot by distance
+  B3  Prediction Only     â€” use fill-rate forecast to avoid nearly-full lots
+  P   ParkingNav-X (full) â€” prediction + gate load balancing + zone routing
 
   Peak-hour scenario results:
 """)
@@ -204,12 +204,12 @@ b1_ov = peak_results["B1"]["overflow_events_count"]
 p_ov  = peak_results["P"]["overflow_events_count"]
 improvement = round((b1_ov - p_ov) / b1_ov * 100) if b1_ov > 0 else 100
 print(f"\n  Overflow improvement B1 -> P : {b1_ov} -> {p_ov}  ({improvement}% reduction)")
-ok("ParkingNav-X outperforms all baselines — hypothesis H1 supported")
+ok("ParkingNav-X outperforms all baselines â€” hypothesis H1 supported")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-section("PROOF 6 — Scalability (Section 25: 500 & 1000 vehicles)")
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+section("PROOF 6 â€” Scalability (Section 25: 500 & 1000 vehicles)")
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 for sc_name in ["scale_500", "high_traffic"]:
     sc_file = ROOT / "configs/scenarios/vitap" / f"{sc_name}.yaml"
@@ -222,24 +222,24 @@ for sc_name in ["scale_500", "high_traffic"]:
         print(f"    Runtime      : {elapsed}s")
         print(f"    Overflow     : {r.metrics['overflow_events_count']}")
         print(f"    Search time  : {round(r.metrics['avg_search_time_min'],2)} min")
-        ok(f"{sc_name} completed in {elapsed}s — system is scalable")
+        ok(f"{sc_name} completed in {elapsed}s â€” system is scalable")
 
 conn.close()
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 section("MEMBER 1 PROOF COMPLETE")
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 print(f"""
   Deliverable                        Status
   {SEP2}
-  O1  Digital Twin (campus config)   DONE — 2 gates, 5 lots, roads, 13 dest
-  O2  Simulation engine              DONE — deterministic, reproducible
-  M2  State engine                   DONE — live dynamic state
-  M4  Baseline strategies (B1-B4)    DONE — all 4 strategies running
-  E1-E7 Experiments                  DONE — all saved to runs/
-  Scalability                        DONE — 500+ vehicles tested
-  Reproducibility                    DONE — same seed = identical output
-  API                                DONE — uvicorn digital_twin.api.app:app
+  O1  Digital Twin (campus config)   DONE â€” 2 gates, 5 lots, roads, 13 dest
+  O2  Simulation engine              DONE â€” deterministic, reproducible
+  M2  State engine                   DONE â€” live dynamic state
+  M4  Baseline strategies (B1-B4)    DONE â€” all 4 strategies running
+  E1-E7 Experiments                  DONE â€” all saved to runs/
+  Scalability                        DONE â€” 500+ vehicles tested
+  Reproducibility                    DONE â€” same seed = identical output
+  API                                DONE â€” uvicorn digital_twin.api.app:app
   {SEP2}
   ALL MEMBER 1 DELIVERABLES VERIFIED AND WORKING
 {SEP}
