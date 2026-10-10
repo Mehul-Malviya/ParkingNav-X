@@ -89,12 +89,57 @@ def cmd_run(args):
     engine = SimulationEngine()
     result = engine.run(scenario, strategy, conn)
 
-    print(json.dumps(result.metrics, indent=2))
+    m = result.metrics
+    sec = result.secondary_metrics
+
+    # Always print conservation
+    total    = sec.get("total_vehicles_simulated", m.get("total_vehicles", 0))
+    parked   = sec.get("parked", 0)
+    exited   = sec.get("exited", 0)
+    in_sys   = sec.get("in_system", 0)
+    rejected = sec.get("rejected", 0)
+    ok       = "[OK]" if sec.get("conservation_check", True) else "[FAIL]"
+    print(f"\nConservation: total={total}  parked={parked}  exited={exited}  "
+          f"in_system={in_sys}  rejected={rejected}  {ok}")
+    print(f"  entered={total} == parked+exited+in_system+rejected = "
+          f"{parked+exited+in_sys+rejected}")
+
+    if args.fallbacks and result.adapter_fallbacks:
+        print(f"\n[FALLBACK] Strategy fell back to NearestAvailable {result.adapter_fallbacks} time(s)")
+
+    if getattr(args, "verbose", False):
+        # Occupancy curve: sample lot occupancy at tick 0, peak, last tick
+        if result.timesteps:
+            lot_keys = [k for k in result.timesteps[0] if k.startswith("parking_occupancy_")]
+            print("\nOccupancy curve (per lot):")
+            for key in sorted(lot_keys):
+                lot_id = key[len("parking_occupancy_"):]
+                series = [ts.get(key, 0) for ts in result.timesteps]
+                peak = max(series)
+                peak_tick = series.index(peak)
+                print(f"  {lot_id:40s}  start={series[0]:3d}  peak={peak:3d}@t={peak_tick:3d}  "
+                      f"end={series[-1]:3d}")
+
+        # Trace first vehicle with a complete journey (exited or parked)
+        traced = next(
+            (v for v in result.vehicles if v.get("final_state") in ("exited", "parked") and v.get("state_trace")),
+            result.vehicles[0] if result.vehicles else None,
+        )
+        if traced:
+            print(f"\nVehicle trace [{traced['vehicle_id']}]  gate={traced['entry_gate']}  lot={traced.get('assigned_lot_id','?')}")
+            for step in traced.get("state_trace", []):
+                print(f"  tick={step['tick']:4d}  {step['state']}")
+
+        # B1 vs B2 comparison note
+        print(f"\nStrategy used: {result.strategy_name}")
+        print("  (run with --strategy first AND --strategy nearest to compare lot distributions)")
+
+    print(json.dumps(m, indent=2))
 
     if args.output:
         out = Path(args.output)
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(result.metrics, indent=2))
+        out.write_text(json.dumps(m, indent=2))
         print(f"\nMetrics saved to {out}")
 
 
@@ -215,11 +260,13 @@ def main():
 
     # run
     p_run = sub.add_parser("run", help="Run one simulation and print metrics")
-    p_run.add_argument("--campus",   required=True, help="Campus id (e.g. vitap)")
-    p_run.add_argument("--scenario", required=True, help="Scenario id (e.g. E1_normal_day)")
-    p_run.add_argument("--strategy", required=True, choices=list(STRATEGY_MAP), help="first | nearest")
-    p_run.add_argument("--seed",     required=True, type=int, help="Random seed")
-    p_run.add_argument("--output",   default=None,  help="Optional path to save metrics JSON")
+    p_run.add_argument("--campus",    required=True,  help="Campus id (e.g. vitap)")
+    p_run.add_argument("--scenario",  required=True,  help="Scenario id (e.g. E1_normal_day)")
+    p_run.add_argument("--strategy",  required=True,  choices=list(STRATEGY_MAP), help="first | nearest")
+    p_run.add_argument("--seed",      required=True,  type=int, help="Random seed")
+    p_run.add_argument("--output",    default=None,   help="Optional path to save metrics JSON")
+    p_run.add_argument("--verbose",   action="store_true", help="Print occupancy curves and one vehicle trace")
+    p_run.add_argument("--fallbacks", action="store_true", help="Print fallback count if strategy fell back")
 
     # validate-campus
     p_vc = sub.add_parser("validate-campus", help="Validate a campus YAML and print entity counts")

@@ -52,6 +52,9 @@ def load_metrics(scenario_dir: Path, strat_name: str) -> list[dict]:
         if not strat_dir.exists():
             continue
         for seed_dir in sorted(strat_dir.iterdir()):
+            if not (seed_dir.name.startswith("seed_") and seed_dir.name[5:].isdigit()
+                    and int(seed_dir.name[5:]) < 30):
+                continue  # only seeds 0-29; ignore stray test/manual runs
             mf = seed_dir / "metrics.json"
             if mf.exists():
                 with open(mf) as f:

@@ -19,6 +19,7 @@ occupying this edge for N ticks" model is a drop-in replacement later.
 """
 
 import json
+import logging
 import random
 import uuid
 from dataclasses import dataclass, field
@@ -42,7 +43,8 @@ from digital_twin.twin_service import DigitalTwinService
 DWELL_MINUTES_RANGE = (30, 480)
 DWELL_LOGNORMAL_MU = 4.8   # ln(120) ≈ 4.79 → median ~120 min (realistic work/class session)
 DWELL_LOGNORMAL_SIGMA = 0.6
-STRATEGY_TIMEOUT_MS = 200   # 200ms timeout per spec (B1=0.001ms, B2=0.05ms typical)
+logger = logging.getLogger(__name__)
+STRATEGY_TIMEOUT_MS = 200  # 200ms timeout per spec (B1=0.001ms, B2=0.05ms typical)
 
 BPR_ALPHA = 0.15
 BPR_BETA = 4
@@ -338,6 +340,8 @@ class SimulationEngine:
                         )
                         if fallback_reason:
                             adapter_fallbacks += 1
+                            logger.warning("tick=%d vehicle=%s: strategy %s failed (%s) -- fell back to Nearest",
+                                           tick, rv.vehicle.vehicle_id, strategy.__class__.__name__, fallback_reason)
                     else:
                         nearest = self._nearest_available_lot(
                             rv.vehicle.entry_gate, open_lot_ids, parking_lots, working_graph
@@ -358,7 +362,9 @@ class SimulationEngine:
                     # Route from gate to the strategy-assigned lot
                     assigned_lot = result.parking_lot_id
                     if not nx.has_path(working_graph, rv.vehicle.entry_gate, assigned_lot):
+                        infeasibility_rejections += 1
                         rv.state = "rejected"
+                        overflow_events.append({"tick": tick, "parking_lot_id": assigned_lot, "reason": "unreachable_at_route"})
                         continue
                     path = nx.shortest_path(working_graph, rv.vehicle.entry_gate, assigned_lot, weight="weight_time_seconds")
                     travel_time = 0.0
@@ -397,7 +403,6 @@ class SimulationEngine:
                         # Count overflow; cruise to next feasible lot.
                         # Reject ONLY if no lot on campus has usable space.
                         failed_lot = rv.assigned_lot_id
-                        overflow_events.append({"tick": tick, "parking_lot_id": failed_lot, "reason": "filled_during_transit"})
 
                         state_view = CampusState(
                             campus_id=scenario.campus_id, graph=working_graph,
@@ -421,6 +426,7 @@ class SimulationEngine:
                             # No usable space on campus → true rejection
                             infeasibility_rejections += 1
                             rv.state = "rejected"
+                            overflow_events.append({"tick": tick, "parking_lot_id": failed_lot, "reason": "no_feasible_lot_after_fill"})
                             continue
 
                         # Re-route from failed lot to new lot (cruising adds time and distance)
@@ -429,6 +435,7 @@ class SimulationEngine:
                         if not nx.has_path(working_graph, from_node, new_lot_id):
                             infeasibility_rejections += 1
                             rv.state = "rejected"
+                            overflow_events.append({"tick": tick, "parking_lot_id": new_lot_id, "reason": "unreachable_after_fill"})
                             continue
 
                         path = nx.shortest_path(working_graph, from_node, new_lot_id, weight="weight_time_seconds")
@@ -531,7 +538,7 @@ class SimulationEngine:
 
         vehicle_metrics = []
         for rv in running_vehicles:
-            waiting_time = ((rv.gate_admitted_tick - rv.queue_enter_tick) * 60) if rv.gate_admitted_tick and rv.queue_enter_tick else 0
+            waiting_time = ((rv.gate_admitted_tick - rv.queue_enter_tick) * 60) if rv.gate_admitted_tick is not None and rv.queue_enter_tick is not None else 0
             # Normalize internal states to canonical output states
             _state_map = {
                 "completed": "exited",
@@ -563,11 +570,12 @@ class SimulationEngine:
                 trace.append({"tick": rv.queue_enter_tick, "state": "QUEUED_AT_GATE"})
             if rv.gate_admitted_tick is not None:
                 trace.append({"tick": rv.gate_admitted_tick, "state": "ENTERING"})
-                trace.append({"tick": rv.gate_admitted_tick, "state": "DRIVING"})
+            # DRIVING = gate -> lot transit (BPR time); SEARCHING = at the lot, duration base+k*occ^2 (analytic, not tick-simulated)
             if rv.search_start_tick is not None:
-                trace.append({"tick": rv.search_start_tick, "state": "SEARCHING"})
+                trace.append({"tick": rv.search_start_tick, "state": "DRIVING"})
             if rv.search_end_tick is not None and canonical_state in ("parked", "exited", "in_system"):
-                trace.append({"tick": rv.search_end_tick, "state": "PARKED"})
+                trace.append({"tick": rv.search_end_tick, "state": "SEARCHING"})
+                trace.append({"tick": rv.search_end_tick + max(1, -(-int(rv.occupancy_search_seconds) // 60)), "state": "PARKED"})
             if rv.completion_tick is not None:
                 trace.append({"tick": rv.completion_tick - max(1, int(rv.inbound_distance_meters / 100)), "state": "DEPARTING"})
                 trace.append({"tick": rv.completion_tick, "state": "EXITED"})

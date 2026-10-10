@@ -161,8 +161,13 @@ class TestFailureCases:
         assert overflow == overflow_metric, \
             f"Overflow mismatch: {overflow} events vs {overflow_metric} in metrics"
 
-        # With high demand, expect overflow
-        assert overflow > 0, "Expected overflow with 800 vehicles during event"
+        # Overflow == REJECTED_OVERFLOW only (spec); lot-full reroutes count as reassigned_count
+        rejected = sum(1 for v in result.vehicles if v['final_state'] == 'rejected')
+        assert overflow == rejected, f"overflow {overflow} != rejected {rejected}"
+
+        # With high demand, expect lots to fill and vehicles to be rerouted
+        reassigned = sum(v['reassigned_count'] for v in result.vehicles)
+        assert reassigned > 0, "Expected reassignments with 800 vehicles during event"
 
     def test_invalid_input_rejected_with_message(self, setup):
         """

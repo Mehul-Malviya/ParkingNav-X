@@ -56,11 +56,11 @@ Route = shortest path by current travel time via Dijkstra (NetworkX).
 
 ## Parking Search Time
 
-`search_time = base × (1 + α / (1 − occupancy + ε))`
+`search_time = base + k × occupancy²`  (base = 0.5 min, k = 5.5 min → 6.0 min at a full lot)
 
-- `base` = lot-specific base search time (0.5 min default)
-- Grows sharply as lot fills toward 100%
-- If lot full on arrival → vehicle cruises to next lot (overflow event logged)
+- `base` = 0.5 min; `k` = 5.5 min (spec formula; bounded, no divergence at occ = 1)
+- Grows quadratically as the lot fills; search time is analytic (added to metrics), not simulated tick by tick
+- If lot full on arrival → vehicle cruises to the next feasible lot and its `reassigned_count` increments; an overflow event is logged only if the vehicle is rejected (no feasible/reachable lot)
 
 ---
 
@@ -90,7 +90,7 @@ Every scenario YAML includes `warmdown_minutes: 30`. During the last 30 minutes 
 
 **When E5 becomes meaningful:** once Member 3's optimizer reads `use_prediction` and consumes the noisy forecast, E5 will measure robustness degradation as noise increases. B1/B2 are noise-immune by construction (reactive, no forecast dependency), which is itself a useful baseline for comparison.
 
-**Confirmed:** 30-seed run with seed override shows B1 search = 0.705 min and B2 search = 0.658 min for all three noise levels, bit-for-bit identical.
+**Confirmed:** 30-seed run with seed override shows B1 search = 3.88 min and B2 search = 2.27 min for all three noise levels, bit-for-bit identical.
 
 ---
 
@@ -108,7 +108,7 @@ Every scenario YAML includes `warmdown_minutes: 30`. During the last 30 minutes 
 When gate-main closes, arrivals divert to visitor gate (capacity 3 veh/min).
 E4 uses the E1 arrival profile, peak rate ≈ 1.2 veh/min total, ≈ 0.6–1.2 veh/min at visitor gate after diversion. This is well below the 3 veh/min service capacity → queue never builds. This is physically correct; a queue would only form if arrival rate exceeds gate service rate.
 
-**What gate_congestion.yaml changes:** It uses a burst arrival rate of 4.0 veh/min (ticks 30–90). With both gates sharing arrivals uniformly (rng.choice), each gate sees ~2 veh/min, still below capacity. The 74.5 overflow events in gate_congestion are **parking lot overflow** (lots fill rapidly under burst demand), not gate queue overflow. Gate queue stays near 0.
+**Gate-congestion burst (scenario file since removed):** a burst of 4.0 veh/min (ticks 30–90) split uniformly over both gates (~2 veh/min each) is still below gate capacity, so gate queue stays near 0. A queue forms only when arrival rate exceeds service rate (see test below).
 
 **Queue grows when arrival rate > service rate — test confirmation:** A test (`test_gate_queue_grows_under_overload`) creates a scenario with a single gate of capacity 1 veh/min and arrival rate 6 veh/min and verifies that gate queue depth exceeds 0 within the burst window. The queue logic itself is confirmed correct; VITAP's current gate capacity is simply adequate for the modelled demand.
 
@@ -121,8 +121,8 @@ E4 uses the E1 arrival profile, peak rate ≈ 1.2 veh/min total, ≈ 0.6–1.2 v
 **wait and gate-queue are identical for B1 and B2 (all non-stress scenarios):**
 Both strategies only choose *which lot* to assign a vehicle. Gate assignment is random (uniform over open gates), independent of strategy. Wait time = time spent in gate queue; gate queue depth = vehicles queued at any gate. Neither metric is affected by lot choice — only gate throughput and arrival rate matter. These can only improve if Member 3's optimizer also controls gate assignment or pre-clears specific gates before peak arrivals.
 
-**gate_congestion, parking_full and peak_hour are stress scenarios with non-standard durations:**
-They run for 180, 90 and 120 minutes respectively (vs E1–E5's 600 min). Their raw metric values are not directly comparable to E1–E5. They test extreme load conditions (burst demand, over-capacity, compressed peak), not typical campus operation.
+**parking_full is a stress scenario with a non-standard duration:**
+It runs for 90 minutes (vs E1–E5's 600 min), so its raw metric values are not directly comparable. It tests an extreme load condition (600 vehicles > 472 spaces), not typical campus operation. gate_congestion, high_traffic and peak_hour were removed from the repo.
 
 **road_closure — inside-window vs outside-window travel distance (B1/B2, 10-seed average):**
 
@@ -133,17 +133,17 @@ They run for 180, 90 and 120 minutes respectively (vs E1–E5's 600 min). Their 
 
 The whole-day average (B1: 1059 m, B2: 620 m) understates the closure effect because ~79% of arrivals are unaffected. During the closure, B1 is diverted to admin (520 m) and sports (534 m) — farther than academic (450 m). B2 was already using hostel (380 m) and overflow (280 m via visitor gate) so the detour is smaller.
 
-**E3 B2 = E1 B2 (search 3.20 min both):**
+**E3 B2 = E1 B2 (search 2.27 min both):**
 B2 (NearestAvailable) assigns each vehicle to the nearest open lot relative to its entry gate. From gate-main, the nearest lots by travel time are hostel (76 s) and admin (104 s), not academic-main (90 s). From gate-visitor, nearest are overflow (56 s) and admin (70 s). B2 never primarily uses academic-main, so closing it in E3 has no effect on B2's behaviour or search time.
 
-**E3 B1 < E1 B1 (search 3.86 vs 6.65 min):**
-B1 (FirstAvailable) always fills the first lot with remaining capacity, sorted by lot ID. Academic-main (capacity 108) is normally filled first. When it closes (ticks 60–180), B1 routes vehicles to hostel (162), admin (72), and sports (84) — all initially emptier. Lower occupancy → shorter search time per the formula `search = base × (1 + α/(1−occ+ε))`. This exposes a structural weakness of B1: it produces worse search times at high occupancy than at medium occupancy. E3 is not a "better" day for B1; it is a day where the forced redistribution accidentally lowers average occupancy during the closure window.
+**E3 B1 < E1 B1 (search 2.81 vs 3.88 min):**
+B1 (FirstAvailable) always fills the first lot with remaining capacity, in config order. Academic-main (capacity 108) is normally filled first. When it closes (ticks 60–180), B1 routes vehicles to hostel (162), admin (72), and sports (84) — all initially emptier. Lower occupancy → shorter search time per the formula `search = 0.5 + 5.5 × occ²` min. This exposes a structural weakness of B1: it produces worse search times at high occupancy than at medium occupancy. E3 is not a "better" day for B1; it is a day where the forced redistribution accidentally lowers average occupancy during the closure window.
 
-**high_traffic (550 vehicles, 0 rejections):**
-Campus usable capacity = 108 + 162 + 72 + 84 + 46 = 472 spaces. At 550 vehicles, total demand exceeds capacity by 78 vehicles. Zero rejections occur because dwell times are stochastic (median 120 min, range 30–480 min). Early arrivals park, dwell, and depart before later arrivals need their space. Departures free capacity continuously, so the system never reaches a point where all 472 spaces are simultaneously occupied by 550-demand vehicles. Overflow events (36.4 B1, 11.9 B2) record the cruising events where vehicles circled before a space freed up, not rejections.
+**Over-capacity demand (high_traffic scenario, since removed):**
+Campus usable capacity = 108 + 162 + 72 + 84 + 46 = 472 spaces. With 550 vehicles, demand exceeds capacity, yet rejections stay near 0 because dwell times are stochastic (median 120 min, range 30–480 min): early arrivals depart before later ones need the space. Vehicles that find a lot full are re-routed (`reassigned_count`), not rejected; an overflow event is logged only on rejection. The only scenario that produces real rejections is parking_full (600 vehicles in 90 min, ~21.6 rejections per seed for B1).
 
 **E7_replay results are based on synthetic observations (real data pending):**
-The E7 YAML replays 350 vehicles with a morning-peak profile derived from the synthetic_observations.csv file. These will be replaced with real arrival-time observations from the counting day (Member 5). Results: B1 search 4.45 min, B2 search 2.10 min, 0 rejections.
+The E7 YAML replays 350 vehicles with a morning-peak profile derived from the synthetic_observations.csv file. These will be replaced with real arrival-time observations from the counting day (Member 5). Results: B1 search 2.39 min, B2 search 1.96 min, 0 rejections.
 
 ---
 
