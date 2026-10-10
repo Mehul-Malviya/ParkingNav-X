@@ -1,8 +1,8 @@
-"""
-Phase 9 — API Functions for Member 4 (Platform)
+﻿"""
+Phase 9 â€” API Functions for Member 4 (Platform)
 
 Pure Python functions for FastAPI to wrap. No database coupling.
-All functions are deterministic (seed → identical results).
+All functions are deterministic (seed â†’ identical results).
 """
 
 import json
@@ -44,7 +44,7 @@ def load_campus(campus_id: str) -> dict:
     Returns:
         {gates, lots, roads, graph_edges, zones, event_types, ...}
     """
-    config_path = Path("configs/campuses") / f"{campus_id}.yaml"
+    config_path = Path("configs/campus") / f"{campus_id}.yaml"
     if not config_path.exists():
         raise FileNotFoundError(f"Campus config not found: {config_path}")
 
@@ -186,7 +186,7 @@ def get_campus_state(run_id: str, tick: int) -> dict:
 
     Args:
         run_id: from run_simulation()
-        tick: simulation tick (0–duration_minutes)
+        tick: simulation tick (0â€“duration_minutes)
 
     Returns:
         StateSnapshot JSON-serializable dict

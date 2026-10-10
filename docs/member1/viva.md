@@ -1,8 +1,8 @@
-# VIVA ANSWERS — Member 1 · Digital Twin + Simulation
+﻿# VIVA ANSWERS â€” Member 1 Â· Digital Twin + Simulation
 
 **Owner:** Jyothi Reddy Pula (23BCE7882)  
 **Module:** M1, M2, M4, M5, M13 (Campus Config, Digital Twin, Scenario Generator, Simulation Engine, Validation)  
-**Final Review:** 17–21 November 2026
+**Final Review:** 17â€“21 November 2026
 
 ---
 
@@ -12,7 +12,7 @@
 
 A Digital Twin is a **live, evolving, forkable model of the real system**. Three things make it a Twin:
 
-1. **State + Evolution**: Unlike a static dashboard, the Twin holds and updates live state (lot occupancy, gate queue, vehicle positions) through validated transitions. Every state change is logged → full audit trail. The code is `twin.apply(transition)` which validates invariants.
+1. **State + Evolution**: Unlike a static dashboard, the Twin holds and updates live state (lot occupancy, gate queue, vehicle positions) through validated transitions. Every state change is logged â†’ full audit trail. The code is `twin.apply(transition)` which validates invariants.
 
 2. **Snapshot + Fork + What-if**: Member 3's optimizer calls `twin.fork()` to create an independent copy, simulates the next 15 minutes with each candidate decision (allocate to Lot A, Lot B, etc.), and compares outcomes *before* applying the best one. This is real what-if analysis. A dashboard cannot do that.
 
@@ -28,9 +28,9 @@ A simulator is just a script that runs once. A Twin is an evolving model that li
 
 Three reasons:
 
-1. **Speed at scale**: With 1,000 vehicles, a fixed time-step (e.g., 1 second) over an 8-hour day is 28,800 iterations of "nothing happens here". Discrete events jump directly to the next *meaningful* moment (arrival, gate service done, departure). Result: 1,000-vehicle day runs in < 30 seconds, not 5+ minutes. Member 4's 30-seed × 7-scenario × 4-strategy batch (840 runs) finishes in hours, not days.
+1. **Speed at scale**: With 1,000 vehicles, a fixed time-step (e.g., 1 second) over an 8-hour day is 28,800 iterations of "nothing happens here". Discrete events jump directly to the next *meaningful* moment (arrival, gate service done, departure). Result: 1,000-vehicle day runs in < 30 seconds, not 5+ minutes. Member 4's 30-seed Ã— 7-scenario Ã— 4-strategy batch (840 runs) finishes in hours, not days.
 
-2. **Exactness**: Event-driven guarantees that a vehicle's gate service completes at *exactly* the right time, not "sometime in the 10:00–10:01 interval." No artificial rounding errors. Same seed ⇒ identical outcomes, bit-for-bit.
+2. **Exactness**: Event-driven guarantees that a vehicle's gate service completes at *exactly* the right time, not "sometime in the 10:00â€“10:01 interval." No artificial rounding errors. Same seed â‡’ identical outcomes, bit-for-bit.
 
 3. **Natural queuing**: Gate queues are events (`GATE_SERVICE_DONE`). When a server finishes, we pop the next customer from the queue in O(1). No need to iterate and check "is this customer done yet?" every tick.
 
@@ -44,18 +44,18 @@ We use `heapq` (priority queue), not SimPy, to keep the code simple and explaina
 
 **Why time-varying demand?**
 
-Real arrival patterns vary by time of day: quiet at 7 AM, peak at 9 AM, quiet again at 3 PM. A constant arrival rate is wrong. We define λ(t) as a piecewise linear curve in YAML config (`[{time: 0, rate: 0.3}, {time: 60, rate: 1.2}, ...]`). This is the standard model for time-varying arrivals in traffic and queueing studies.
+Real arrival patterns vary by time of day: quiet at 7 AM, peak at 9 AM, quiet again at 3 PM. A constant arrival rate is wrong. We define Î»(t) as a piecewise linear curve in YAML config (`[{time: 0, rate: 0.3}, {time: 60, rate: 1.2}, ...]`). This is the standard model for time-varying arrivals in traffic and queueing studies.
 
 **How arrival sampling works (what the code actually does):**
 
-1. Derive `vehicle_count` from the profile integral: `vehicle_count = round(∫λ(t)dt × scale_factor)` where scale_factor is calibrated so E1 baseline produces 400 vehicles.
-2. Build a weight vector: `weights[t] = λ(t)` for each tick t, multiplied by the event `demand_multiplier` during the event window, zeroed during the warm-down period.
-3. Sample `vehicle_count` arrival ticks from `rng.choices(ticks, weights=weights, k=vehicle_count)` — a weighted multinomial draw.
+1. Derive `vehicle_count` from the profile integral: `vehicle_count = round(âˆ«Î»(t)dt Ã— scale_factor)` where scale_factor is calibrated so E1 baseline produces 400 vehicles.
+2. Build a weight vector: `weights[t] = Î»(t)` for each tick t, multiplied by the event `demand_multiplier` during the event window, zeroed during the warm-down period.
+3. Sample `vehicle_count` arrival ticks from `rng.choices(ticks, weights=weights, k=vehicle_count)` â€” a weighted multinomial draw.
 4. Sort the ticks and construct vehicles.
 
-This is **weighted multinomial sampling**, not Lewis–Shedler thinning. The distinction: thinning generates a variable-count stream by accepting/rejecting from a max-rate Poisson process; our method fixes the total count and assigns each arrival to a tick proportionally to λ(t). Both reproduce the time-varying shape; ours produces an exact vehicle_count, which is required for reproducibility across seeds.
+This is **weighted multinomial sampling**, not Lewisâ€“Shedler thinning. The distinction: thinning generates a variable-count stream by accepting/rejecting from a max-rate Poisson process; our method fixes the total count and assigns each arrival to a tick proportionally to Î»(t). Both reproduce the time-varying shape; ours produces an exact vehicle_count, which is required for reproducibility across seeds.
 
-**Statistical check:** with 30 seeds, the mean arrival count per 15-min interval agrees with the profile integral within ±5%.
+**Statistical check:** with 30 seeds, the mean arrival count per 15-min interval agrees with the profile integral within Â±5%.
 
 **Code location:** `digital_twin/simulation/engine.py` in `_generate_arrivals()`.
 
@@ -68,7 +68,7 @@ This is **weighted multinomial sampling**, not Lewis–Shedler thinning. The dis
 The **Bureau of Public Roads (BPR) function** is the industry standard for modelling congestion:
 
 ```
-t(f) = t_free × [1 + 0.15 × (f/c)^4]
+t(f) = t_free Ã— [1 + 0.15 Ã— (f/c)^4]
 ```
 
 - **t_free** = travel time with no traffic (distance / free_speed)
@@ -80,11 +80,11 @@ t(f) = t_free × [1 + 0.15 × (f/c)^4]
 **Why it matters:**
 
 - At f=0: t = t_free (no delay).
-- At f=0.5c: t ≈ 1.05 × t_free (5% slower).
-- At f=0.9c: t ≈ 6.4 × t_free (6× slower! — jam forming).
+- At f=0.5c: t â‰ˆ 1.05 Ã— t_free (5% slower).
+- At f=0.9c: t â‰ˆ 6.4 Ã— t_free (6Ã— slower! â€” jam forming).
 - At f=c: singularity (queue backs up).
 
-This captures the **non-linear** cost of congestion, which is why proactive routing (Member 3) saves time: it avoids roads where f→c.
+This captures the **non-linear** cost of congestion, which is why proactive routing (Member 3) saves time: it avoids roads where fâ†’c.
 
 **Source:** Transportation Research Board, Highway Capacity Manual. Used in every traffic simulation (SUMO, CORSIM).
 
@@ -102,12 +102,12 @@ Three mechanisms:
    - Arrivals (weighted multinomial sampling on the rate profile)
    - Dwell times (lognormal)
    - Gate service times (exponential or deterministic)
-   - Driver compliance (uniform 0–1)
+   - Driver compliance (uniform 0â€“1)
    - Noise injection (forecast errors)
 
-   Same master seed ⇒ **identical demand** for all strategies (B1, B2, P). No "lucky seed for B1" bias.
+   Same master seed â‡’ **identical demand** for all strategies (B1, B2, P). No "lucky seed for B1" bias.
 
-2. **Deterministic event ordering**: Events ordered by `(time, priority, sequence_id)`. Ties broken by sequence_id. No floating-point randomness in comparisons. Same config + seed run twice ⇒ identical hash (bit-for-bit).
+2. **Deterministic event ordering**: Events ordered by `(time, priority, sequence_id)`. Ties broken by sequence_id. No floating-point randomness in comparisons. Same config + seed run twice â‡’ identical hash (bit-for-bit).
 
 3. **Strategy-independent demand**: The arrival stream is generated **before** the strategy is instantiated. The simulator evolves the same demand under B1, B2, and P. This isolates the strategy's effect.
 
@@ -123,21 +123,21 @@ Three mechanisms:
 
 An event (placement drive, exam, fest, sports) has:
 - **type** (e.g., "placement")
-- **start, duration** (e.g., 09:15–10:30 = 1 hour 15 min)
+- **start, duration** (e.g., 09:15â€“10:30 = 1 hour 15 min)
 - **demand_multiplier** (e.g., 1.8 = 80% more arrivals during the event)
 - **affected_zones** (e.g., placement affects "academic" zone only, not "admin")
-- **arrival_skew** (e.g., −30 min = demand starts rising 30 min *before* official start)
+- **arrival_skew** (e.g., âˆ’30 min = demand starts rising 30 min *before* official start)
 
-During event window [start − skew, start + duration], arrivals to affected zones see λ_event(t) = λ_base(t) × multiplier(t), where multiplier(t) ramps up, stays high, then ramps down.
+During event window [start âˆ’ skew, start + duration], arrivals to affected zones see Î»_event(t) = Î»_base(t) Ã— multiplier(t), where multiplier(t) ramps up, stays high, then ramps down.
 
 **Where multipliers came from:**
 
-- **1.8 (placement)**: Calibrated from real VIT-AP data. Counting manual arrivals during placement drives showed ~1.8× normal morning rate.
+- **1.8 (placement)**: Calibrated from real VIT-AP data. Counting manual arrivals during placement drives showed ~1.8Ã— normal morning rate.
 - **1.4 (exam)**: Conservative estimate. Exams increase study-group parking but not explosively.
-- **2.2 (fest)**: Large events like the annual fest. 2× is typical for campus festivals.
+- **2.2 (fest)**: Large events like the annual fest. 2Ã— is typical for campus festivals.
 - **1.5 (sports)**: Modest increase from spectators + athletes.
 
-All stored in `configs/campuses/vitap.yaml`, documented in `docs/member1/assumptions.md` with source.
+All stored in `configs/campus/vitap.yaml`, documented in `docs/member1/assumptions.md` with source.
 
 **Code:** `digital_twin/simulation/engine.py`, `_apply_event_multiplier()`.
 
@@ -152,7 +152,7 @@ All stored in `configs/campuses/vitap.yaml`, documented in `docs/member1/assumpt
 1. Vehicle arrives at assigned lot, finds occupancy = capacity.
 2. Enters **search/cruising** phase: drives to next-preferred lot (strategy-dependent).
 3. If that's also full, tries the next, adding travel + search time.
-4. If **all lots** are full and driver has tried all reachable ones → **REJECTED**, counted as overflow event, logged with reason "no_feasible_assignment".
+4. If **all lots** are full and driver has tried all reachable ones â†’ **REJECTED**, counted as overflow event, logged with reason "no_feasible_assignment".
 5. Overflow events are a primary metric (shows system is oversaturated).
 
 **Gate closes:**
@@ -160,7 +160,7 @@ All stored in `configs/campuses/vitap.yaml`, documented in `docs/member1/assumpt
 1. Disruption event `DISRUPTION_START` removes the edge from routing graph.
 2. All incoming vehicles rerouted to the **nearest open gate**.
 3. Shortest-path recomputed (Dijkstra) with updated graph.
-4. If no open gate reachable → vehicles held in a virtual holding area or rejected (depending on scenario).
+4. If no open gate reachable â†’ vehicles held in a virtual holding area or rejected (depending on scenario).
 5. When gate reopens: disruption ends, edge re-added, traffic resumes.
 
 **Road blocked:**
@@ -184,12 +184,12 @@ No crashes, all state remains consistent, metrics honestly reported.
 
 **Validation pipeline (Phase 10):**
 
-1. **Synthetic observations** (placeholder until real counting done): 80 data points (2 days, 15-min intervals, 1 gate, 2 lots, VIT-AP). See `data/synthetic_observations.csv`. NOTE: dates 15–16 Oct 2026 are future dates; this is synthetic data designed to match realistic patterns.
-   - Day 1: Normal + placement event (09:15–10:30), observed overflow (122–130 occupancy vs 120 capacity).
+1. **Synthetic observations** (placeholder until real counting done): 80 data points (2 days, 15-min intervals, 1 gate, 2 lots, VIT-AP). See `data/synthetic_observations.csv`. NOTE: dates 15â€“16 Oct 2026 are future dates; this is synthetic data designed to match realistic patterns.
+   - Day 1: Normal + placement event (09:15â€“10:30), observed overflow (122â€“130 occupancy vs 120 capacity).
    - Day 2: Normal day without events.
-   - Confidence scores 0.80–1.00.
+   - Confidence scores 0.80â€“1.00.
 
-2. **Calibration**: Fit simulator parameters (λ(t) per gate, dwell distribution) to match real patterns. Use optimization or grid search.
+2. **Calibration**: Fit simulator parameters (Î»(t) per gate, dwell distribution) to match real patterns. Use optimization or grid search.
 
 3. **Comparison metrics**:
    - **MAE** (Mean Absolute Error): avg difference in occupancy count.
@@ -197,13 +197,13 @@ No crashes, all state remains consistent, metrics honestly reported.
    - **Bias**: is simulator systematically higher/lower?
    - **Curve overlay plots**: visual check of peaks and valleys.
 
-4. **Honest reporting**: Where they disagree → document in `docs/member1/calibration_report.md`.
+4. **Honest reporting**: Where they disagree â†’ document in `docs/member1/calibration_report.md`.
 
 **Expected findings:**
 
-- Morning peak (8–9 AM): simulation matches well (±5 vehicles).
-- Event peak (9:30–10:00): simulation captures the spike but maybe ±10% off in height (events are hard to predict exactly).
-- Evening (5–6 PM): simulation matches well.
+- Morning peak (8â€“9 AM): simulation matches well (Â±5 vehicles).
+- Event peak (9:30â€“10:00): simulation captures the spike but maybe Â±10% off in height (events are hard to predict exactly).
+- Evening (5â€“6 PM): simulation matches well.
 
 **Why calibration matters:** It proves the Twin isn't just a fairy tale. It lives in the same world as the real campus.
 
@@ -229,7 +229,7 @@ No crashes, all state remains consistent, metrics honestly reported.
 **Where it's used:**
 
 - `digital_twin/simulation/engine.py`, `_assign_vehicle()`: each vehicle rolls a dice; if random() > compliance_rate, override with nearest-preferred.
-- `configs/campuses/vitap.yaml`: `compliance_rate: 0.85`.
+- `configs/campus/vitap.yaml`: `compliance_rate: 0.85`.
 
 **Test:** `test_part3_event_demand.py::test_compliance_behavior()` runs 1000 vehicles with compliance 0.85 and 0.5, shows that lower compliance increases search time (drivers taking non-optimal routes).
 
@@ -256,11 +256,11 @@ See `tests/test_scalability.py` for benchmarks.
 
 At each 5-min mark (e.g., 08:05, 08:10, ...), the simulator:
 1. Builds `StateSnapshot` (lots, gates, roads, pending arrivals). ~1 ms.
-2. Calls `strategy.decide(state, forecast)` (Member 3's optimizer or B2 baseline). ~5–50 ms depending on strategy.
+2. Calls `strategy.decide(state, forecast)` (Member 3's optimizer or B2 baseline). ~5â€“50 ms depending on strategy.
 3. Adapter wraps it with timeout (1000 ms) + fallback to B2.
 4. Feasibility check (O(n) vehicles, O(m) lots). ~5 ms.
 
-**Mean decision latency: 5–15 ms** (measured in `runs/{scenario}/{strategy}/decisions.jsonl`).
+**Mean decision latency: 5â€“15 ms** (measured in `runs/{scenario}/{strategy}/decisions.jsonl`).
 **P95: 50 ms** (outliers when graph has many lots/roads).
 **Max: 200 ms** (worst case with full graph).
 
@@ -276,14 +276,14 @@ All well under the 1000 ms timeout, so fallback is rare.
 
 **Generalisation via YAML:**
 
-A new campus (e.g., "IIT Bombay") is added as a YAML file: `configs/campuses/iit_bombay.yaml`. The loader:
+A new campus (e.g., "IIT Bombay") is added as a YAML file: `configs/campus/iit_bombay.yaml`. The loader:
 
 ```python
 from digital_twin.config_loader import load_campus_config
 from pathlib import Path
 
 conn = get_connection(':memory:')
-load_campus_config(Path('configs/campuses/iit_bombay.yaml'), conn)
+load_campus_config(Path('configs/campus/iit_bombay.yaml'), conn)
 ```
 
 **What the loader does:**
@@ -308,7 +308,7 @@ load_campus_config(Path('configs/campuses/iit_bombay.yaml'), conn)
 
 **What we model:**
 
-✅ Event-aware demand, gate queues, BPR road congestion, parking search, driver compliance, what-if forking, deterministic reproducibility, calibration pipeline (currently run on synthetic observations; real gate-count data planned).
+âœ… Event-aware demand, gate queues, BPR road congestion, parking search, driver compliance, what-if forking, deterministic reproducibility, calibration pipeline (currently run on synthetic observations; real gate-count data planned).
 
 **What we don't model (and why):**
 
@@ -320,7 +320,7 @@ load_campus_config(Path('configs/campuses/iit_bombay.yaml'), conn)
 
 4. **Multi-hop vehicle journeys** (e.g., park near gate, walk to building, come back at lunch for a different parking lot). We assume one arrival, one parking slot, one departure per vehicle per day. Realistic simplification.
 
-5. **Weather, time-of-year variation** (e.g., monsoon fewer arrivals, summer more AC demand). We assume stationary λ(t) within a scenario. Workaround: run multiple scenarios with different λ curves.
+5. **Weather, time-of-year variation** (e.g., monsoon fewer arrivals, summer more AC demand). We assume stationary Î»(t) within a scenario. Workaround: run multiple scenarios with different Î» curves.
 
 6. **Prediction accuracy degradation over time** (forecast t+30 min less accurate than t+5 min). We feed forecasts as-is; robustness (E5) injects noise uniformly. Member 2 should model degradation.
 
@@ -334,19 +334,19 @@ load_campus_config(Path('configs/campuses/iit_bombay.yaml'), conn)
 
 **Answer:**
 
-E2 is the placement-drive scenario: 470 vehicles, E1 base profile with 1.8× demand multiplier on ticks 75–164 (09:15–10:45). Results from 30-seed batch (95% CI):
+E2 is the placement-drive scenario: 470 vehicles, E1 base profile with 1.8Ã— demand multiplier on ticks 75â€“164 (09:15â€“10:45). Results from 30-seed batch (95% CI):
 
-| Metric | B1 (First Available) | B2 (Nearest Available) | Δ |
+| Metric | B1 (First Available) | B2 (Nearest Available) | Î” |
 |--------|----------------------|------------------------|---|
-| avg search time (min) | **5.07 ± 0.24** | **3.14 ± 0.12** | B2 saves 1.93 min/veh |
-| avg wait time (min) | **0.00** | **0.00** | identical — gate not a bottleneck |
-| gate queue avg/max | **0.001 / 1.0** | **0.001 / 1.0** | identical — strategy doesn't affect gate |
-| avg travel time (min) | **1.70 ± 0.01** | **1.15 ± 0.00** | B2 saves 0.55 min/veh |
-| avg travel distance (m) | **954 ± 4** | **648 ± 2** | B2 saves 306 m/veh |
-| overflow events | **13.5 ± 1.3** | **5.7 ± 0.9** | B1 saturates academic-main |
+| avg search time (min) | **5.07 Â± 0.24** | **3.14 Â± 0.12** | B2 saves 1.93 min/veh |
+| avg wait time (min) | **0.00** | **0.00** | identical â€” gate not a bottleneck |
+| gate queue avg/max | **0.001 / 1.0** | **0.001 / 1.0** | identical â€” strategy doesn't affect gate |
+| avg travel time (min) | **1.70 Â± 0.01** | **1.15 Â± 0.00** | B2 saves 0.55 min/veh |
+| avg travel distance (m) | **954 Â± 4** | **648 Â± 2** | B2 saves 306 m/veh |
+| overflow events | **13.5 Â± 1.3** | **5.7 Â± 0.9** | B1 saturates academic-main |
 | rejected vehicles | **0.0** | **0.0** | cruising finds space (cap=472 > demand=470) |
 
-**Why rejected = 0:** vehicles that arrive at a full lot now cruise to the next feasible lot (overflow event logged). Rejection only occurs when no lot on campus has usable space (parking_full scenario: 600 veh > 472 cap → ~21 rejections per seed).
+**Why rejected = 0:** vehicles that arrive at a full lot now cruise to the next feasible lot (overflow event logged). Rejection only occurs when no lot on campus has usable space (parking_full scenario: 600 veh > 472 cap â†’ ~21 rejections per seed).
 
 **Why B1 has higher distance:** B1 always routes to academic-main first (config order); it fills to 100%, forcing cruising. B2 routes to nearest lot from each gate, distributing load (overflow 100%, hostel 53%, admin-visitor 53%). B1 concentrates demand; B2 balances it.
 
@@ -358,14 +358,14 @@ E2 is the placement-drive scenario: 470 vehicles, E1 base profile with 1.8× dem
 
 This is a non-obvious result worth knowing cold.
 
-B1 (FirstAvailable) fills lots in sorted ID order. Academic-main is first. On a normal day (E1), academic-main fills to ~100% by mid-morning, making late arrivals spend extra search time at near-full capacity (`search = base × (1 + α/(1−occ+ε))` diverges near occ=1). B1's search time is 6.65 min.
+B1 (FirstAvailable) fills lots in sorted ID order. Academic-main is first. On a normal day (E1), academic-main fills to ~100% by mid-morning, making late arrivals spend extra search time at near-full capacity (`search = base Ã— (1 + Î±/(1âˆ’occ+Îµ))` diverges near occ=1). B1's search time is 6.65 min.
 
-In E3 (academic-main closed ticks 60–180), B1 diverts those vehicles to hostel (162 spaces), admin (72), and sports (84). These lots start the day nearly empty. Lower occupancy = shorter search time per the formula. The 120 min closure window coincides with the morning peak — exactly when academic-main would have been most congested. The net result: **average search time drops to 3.86 min**, because the forced redistribution prevents the high-occupancy penalty.
+In E3 (academic-main closed ticks 60â€“180), B1 diverts those vehicles to hostel (162 spaces), admin (72), and sports (84). These lots start the day nearly empty. Lower occupancy = shorter search time per the formula. The 120 min closure window coincides with the morning peak â€” exactly when academic-main would have been most congested. The net result: **average search time drops to 3.86 min**, because the forced redistribution prevents the high-occupancy penalty.
 
 **What this exposes:** B1 is not a good strategy. Its search-time degrades sharply as occupancy rises. Any strategy that fills one lot to 100% before touching others will produce high search times late in the day. B2 (NearestAvailable) avoids this by balancing across lots; its search time is unaffected by the closure (3.20 min in both E1 and E3) because it never relied on academic-main.
 
 **Why E3 B2 = E1 B2 (search 3.20 min both):**
-B2 assigns each vehicle to the nearest open lot from its entry gate. From gate-main, the nearest is hostel (76 s), not academic-main (90 s). From gate-visitor, the nearest is overflow (56 s). B2 is already routing around academic-main even before the closure — so closing it changes nothing for B2.
+B2 assigns each vehicle to the nearest open lot from its entry gate. From gate-main, the nearest is hostel (76 s), not academic-main (90 s). From gate-visitor, the nearest is overflow (56 s). B2 is already routing around academic-main even before the closure â€” so closing it changes nothing for B2.
 
 ---
 
@@ -373,15 +373,15 @@ B2 assigns each vehicle to the nearest open lot from its entry gate. From gate-m
 
 **Answer:**
 
-Not a bug — it is physically correct.
+Not a bug â€” it is physically correct.
 
 **VITAP gate capacities (assumed; measure on counting day):**
-- gate-main: 2 lanes × 3 veh/min/lane = **6 veh/min**
-- gate-visitor: 1 lane × 3 veh/min/lane = **3 veh/min**
+- gate-main: 2 lanes Ã— 3 veh/min/lane = **6 veh/min**
+- gate-visitor: 1 lane Ã— 3 veh/min/lane = **3 veh/min**
 
-In E4, gate-main closes ticks 45–105. All 400 E1-profile vehicles divert to visitor gate. The E1 arrival profile peaks at **1.2 veh/min** total, which divides to at most **1.2 veh/min at visitor gate** after diversion. Service capacity is 3 veh/min. Since 1.2 < 3, every arriving vehicle is admitted immediately — queue depth stays 0.
+In E4, gate-main closes ticks 45â€“105. All 400 E1-profile vehicles divert to visitor gate. The E1 arrival profile peaks at **1.2 veh/min** total, which divides to at most **1.2 veh/min at visitor gate** after diversion. Service capacity is 3 veh/min. Since 1.2 < 3, every arriving vehicle is admitted immediately â€” queue depth stays 0.
 
-**gate_congestion.yaml is different:** It uses a 4.0 veh/min burst (ticks 30–90). Vehicles split across both gates (~2 veh/min each). Both gates have enough capacity, so again queue = 0. The 74.5 overflow events in gate_congestion are **parking lot overflow** (lots fill fast under burst demand), not gate queue overflow.
+**gate_congestion.yaml is different:** It uses a 4.0 veh/min burst (ticks 30â€“90). Vehicles split across both gates (~2 veh/min each). Both gates have enough capacity, so again queue = 0. The 74.5 overflow events in gate_congestion are **parking lot overflow** (lots fill fast under burst demand), not gate queue overflow.
 
 **When does a queue actually form?** Arrival rate must exceed gate service rate. Test `test_gate_queue_grows_under_overload` confirms this: with gate capacity=1 veh/min and burst rate=6 veh/min, the queue grows by tick 5. The logic is correct; VITAP's gates are simply not a bottleneck under the modelled demand.
 
@@ -391,6 +391,6 @@ In E4, gate-main closes ticks 45–105. All 400 E1-profile vehicles divert to vi
 
 ## Ready for Viva
 
-Print this file, bring it to your viva, and you can explain all 15 points in under 25 minutes (1–2 min per question). Each answer has a code location and a test, so you can back up every claim with evidence.
+Print this file, bring it to your viva, and you can explain all 15 points in under 25 minutes (1â€“2 min per question). Each answer has a code location and a test, so you can back up every claim with evidence.
 
 **Good luck!**

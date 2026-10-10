@@ -1,4 +1,4 @@
-"""
+﻿"""
 Scalability Tests: 500 and 1,000 vehicles
 """
 
@@ -20,8 +20,8 @@ class TestScalability:
         """Setup: campus + connection."""
         conn = get_connection(':memory:')
         apply_migrations(conn)
-        load_campus_config(Path('configs/campuses/synthetic_large.yaml'), conn)
-        load_campus_config(Path('configs/campuses/vitap.yaml'), conn)
+        load_campus_config(Path('configs/campus/synthetic_large.yaml'), conn)
+        load_campus_config(Path('configs/campus/vitap.yaml'), conn)
         return conn
 
     def test_500_vehicles_determinism(self, setup):
