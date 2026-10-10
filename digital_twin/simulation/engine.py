@@ -42,7 +42,7 @@ from digital_twin.twin_service import DigitalTwinService
 DWELL_MINUTES_RANGE = (30, 480)
 DWELL_LOGNORMAL_MU = 4.8   # ln(120) ≈ 4.79 → median ~120 min (realistic work/class session)
 DWELL_LOGNORMAL_SIGMA = 0.6
-STRATEGY_TIMEOUT_MS = 1000  # 1 second timeout for strategy.assign()
+STRATEGY_TIMEOUT_MS = 200   # 200ms timeout per spec (B1=0.001ms, B2=0.05ms typical)
 
 BPR_ALPHA = 0.15
 BPR_BETA = 4
@@ -78,6 +78,7 @@ class _RunningVehicle:
     completion_tick: Optional[int] = None
     outbound_transit_seconds: float = 0.0  # Fix 1: BPR gate→lot travel time only
     occupancy_search_seconds: float = 0.0  # Fix 2: occupancy-based search time at assignment
+    reassigned_count: int = 0             # incremented each time lot fills during transit → reroute
 
 
 @dataclass
@@ -108,18 +109,55 @@ class SimulationResult:
         search_times = [v.get("search_time_seconds", 0) / 60.0 for v in self.vehicles]
         wait_times = [v.get("waiting_time_seconds", 0) / 60.0 for v in self.vehicles]
         avg_wait = sum(wait_times) / len(wait_times)
+        _parked   = sum(1 for v in self.vehicles if v.get("final_state") == "parked")
+        _exited   = sum(1 for v in self.vehicles if v.get("final_state") == "exited")
+        _rejected = sum(1 for v in self.vehicles if v.get("final_state") == "rejected")
+        _in_sys   = sum(1 for v in self.vehicles if v.get("final_state") == "in_system")
+        _total    = len(self.vehicles)
+        # avg/max gate queue DEPTH (vehicles) computed from per-tick timestep data
+        gate_keys = [k for k in (self.timesteps[0] if self.timesteps else {}) if k.startswith("gate_queue_")]
+        if gate_keys and self.timesteps:
+            total_queue_per_tick = [sum(ts.get(k, 0) for k in gate_keys) for ts in self.timesteps]
+            _avg_gq = sum(total_queue_per_tick) / len(total_queue_per_tick)
+            _max_gq = max(total_queue_per_tick)
+        else:
+            _avg_gq = 0.0
+            _max_gq = 0.0
         return {
             "avg_search_time_min": sum(search_times) / len(search_times),
             "avg_wait_time_min": avg_wait,
             "max_search_time_min": max(search_times),
-            "avg_gate_queue": avg_wait,
-            "max_gate_queue": max(wait_times),
+            "avg_gate_queue": _avg_gq,    # avg queue DEPTH (vehicles), not wait time
+            "max_gate_queue": _max_gq,    # max queue DEPTH (vehicles) at any tick
             "overflow_events_count": len(self.overflow_events),
-            "total_vehicles": len(self.vehicles),
-            "completed_vehicles": sum(1 for v in self.vehicles if v.get("final_state") == "exited"),
-            "parked_vehicles": sum(1 for v in self.vehicles if v.get("final_state") == "parked"),
+            "total_vehicles": _total,
+            "completed_vehicles": _exited,
+            "parked_vehicles": _parked,
             "infeasibility_rejections": self.infeasibility_rejections,
             "adapter_fallbacks": self.adapter_fallbacks,
+        }
+
+    @property
+    def secondary_metrics(self) -> dict:
+        """Conservation breakdown + success rate — separate from primary metrics
+        so iteration over metrics never hits a nested dict."""
+        if not self.vehicles:
+            return {"total_vehicles_simulated": 0, "parked": 0, "exited": 0,
+                    "in_system": 0, "rejected": 0, "allocation_success_rate": 0.0,
+                    "conservation_check": True}
+        _parked   = sum(1 for v in self.vehicles if v.get("final_state") == "parked")
+        _exited   = sum(1 for v in self.vehicles if v.get("final_state") == "exited")
+        _rejected = sum(1 for v in self.vehicles if v.get("final_state") == "rejected")
+        _in_sys   = sum(1 for v in self.vehicles if v.get("final_state") == "in_system")
+        _total    = len(self.vehicles)
+        return {
+            "total_vehicles_simulated": _total,
+            "parked": _parked,
+            "exited": _exited,
+            "in_system": _in_sys,
+            "rejected": _rejected,
+            "allocation_success_rate": round((_parked + _exited) / _total, 4) if _total else 0.0,
+            "conservation_check": _total == (_parked + _exited + _in_sys + _rejected),
         }
 
 
@@ -386,6 +424,7 @@ class SimulationEngine:
                             continue
 
                         # Re-route from failed lot to new lot (cruising adds time and distance)
+                        rv.reassigned_count += 1
                         from_node = failed_lot if failed_lot in working_graph else rv.vehicle.entry_gate
                         if not nx.has_path(working_graph, from_node, new_lot_id):
                             infeasibility_rejections += 1
@@ -415,9 +454,9 @@ class SimulationEngine:
 
                     rv.search_end_tick = tick
 
-                    # Fix 2: occupancy-based search time at moment of parking
+                    # Search time = base + k·occ² (spec: base=0.5min, k=5.5min at full)
                     occ = lot["occupied_spaces"] / max(1, lot["usable_capacity"])
-                    rv.occupancy_search_seconds = 0.5 * 60 * (1 + occ / max(0.001, 1.0 - occ))
+                    rv.occupancy_search_seconds = (0.5 + 5.5 * occ ** 2) * 60
                     lot["occupied_spaces"] += 1
                     raw = rng.gauss(DWELL_LOGNORMAL_MU, DWELL_LOGNORMAL_SIGMA)
                     rv.dwell_minutes = min(max(int(DWELL_MINUTES_RANGE[0]), int(2.718281828 ** raw)), DWELL_MINUTES_RANGE[1])
@@ -505,6 +544,35 @@ class SimulationEngine:
                 "arrival": "in_system",
             }
             canonical_state = _state_map.get(rv.state, "rejected")
+            # Reconstruct state trace from recorded tick fields for VERIFY output
+            _spec_state = {
+                "arrival": "SCHEDULED",
+                "gate_queue": "QUEUED_AT_GATE",
+                "campus_entry": "ENTERING",
+                "route": "DRIVING",
+                "parking_search": "SEARCHING",
+                "parked": "PARKED",
+                "departure": "DEPARTING",
+                "completed": "EXITED",
+                "rejected": "REJECTED_OVERFLOW",
+            }
+            trace = []
+            if rv.vehicle.arrival_tick is not None:
+                trace.append({"tick": rv.vehicle.arrival_tick, "state": "SCHEDULED"})
+            if rv.queue_enter_tick is not None:
+                trace.append({"tick": rv.queue_enter_tick, "state": "QUEUED_AT_GATE"})
+            if rv.gate_admitted_tick is not None:
+                trace.append({"tick": rv.gate_admitted_tick, "state": "ENTERING"})
+                trace.append({"tick": rv.gate_admitted_tick, "state": "DRIVING"})
+            if rv.search_start_tick is not None:
+                trace.append({"tick": rv.search_start_tick, "state": "SEARCHING"})
+            if rv.search_end_tick is not None and canonical_state in ("parked", "exited", "in_system"):
+                trace.append({"tick": rv.search_end_tick, "state": "PARKED"})
+            if rv.completion_tick is not None:
+                trace.append({"tick": rv.completion_tick - max(1, int(rv.inbound_distance_meters / 100)), "state": "DEPARTING"})
+                trace.append({"tick": rv.completion_tick, "state": "EXITED"})
+            if canonical_state == "rejected":
+                trace.append({"tick": rv.search_start_tick or rv.vehicle.arrival_tick, "state": "REJECTED_OVERFLOW"})
             vehicle_metrics.append({
                 "vehicle_id": rv.vehicle.vehicle_id,
                 "entry_gate": rv.vehicle.entry_gate,
@@ -520,6 +588,14 @@ class SimulationEngine:
                 "final_state": canonical_state,
                 "internal_state": rv.state,
                 "complied": rv.vehicle.complies_with_strategy,
+                "reassigned_count": rv.reassigned_count,
+                # Tick fields for verbose trace reconstruction
+                "queue_enter_tick": rv.queue_enter_tick,
+                "gate_admitted_tick": rv.gate_admitted_tick,
+                "search_start_tick": rv.search_start_tick,
+                "search_end_tick": rv.search_end_tick,
+                "completion_tick": rv.completion_tick,
+                "state_trace": trace,
             })
 
         completed_at = datetime.now(timezone.utc).isoformat()
