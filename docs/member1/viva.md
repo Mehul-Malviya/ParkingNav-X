@@ -255,18 +255,19 @@ See `tests/test_scalability.py` for benchmarks.
 **Decision latency (decision cycle every 5 min):**
 
 At each 5-min mark (e.g., 08:05, 08:10, ...), the simulator:
-1. Builds `StateSnapshot` (lots, gates, roads, pending arrivals). ~1 ms.
-2. Calls `strategy.decide(state, forecast)` (Member 3's optimizer or B2 baseline). ~5–50 ms depending on strategy.
-3. Adapter wraps it with timeout (200 ms) + fallback to B2.
-4. Feasibility check (O(n) vehicles, O(m) lots). ~5 ms.
+1. Builds a `StateSnapshot` of the twin (lots, gates, roads) and calls `strategy.update_policy(snapshot, forecast=None)`. The forecast is `None` until Member 2's predictor is wired in.
+2. Separately, for each vehicle served at the gate, calls `strategy.assign(vehicle, state)` (B1/B2 baselines now; Member 3's optimizer later).
+3. The adapter wraps every `assign()` with a 200 ms timeout + fallback to B2 (NearestAvailable).
+4. A feasibility guard rejects an assignment to a closed or full lot and falls back to B2.
 
-**Mean decision latency: 5–15 ms** (measured in `runs/{scenario}/{strategy}/decisions.jsonl`).
-**P95: 50 ms** (outliers when graph has many lots/roads).
-**Max: well under 200 ms** (the strategy timeout; slower calls trigger the fallback).
+**Measured `assign()` time per call:** B1 ≈ 0.001 ms, B2 ≈ 0.05 ms.
+**Timeout:** 200 ms per call; any slower call triggers the fallback.
+**Measured decision-cycle latency** (5-min twin snapshot + `update_policy`; E1, 400 vehicles, 30 seeds, 3,600 cycles per strategy, from `decisions.jsonl`): B1 mean 0.78 ms, p95 2.5 ms, max 16.2 ms; B2 mean 0.80 ms, p95 2.5 ms, max 16.2 ms.
+**Not yet measured:** latency at 500/1,000 vehicles and of Member 3's optimizer (Phase 3 benchmark).
 
-All well under the 200 ms timeout (measured per-call `assign()` time: B1 ≈ 0.001 ms, B2 ≈ 0.05 ms), so fallback is rare. When a strategy raises or times out, the engine logs `strategy X failed (reason) -- fell back to Nearest` and uses NearestAvailable.
+The baselines are far below the 200 ms timeout, so fallback is rare. When a strategy raises or times out, the engine logs `strategy X failed (reason) -- fell back to Nearest` and uses NearestAvailable.
 
-**Reported in:** `decisions.jsonl` per run, summarized in `metrics.json`.
+**Reported in:** `decisions.jsonl` per run (`tick`, `latency_ms` per 5-min cycle). It is not summarized in `metrics.json`.
 
 ---
 

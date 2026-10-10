@@ -94,7 +94,7 @@
 ### Metrics & Output
 - [x] **5 primary + secondary metrics computed from logs; run artifacts + manifest saved**  
   → 5 primary: avg_search_time, avg_wait_time, avg_gate_queue, max_gate_queue, overflow_events  
-  → Secondary: total_vehicles, parked, rejected, allocation_success_rate, decision_latency  
+  → Secondary: total_vehicles, parked, rejected, allocation_success_rate  
   → Output: `runs/{scenario_id}/{strategy}/seed_{n}/`  
   → Files: `metrics.json`, `vehicles.parquet`, `intervals.parquet`, `manifest.json` ✓
 
@@ -133,10 +133,10 @@
   → Each failure handles gracefully: no crashes, state consistent, metrics valid  
   → Demo scenarios available in `configs/scenarios/vitap/`
 
-- [x] **Scalability + latency measured at 500 and 1,000 vehicles**  
+- [x] **Scalability measured at 500 and 1,000 vehicles; decision-cycle latency measured at 400 vehicles only**  
   → 500 vehicles: < 10 sec per seed (target met) ✓  
   → 1,000 vehicles: < 30 sec per seed (target met) ✓  
-  → Decision latency: mean 5–15 ms, p95 < 50 ms, max < 200 ms (under 1000ms timeout) ✓  
+  → Decision-cycle latency (5-min twin snapshot + `update_policy`, E1, 400 veh, 30 seeds, from `decisions.jsonl`): B1 mean 0.78 ms / p95 2.5 ms / max 16.2 ms; B2 mean 0.80 / p95 2.5 / max 16.2. Per-call `assign()`: B1 ≈ 0.001 ms, B2 ≈ 0.05 ms; timeout 200 ms. Latency at 500/1,000 vehicles and for Member 3's optimizer: NOT yet measured (Phase 3). `test_scalability_latency_measurement` only checks the run completes, not latency values.  
   → Tests: `test_scalability.py` (7 tests)  
   → Determinism maintained at all scales
 
@@ -216,6 +216,8 @@ Total Tests: 190 collected (175 passed, 15 skipped, 0 failed)
 
 0 failed (175 passed, 15 skipped) ✅
 
+**Note — E7 test coverage (15 tests) is currently skipped.** These tests require `synthetic_observations.csv` / `sample_observations.csv`, which don't exist yet. E7 (real-data counterfactual replay) depends on the Phase 1.4 observation sessions being completed first (see `observation_plan.md`). These tests will be unskipped once real observation data is collected.
+
 ---
 
 ## 🚀 FINAL REVIEW READINESS
@@ -227,7 +229,7 @@ Total Tests: 190 collected (175 passed, 15 skipped, 0 failed)
 | **Reproducibility** | ✅ | Seed discipline, config hashes, manifest |
 | **Documentation** | ✅ | 6 docs + viva.md + figures |
 | **Scalability** | ✅ | <10s (500 veh), <30s (1000 veh) |
-| **Real Validation** | ✅ | Calibration + counterfactual (E7) |
+| **Real Validation** | ⚠️ | Calibration done; E7 counterfactual tests skipped pending real observation data (see note above) |
 | **Robustness** | ✅ | E5 noise, failure cases, edge cases |
 | **Interfaces** | ✅ | Member 2 dataset, Member 3 fork, Member 4 API |
 | **Honesty** | ✅ | No silently-filled data, clear limitations |

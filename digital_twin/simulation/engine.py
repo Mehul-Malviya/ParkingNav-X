@@ -95,6 +95,7 @@ class SimulationResult:
     overflow_events: list = field(default_factory=list)
     infeasibility_rejections: int = 0                # count of assignments rejected due to infeasibility
     adapter_fallbacks: int = 0                       # count of fallbacks to B2 due to timeout/exception
+    decision_latencies: list = field(default_factory=list)  # [{tick, latency_ms}] per 5-min decision cycle
 
     @property
     def metrics(self) -> dict:
@@ -646,7 +647,8 @@ class SimulationEngine:
             random_seed=scenario.random_seed, strategy_name=strategy_name,
             vehicles=vehicle_metrics, timesteps=timesteps_metrics, overflow_events=overflow_events,
             infeasibility_rejections=infeasibility_rejections, adapter_fallbacks=adapter_fallbacks,
-        ) # decision_latencies logged above, available for analysis
+            decision_latencies=decision_latencies,
+        )
 
     @staticmethod
     def _generate_arrivals(scenario: ScenarioConfig, rng: random.Random, open_gate_ids, destination_ids) -> list:
