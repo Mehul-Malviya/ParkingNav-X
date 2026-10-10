@@ -1,0 +1,268 @@
+# toy_small.yaml — minimal 3-gate / 3-lot / 1-destination campus for tests.
+# Deliberately tiny: fast to load, easy to reason about, proves config-agnosticism.
+# SYNTHETIC — fabricated coordinates, not a real place.
+campus:
+  campus_id: toy_small
+  name: Toy Small Campus
+  description: Minimal synthetic campus for unit tests and config-agnosticism checks.
+  timezone: UTC
+  configuration_version: TOY_V1
+
+gates:
+  - gate_id: toy-gate-north
+    name: North Gate
+    latitude: 10.0030
+    longitude: 20.0015
+    capacity: 4
+    status: open
+
+  - gate_id: toy-gate-south
+    name: South Gate
+    latitude: 10.0000
+    longitude: 20.0015
+    status: open
+    capacity: 3
+
+  - gate_id: toy-gate-east
+    name: East Gate
+    latitude: 10.0015
+    longitude: 20.0030
+    status: open
+    capacity: 2
+
+parking_lots:
+  - parking_lot_id: toy-lot-a
+    name: Lot A (near north)
+    latitude: 10.0025
+    longitude: 20.0015
+    total_capacity: 50
+    usable_capacity: 45
+    reserved_capacity: 5
+    restricted_capacity: 0
+    temporarily_unavailable_capacity: 0
+    status: open
+
+  - parking_lot_id: toy-lot-b
+    name: Lot B (near south)
+    latitude: 10.0005
+    longitude: 20.0015
+    total_capacity: 40
+    usable_capacity: 36
+    reserved_capacity: 4
+    restricted_capacity: 0
+    temporarily_unavailable_capacity: 0
+    status: open
+
+  - parking_lot_id: toy-lot-c
+    name: Lot C (near east)
+    latitude: 10.0015
+    longitude: 20.0025
+    total_capacity: 30
+    usable_capacity: 28
+    reserved_capacity: 2
+    restricted_capacity: 0
+    temporarily_unavailable_capacity: 0
+    status: open
+
+destinations:
+  - destination_id: toy-dest-main
+    name: Main Building
+    category: academic_block
+    latitude: 10.0015
+    longitude: 20.0015
+    nearest_gate_ids: [toy-gate-north, toy-gate-south, toy-gate-east]
+    nearest_parking_lot_ids: [toy-lot-a, toy-lot-b, toy-lot-c]
+
+roads:
+  - road_id: toy-road-north-to-a
+    name: North Gate to Lot A
+    start_node_id: toy-gate-north
+    end_node_id: toy-lot-a
+    length_meters: 60
+    expected_travel_time_seconds: 12
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 10.0030, lng: 20.0015 }
+      - { lat: 10.0028, lng: 20.0015 }
+      - { lat: 10.0025, lng: 20.0015 }
+
+  - road_id: toy-road-south-to-b
+    name: South Gate to Lot B
+    start_node_id: toy-gate-south
+    end_node_id: toy-lot-b
+    length_meters: 60
+    expected_travel_time_seconds: 12
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 10.0000, lng: 20.0015 }
+      - { lat: 10.0002, lng: 20.0015 }
+      - { lat: 10.0005, lng: 20.0015 }
+
+  - road_id: toy-road-east-to-c
+    name: East Gate to Lot C
+    start_node_id: toy-gate-east
+    end_node_id: toy-lot-c
+    length_meters: 60
+    expected_travel_time_seconds: 12
+    is_walkable: true
+    is_driveable: true
+    status: open
+    geometry:
+      - { lat: 10.0015, lng: 20.0030 }
+      - { lat: 10.0015, lng: 20.0028 }
+      - { lat: 10.0015, lng: 20.0025 }
+
+  - road_id: toy-road-a-to-dest
+    name: Lot A to Main Building
+    start_node_id: toy-lot-a
+    end_node_id: toy-dest-main
+    length_meters: 80
+    expected_travel_time_seconds: 60
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 10.0025, lng: 20.0015 }
+      - { lat: 10.0020, lng: 20.0015 }
+      - { lat: 10.0015, lng: 20.0015 }
+
+  - road_id: toy-road-b-to-dest
+    name: Lot B to Main Building
+    start_node_id: toy-lot-b
+    end_node_id: toy-dest-main
+    length_meters: 80
+    expected_travel_time_seconds: 60
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 10.0005, lng: 20.0015 }
+      - { lat: 10.0010, lng: 20.0015 }
+      - { lat: 10.0015, lng: 20.0015 }
+
+  - road_id: toy-road-c-to-dest
+    name: Lot C to Main Building
+    start_node_id: toy-lot-c
+    end_node_id: toy-dest-main
+    length_meters: 80
+    expected_travel_time_seconds: 60
+    is_walkable: true
+    is_driveable: false
+    status: open
+    geometry:
+      - { lat: 10.0015, lng: 20.0025 }
+      - { lat: 10.0015, lng: 20.0020 }
+      - { lat: 10.0015, lng: 20.0015 }
+
+edges:
+  - from_node_id: toy-gate-north
+    to_node_id: toy-lot-a
+    road_id: toy-road-north-to-a
+    weight_time_seconds: 12
+    weight_distance_meters: 60
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: toy-lot-a
+    to_node_id: toy-gate-north
+    road_id: toy-road-north-to-a
+    weight_time_seconds: 12
+    weight_distance_meters: 60
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: toy-gate-south
+    to_node_id: toy-lot-b
+    road_id: toy-road-south-to-b
+    weight_time_seconds: 12
+    weight_distance_meters: 60
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: toy-lot-b
+    to_node_id: toy-gate-south
+    road_id: toy-road-south-to-b
+    weight_time_seconds: 12
+    weight_distance_meters: 60
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: toy-gate-east
+    to_node_id: toy-lot-c
+    road_id: toy-road-east-to-c
+    weight_time_seconds: 12
+    weight_distance_meters: 60
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: toy-lot-c
+    to_node_id: toy-gate-east
+    road_id: toy-road-east-to-c
+    weight_time_seconds: 12
+    weight_distance_meters: 60
+    is_walkable: true
+    is_driveable: true
+    status: open
+
+  - from_node_id: toy-lot-a
+    to_node_id: toy-dest-main
+    road_id: toy-road-a-to-dest
+    weight_time_seconds: 60
+    weight_distance_meters: 80
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: toy-dest-main
+    to_node_id: toy-lot-a
+    road_id: toy-road-a-to-dest
+    weight_time_seconds: 60
+    weight_distance_meters: 80
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: toy-lot-b
+    to_node_id: toy-dest-main
+    road_id: toy-road-b-to-dest
+    weight_time_seconds: 60
+    weight_distance_meters: 80
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: toy-dest-main
+    to_node_id: toy-lot-b
+    road_id: toy-road-b-to-dest
+    weight_time_seconds: 60
+    weight_distance_meters: 80
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: toy-lot-c
+    to_node_id: toy-dest-main
+    road_id: toy-road-c-to-dest
+    weight_time_seconds: 60
+    weight_distance_meters: 80
+    is_walkable: true
+    is_driveable: false
+    status: open
+
+  - from_node_id: toy-dest-main
+    to_node_id: toy-lot-c
+    road_id: toy-road-c-to-dest
+    weight_time_seconds: 60
+    weight_distance_meters: 80
+    is_walkable: true
+    is_driveable: false
+    status: open
