@@ -75,7 +75,8 @@ class _RunningVehicle:
     queue_enter_tick: Optional[int] = None
     gate_admitted_tick: Optional[int] = None
     search_start_tick: Optional[int] = None
-    search_end_tick: Optional[int] = None
+    lot_arrival_tick: Optional[int] = None   # tick the vehicle reached its lot (SEARCHING starts)
+    search_end_tick: Optional[int] = None    # tick the search finished and the vehicle PARKED
     assigned_lot_id: Optional[str] = None
     dwell_minutes: int = 0
     dwell_mu: float = DWELL_LOGNORMAL_MU        # lognormal mu for this vehicle (event-overridable)
@@ -157,7 +158,8 @@ class SimulationResult:
         if not self.vehicles:
             return {"total_vehicles_simulated": 0, "parked": 0, "exited": 0,
                     "in_system": 0, "rejected": 0, "allocation_success_rate": 0.0,
-                    "conservation_check": True}
+                    "conservation_check": True,
+                    "in_system_breakdown": {"queued": 0, "driving": 0, "searching": 0, "departing": 0}}
         _parked   = sum(1 for v in self.vehicles if v.get("final_state") == "parked")
         _exited   = sum(1 for v in self.vehicles if v.get("final_state") == "exited")
         _rejected = sum(1 for v in self.vehicles if v.get("final_state") == "rejected")
@@ -173,7 +175,8 @@ class SimulationResult:
             "conservation_check": _total == (_parked + _exited + _in_sys + _rejected),
             "in_system_breakdown": {
                 "queued": sum(1 for v in self.vehicles if v.get("internal_state") in ("arrival", "gate_queue")),
-                "driving_or_searching": sum(1 for v in self.vehicles if v.get("internal_state") in ("campus_entry", "route", "parking_search")),
+                "driving": sum(1 for v in self.vehicles if v.get("internal_state") in ("campus_entry", "route", "parking_search")),
+                "searching": sum(1 for v in self.vehicles if v.get("internal_state") == "searching"),
                 "departing": sum(1 for v in self.vehicles if v.get("internal_state") == "departure"),
             },
         }
@@ -254,6 +257,10 @@ class SimulationEngine:
 
         running_vehicles = self._generate_arrivals(scenario, rng, open_gate_ids, destinations)
         gate_queues = {g: [] for g in gates}  # FIFO lists of vehicle_ids
+        gate_sim = None
+        if scenario.gate_model == "simpy":
+            from digital_twin.simulation.gate_simpy import SimpyGates  # optional dependency
+            gate_sim = SimpyGates({g: d["capacity"] for g, d in gates.items()})
         by_id = {rv.vehicle.vehicle_id: rv for rv in running_vehicles}
 
         timesteps_metrics = []
@@ -295,7 +302,10 @@ class SimulationEngine:
                         if eid in open_gate_ids:
                             open_gate_ids.remove(eid)
                         # Drain queued vehicles at the closing gate to nearest open gate
-                        if gate_queues.get(eid) and open_gate_ids:
+                        if gate_sim is not None:
+                            if gate_sim.queue_length(eid) and open_gate_ids:
+                                gate_sim.close_gate(eid, sorted(open_gate_ids)[0])
+                        elif gate_queues.get(eid) and open_gate_ids:
                             alt = sorted(open_gate_ids)[0]
                             gate_queues[alt].extend(gate_queues[eid])
                             gate_queues[eid] = []
@@ -332,17 +342,28 @@ class SimulationEngine:
                     if rv.vehicle.entry_gate in open_gate_ids:
                         rv.state = "gate_queue"
                         rv.queue_enter_tick = tick
-                        gate_queues[rv.vehicle.entry_gate].append(rv.vehicle.vehicle_id)
+                        if gate_sim is not None:
+                            gate_sim.join(rv.vehicle.entry_gate, rv.vehicle.vehicle_id)
+                        else:
+                            gate_queues[rv.vehicle.entry_gate].append(rv.vehicle.vehicle_id)
                     elif open_gate_ids:
                         # Gate closed (timed or static): divert to nearest open gate
                         rv.vehicle.entry_gate = sorted(open_gate_ids)[0]
                         rv.state = "gate_queue"
                         rv.queue_enter_tick = tick
-                        gate_queues[rv.vehicle.entry_gate].append(rv.vehicle.vehicle_id)
+                        if gate_sim is not None:
+                            gate_sim.join(rv.vehicle.entry_gate, rv.vehicle.vehicle_id)
+                        else:
+                            gate_queues[rv.vehicle.entry_gate].append(rv.vehicle.vehicle_id)
                     else:
                         rv.state = "completed"  # no gate at all: never enters
 
-            for gate_id in open_gate_ids:
+            if gate_sim is not None:
+                for vehicle_id in gate_sim.advance((tick + 1) * dt):
+                    rv = by_id[vehicle_id]
+                    rv.state = "campus_entry"
+                    rv.gate_admitted_tick = tick
+            for gate_id in ([] if gate_sim is not None else open_gate_ids):
                 # service_rate (veh/min) x dt: fractional credit accumulates, at most one tick's worth (min 1)
                 rate_per_tick = gates[gate_id]["capacity"] * step_min
                 gate_credit[gate_id] = min(gate_credit[gate_id] + rate_per_tick, max(1.0, rate_per_tick))
@@ -491,21 +512,28 @@ class SimulationEngine:
                         # stay in parking_search — re-enters transit countdown next tick
                         continue
 
-                    rv.search_end_tick = tick
-
-                    # Search time = base + k·occ² (spec: base=0.5min, k=5.5min at full)
+                    # Reached the lot: reserve a space now (capacity can never be exceeded) and spend the
+                    # spec search time SEARCHING before parking: base + k*occ^2 (base 0.5 min, k 5.5 min).
+                    rv.lot_arrival_tick = tick
                     occ = lot["occupied_spaces"] / max(1, lot["usable_capacity"])
                     rv.occupancy_search_seconds = (0.5 + 5.5 * occ ** 2) * 60
                     lot["occupied_spaces"] += 1
-                    raw = rng.gauss(rv.dwell_mu, rv.dwell_sigma)
-                    rv.dwell_minutes = min(max(int(DWELL_MINUTES_RANGE[0]), int(2.718281828 ** raw)), DWELL_MINUTES_RANGE[1])
-                    rv.remaining_transit_minutes = rv.dwell_minutes
-                    rv.state = "parked"
+                    rv.remaining_transit_minutes = rv.occupancy_search_seconds / 60.0
+                    rv.state = "searching"
                     self.twin_service.update_parking_state(
                         scenario.campus_id, rv.assigned_lot_id, lot["occupied_spaces"],
                         "simulation", "SYNTHETIC", datetime.now(timezone.utc).isoformat(), conn,
                         commit=False,
                     )
+
+                elif rv.state == "searching":
+                    rv.remaining_transit_minutes -= step_min
+                    if rv.remaining_transit_minutes <= 1e-9:
+                        rv.search_end_tick = tick
+                        raw = rng.gauss(rv.dwell_mu, rv.dwell_sigma)
+                        rv.dwell_minutes = min(max(int(DWELL_MINUTES_RANGE[0]), int(2.718281828 ** raw)), DWELL_MINUTES_RANGE[1])
+                        rv.remaining_transit_minutes = rv.dwell_minutes
+                        rv.state = "parked"
 
                 elif rv.state == "parked":
                     rv.remaining_transit_minutes -= step_min
@@ -535,7 +563,7 @@ class SimulationEngine:
                         rv.completion_tick = tick
 
             for gate_id, queue in gate_queues.items():
-                gates[gate_id]["queue_length"] = len(queue)
+                gates[gate_id]["queue_length"] = gate_sim.queue_length(gate_id) if gate_sim is not None else len(queue)
 
             if minute_end:  # persist + record once per simulated minute
                 now_iso = datetime.now(timezone.utc).isoformat()
@@ -580,6 +608,7 @@ class SimulationEngine:
                 "departure": "in_system",
                 "route": "in_system",
                 "parking_search": "in_system",
+                "searching": "in_system",
                 "campus_entry": "in_system",
                 "gate_queue": "in_system",
                 "arrival": "in_system",
@@ -591,7 +620,8 @@ class SimulationEngine:
                 "gate_queue": "QUEUED_AT_GATE",
                 "campus_entry": "ENTERING",
                 "route": "DRIVING",
-                "parking_search": "SEARCHING",
+                "parking_search": "DRIVING",
+                "searching": "SEARCHING",
                 "parked": "PARKED",
                 "departure": "DEPARTING",
                 "completed": "EXITED",
@@ -614,10 +644,10 @@ class SimulationEngine:
             # DRIVING = gate -> lot transit (BPR time); SEARCHING = at the lot, duration base+k*occ^2 (analytic)
             if rv.search_start_tick is not None:
                 trace.append(_ev(rv.search_start_tick, "DRIVING"))
-            if rv.search_end_tick is not None and canonical_state in ("parked", "exited", "in_system"):
-                trace.append(_ev(rv.search_end_tick, "SEARCHING"))
-                parked_sec = rv.search_end_tick * dt + rv.occupancy_search_seconds
-                trace.append({"tick": int(parked_sec // 60), "t_sec": round(parked_sec, 1), "state": "PARKED"})
+            if rv.lot_arrival_tick is not None:
+                trace.append(_ev(rv.lot_arrival_tick, "SEARCHING"))
+            if rv.search_end_tick is not None:
+                trace.append(_ev(rv.search_end_tick, "PARKED"))
             if rv.departure_tick is not None:
                 trace.append(_ev(rv.departure_tick, "DEPARTING"))
             if rv.completion_tick is not None:
@@ -639,11 +669,13 @@ class SimulationEngine:
                 "final_state": canonical_state,
                 "internal_state": rv.state,
                 "complied": rv.vehicle.complies_with_strategy,
+                "vehicle_type": rv.vehicle.vehicle_type,
                 "reassigned_count": rv.reassigned_count,
                 # Tick fields for verbose trace reconstruction
                 "queue_enter_tick": _m(rv.queue_enter_tick),
                 "gate_admitted_tick": _m(rv.gate_admitted_tick),
                 "search_start_tick": _m(rv.search_start_tick),
+                "lot_arrival_tick": _m(rv.lot_arrival_tick),
                 "search_end_tick": _m(rv.search_end_tick),
                 "completion_tick": _m(rv.completion_tick),
                 "state_trace": trace,
@@ -735,8 +767,15 @@ class SimulationEngine:
                     complies_with_strategy=compliance,
                 )
             )
-            # Optional event-level dwell override: event_conditions.dwell_median_minutes / dwell_sigma
-            # apply to vehicles arriving inside the event window. Absent -> global lognormal (unchanged).
+            # Dwell precedence: event window override > vehicle type > global lognormal.
+            # Vehicle types (scenario.vehicle_types) draw one extra RNG value per vehicle, only when configured.
+            if scenario.vehicle_types:
+                tnames = sorted(scenario.vehicle_types)
+                tname = rng.choices(tnames, weights=[scenario.vehicle_types[t]["share"] for t in tnames])[0]
+                tspec = scenario.vehicle_types[tname]
+                rv.vehicle.vehicle_type = tname
+                rv.dwell_mu = math.log(tspec["dwell_median_minutes"])
+                rv.dwell_sigma = tspec.get("dwell_sigma", DWELL_LOGNORMAL_SIGMA)
             ec = scenario.event_conditions or {}
             if ec.get("dwell_median_minutes") and ec.get("start_tick", 0) <= tick < ec.get("start_tick", 0) + ec.get("duration_ticks", 0):
                 rv.dwell_mu = math.log(ec["dwell_median_minutes"])

@@ -49,7 +49,21 @@ def _resolve_campus_yaml(campus_id: str) -> Path:
     raise FileNotFoundError(f"Campus config not found for '{campus_id}'. Looked in {CAMPUS_DIR}")
 
 
+# Short names used in the spec / viva: S1 = scenario 1 = E1, and so on.
+SCENARIO_ALIASES = {
+    "S1": "E1_normal_day",
+    "S2": "E2_event_placement",
+    "S3": "E3_lot_closure",
+    "S4": "E4_gate_closure",
+    "S5": "E5_noise_0",
+    "S6": "E6_ablation",
+    "S7": "E7_replay",
+    "S8": "E8_vehicle_types",
+}
+
+
 def _resolve_scenario_yaml(campus_id: str, scenario_id: str) -> Path:
+    scenario_id = SCENARIO_ALIASES.get(scenario_id.upper(), scenario_id)
     p = SCENARIO_DIR / campus_id / f"{scenario_id}.yaml"
     if p.exists():
         return p
@@ -102,9 +116,9 @@ def cmd_run(args):
     print(f"\nConservation: total={total}  parked={parked}  exited={exited}  "
           f"in_system={in_sys}  rejected={rejected}  {ok}")
     bd = sec.get("in_system_breakdown", {})
-    print(f"  entered={total} = parked {parked} + exited {exited} + rejected {rejected} + "
-          f"in_system {in_sys} (queued {bd.get('queued', 0)}, driving/searching "
-          f"{bd.get('driving_or_searching', 0)}, departing {bd.get('departing', 0)})")
+    print(f"  entered={total} = queued {bd.get('queued', 0)} + driving {bd.get('driving', 0)} + "
+          f"searching {bd.get('searching', 0)} + parked {parked} + departing {bd.get('departing', 0)} + "
+          f"exited {exited} + rejected {rejected}")
 
     if args.fallbacks and result.adapter_fallbacks:
         print(f"\n[FALLBACK] Strategy fell back to NearestAvailable {result.adapter_fallbacks} time(s)")
@@ -255,17 +269,17 @@ def cmd_make_dataset(args):
 
 # ── main ─────────────────────────────────────────────────────────────────────
 
-def main():
+def main(prog: str = "python -m digital_twin.simulation.cli"):
     parser = argparse.ArgumentParser(
-        prog="python -m digital_twin.simulation.cli",
+        prog=prog,
         description="ParkingNav-X Digital Twin CLI",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
     # run
     p_run = sub.add_parser("run", help="Run one simulation and print metrics")
-    p_run.add_argument("--campus",    required=True,  help="Campus id (e.g. vitap)")
-    p_run.add_argument("--scenario",  required=True,  help="Scenario id (e.g. E1_normal_day)")
+    p_run.add_argument("--campus",    default="vitap", help="Campus id (default: vitap)")
+    p_run.add_argument("--scenario",  required=True,  help="Scenario id (e.g. E1_normal_day) or alias S1..S8")
     p_run.add_argument("--strategy",  required=True,  choices=list(STRATEGY_MAP), help="first | nearest")
     p_run.add_argument("--seed",      required=True,  type=int, help="Random seed")
     p_run.add_argument("--output",    default=None,   help="Optional path to save metrics JSON")

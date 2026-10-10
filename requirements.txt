@@ -7,6 +7,9 @@ pandas>=2.2,<2.3
 pyarrow>=21.0,<22.0
 PyYAML>=6.0,<7.0
 
+# Optional: SimPy multi-lane gate servers (scenario field gate_model: simpy). Tests skip without it.
+simpy>=4.1,<5
+
 # Testing
 pytest>=8.3,<9.0
 httpx>=0.28,<0.29

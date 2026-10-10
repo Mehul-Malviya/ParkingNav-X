@@ -23,6 +23,7 @@ class Vehicle:
     destination_id: Optional[str]
     arrival_tick: int
     complies_with_strategy: bool = True  # False = ignores strategy, goes to nearest lot
+    vehicle_type: str = "general"        # scenario.vehicle_types key (drives dwell); "general" when none configured
 
 
 @dataclass

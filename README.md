@@ -44,22 +44,27 @@ Load the VIT-AP campus into the local database (`digital_twin.db`):
 python scripts/load_campus_config.py --config configs/campus/vitap.yaml
 ```
 
-Import the 30-day history CSVs from `data/` into the same database:
+> The former `scripts/import_history_data.py` (30-day history CSV import) is not in this repo, so that step was removed.
+
+Run one simulation (prints the conservation check; `--verbose` adds hourly occupancy curves and one vehicle trace; output goes to `runs/<scenario>/<strategy>/seed_<n>/`):
 
 ```bash
-python scripts/import_history_data.py
+python -m simulation run --scenario S1 --strategy nearest --seed 7 --verbose
+# same code: python -m digital_twin.simulation.cli run --campus vitap --scenario E1_normal_day --strategy nearest --seed 7
+# aliases: S1..S8 = E1_normal_day, E2_event_placement, E3_lot_closure, E4_gate_closure, E5_noise_0, E6_ablation, E7_replay, E8_vehicle_types
 ```
 
-Run a simulation (output goes to `experiments/runs/<run-id>/`):
+Run many scenarios x strategies x seeds in parallel, then rebuild the results table:
 
 ```bash
-python -m digital_twin.cli.run --campus vitap --scenario configs/scenarios/vitap/normal_day.yaml --strategy digital_twin.simulation.demo_strategies.DemoNearestAvailableStrategy
+python scripts/run_batch.py --scenarios all --seeds 0-29 --strategies B1,B2,B3,B4 --jobs 12
+python scripts/generate_results_summary.py     # writes docs/member1/results_summary.md
 ```
 
 Check a scenario file is valid before running it:
 
 ```bash
-python -m digital_twin.cli.validate_scenario --config configs/scenarios/vitap/road_closure.yaml
+python -m digital_twin.simulation.cli validate --campus vitap --scenario road_closure
 ```
 
 Start the API at http://127.0.0.1:8000 (interactive docs at `/docs`):

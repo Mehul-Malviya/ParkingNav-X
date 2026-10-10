@@ -262,7 +262,7 @@ At each 5-min mark (e.g., 08:05, 08:10, ...), the simulator:
 
 **Measured `assign()` time per call:** B1 ≈ 0.001 ms, B2 ≈ 0.05 ms.
 **Timeout:** 200 ms per call; any slower call triggers the fallback.
-**Measured decision-cycle latency** (5-min twin snapshot + `update_policy`; E1; 10 s tick; from `decisions.jsonl`; 10 seeds x 120 cycles per strategy): 400 vehicles mean 0.77–0.83 ms, p95 2.0 ms, max 16–25 ms; 500 vehicles mean ~0.9–1.05 ms, p95 2.1–2.7 ms; 1,000 vehicles mean ~1.9 ms, p95 7.4–9.1 ms, max ~19 ms. Whole-run wall time: ~1.1 s (400), 2.6 s (1,000).
+**Measured decision-cycle latency** (5-min twin snapshot + `update_policy`; E1; 10 s tick; from `decisions.jsonl`; 10 seeds x 120 cycles per strategy): 400 vehicles mean 1.3–1.5 ms, p95 3.0 ms, max 15–28 ms; 500 vehicles mean 1.0–1.8 ms, p95 3.5–7.1 ms; 1,000 vehicles mean ~2.5 ms, p95 9.4–10.3 ms, max ~23 ms. Whole-run wall time: ~2–2.8 s (400/500 veh), ~4 s (1,000 veh).
 **Not yet measured:** latency of Member 3's optimizer (Phase 3 benchmark).
 
 The baselines are far below the 200 ms timeout, so fallback is rare. When a strategy raises or times out, the engine logs `strategy X failed (reason) -- fell back to Nearest` and uses NearestAvailable.
@@ -339,15 +339,15 @@ E2 is the placement-drive scenario: 470 vehicles, E1 base profile with 1.8× dem
 
 | Metric | B1 (First Available) | B2 (Nearest Available) | Δ |
 |--------|----------------------|------------------------|---|
-| avg search time (min) | **3.15 ± 0.06** | **2.31 ± 0.02** | B2 saves 0.84 min/veh |
+| avg search time (min) | **3.21 ± 0.06** | **2.31 ± 0.02** | B2 saves 0.90 min/veh |
 | avg wait time (min) | **0.00** | **0.00** | identical — gate not a bottleneck |
 | gate queue avg/max | **0.00 / 0.97** | **0.00 / 0.97** | identical — strategy doesn't affect gate |
 | avg travel time (min) | **1.71 ± 0.01** | **1.17 ± 0.00** | B2 saves 0.54 min/veh |
-| avg travel distance (m) | **956 ± 4** | **653 ± 2** | B2 saves 303 m/veh |
+| avg travel distance (m) | **952 ± 4** | **653 ± 2** | B2 saves 299 m/veh |
 | overflow events | **0.0 ± 0.0** | **0.0 ± 0.0** | = rejected; no vehicle was turned away |
 | rejected vehicles | **0.0** | **0.0** | cruising finds space (cap=472 > demand=470) |
 
-**Why rejected = 0 (and overflow = 0):** vehicles that arrive at a full lot are re-routed to the next feasible lot and counted in `reassigned_count`, not as overflow. An overflow event is logged only when a vehicle is **rejected** — i.e. no lot on campus has usable space (or none is reachable). In E2 the lots never fill simultaneously (cap 472 > demand 470), so nothing is rejected. The parking_full scenario (600 veh > 472 cap) gives ~22.2 rejections = ~22.2±4.6 overflow events per seed for B1 (20.6 for B2).
+**Why rejected = 0 (and overflow = 0):** vehicles that arrive at a full lot are re-routed to the next feasible lot and counted in `reassigned_count`, not as overflow. An overflow event is logged only when a vehicle is **rejected** — i.e. no lot on campus has usable space (or none is reachable). In E2 the lots never fill simultaneously (cap 472 > demand 470), so nothing is rejected. The parking_full scenario (600 veh > 472 cap) gives ~27.5 rejections = ~27.5 overflow events per seed for B1 (28.7 for B2).
 
 **Why B1 has higher distance:** B1 always routes to academic-main first (config order); it fills to 100%, forcing cruising. B2 routes to nearest lot from each gate, distributing load (mean peak occupancy over 30 seeds: overflow 100%, hostel 54%, admin-visitor 55%, academic-main 0%; B1: academic-main 100%, admin-visitor 55%, overflow 31%, hostel 9%). B1 concentrates demand; B2 balances it.
 
@@ -359,13 +359,13 @@ E2 is the placement-drive scenario: 470 vehicles, E1 base profile with 1.8× dem
 
 This is a non-obvious result worth knowing cold.
 
-B1 (FirstAvailable) fills lots in config order. Academic-main is first. On a normal day (E1), academic-main fills to its 108-space cap by mid-morning, making late arrivals spend extra search time at near-full capacity (`search = (0.5 + 5.5 × occ²)` min — it rises steeply but is bounded at 6 min when occ = 1). B1's search time is 3.90 min.
+B1 (FirstAvailable) fills lots in config order. Academic-main is first. On a normal day (E1), academic-main fills to its 108-space cap by mid-morning, making late arrivals spend extra search time at near-full capacity (`search = (0.5 + 5.5 × occ²)` min — it rises steeply but is bounded at 6 min when occ = 1). B1's search time is 3.93 min.
 
-In E3 (academic-main closed ticks 60–180), B1 diverts those vehicles to hostel (162 spaces), admin (72), and sports (84). These lots start the day nearly empty. Lower occupancy = shorter search time per the formula. The 120 min closure window coincides with the morning peak — exactly when academic-main would have been most congested. The net result: **average search time drops to 2.81 min**, because the forced redistribution prevents the high-occupancy penalty.
+In E3 (academic-main closed ticks 60–180), B1 diverts those vehicles to hostel (162 spaces), admin (72), and sports (84). These lots start the day nearly empty. Lower occupancy = shorter search time per the formula. The 120 min closure window coincides with the morning peak — exactly when academic-main would have been most congested. The net result: **average search time drops to 2.83 min**, because the forced redistribution prevents the high-occupancy penalty.
 
-**What this exposes:** B1 is not a good strategy. Its search time grows with occupancy (quadratically in `occ`). Any strategy that fills one lot to 100% before touching others will produce high search times late in the day. B2 (NearestAvailable) avoids this by balancing across lots; its search time is unaffected by the closure (2.27 min in E1, 2.27 min in E3) because it never relied on academic-main.
+**What this exposes:** B1 is not a good strategy. Its search time grows with occupancy (quadratically in `occ`). Any strategy that fills one lot to 100% before touching others will produce high search times late in the day. B2 (NearestAvailable) avoids this by balancing across lots; its search time is unaffected by the closure (2.26 min in E1, 2.26 min in E3) because it never relied on academic-main.
 
-**Why E3 B2 ≈ E1 B2 (search 2.27 vs 2.27 min):**
+**Why E3 B2 ≈ E1 B2 (search 2.26 vs 2.26 min):**
 B2 assigns each vehicle to the nearest open lot from its entry gate. From gate-main, the nearest is hostel (76 s), not academic-main (90 s). From gate-visitor, the nearest is overflow (56 s). B2 is already routing around academic-main even before the closure — so closing it changes nothing for B2.
 
 ---

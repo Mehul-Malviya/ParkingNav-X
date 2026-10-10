@@ -11,6 +11,7 @@ from typing import List, Tuple
 from digital_twin.config_loader import load_campus_config
 from digital_twin.db import apply_migrations, get_connection
 from digital_twin.graph_service import CampusGraphService
+from digital_twin.simulation.demo_strategies import ParkingNavXFullStrategy, PredictionOnlyStrategy
 from digital_twin.simulation.engine import SimulationEngine
 from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
@@ -20,6 +21,23 @@ _graph_service = None
 _engine = None
 _conn = None
 _results: dict = {}  # run_id -> SimulationResult
+_run_context: dict = {}  # run_id -> {"scenario": ScenarioConfig, "campus_id": str}
+
+# Strategy registry. Member 3 plugs a strategy in with register_strategy("MyStrategy", MyStrategy)
+# (a zero-argument factory returning an AllocationStrategy) -- no edit to this file needed.
+_STRATEGIES: dict = {
+    "FirstAvailable": FirstAvailableStrategy,
+    "NearestAvailable": NearestAvailableStrategy,
+    "B1": FirstAvailableStrategy,
+    "B2": NearestAvailableStrategy,
+    "B3": PredictionOnlyStrategy,       # demo stand-in (no real forecast yet)
+    "B4": ParkingNavXFullStrategy,      # demo stand-in
+}
+
+
+def register_strategy(name: str, factory) -> None:
+    """Make a strategy available to run_simulation / run_batch under `name`."""
+    _STRATEGIES[name] = factory
 
 
 def init(db_path: str = ":memory:", configs_path: str = "configs"):
@@ -77,13 +95,11 @@ def run_simulation(scenario_dict: dict, strategy_name: str, seed: int) -> str:
     # Override seed if provided
     scenario.random_seed = seed
 
-    # Select strategy
-    if strategy_name == "FirstAvailable":
-        strategy = FirstAvailableStrategy()
-    elif strategy_name == "NearestAvailable":
-        strategy = NearestAvailableStrategy()
-    else:
-        raise ValueError(f"Unknown strategy: {strategy_name}")
+    # Select strategy (built-ins + anything registered via register_strategy)
+    factory = _STRATEGIES.get(strategy_name)
+    if factory is None:
+        raise ValueError(f"Unknown strategy: {strategy_name!r}. Available: {sorted(_STRATEGIES)}")
+    strategy = factory()
 
     # Auto-initialize with defaults if init() was never called
     if _engine is None:
@@ -93,6 +109,7 @@ def run_simulation(scenario_dict: dict, strategy_name: str, seed: int) -> str:
     # Run
     result = _engine.run(scenario, strategy, _conn)
     _results[result.run_id] = result
+    _run_context[result.run_id] = {"scenario": scenario, "campus_id": scenario.campus_id}
 
     return result.run_id
 
@@ -156,36 +173,46 @@ def get_metrics(run_id: str) -> dict:
             "exited_vehicles": exited,
             "rejected_vehicles": rejected,
             "allocation_success_rate": round(success_rate, 4),
+            # From the engine's own conservation check (entered = queued + driving + searching + parked
+            # + departing + exited + rejected); not recomputed here.
+            "conservation_check": result.secondary_metrics["conservation_check"],
+            "in_system_breakdown": result.secondary_metrics["in_system_breakdown"],
         },
     }
 
 
+def _result_for(run_id: str):
+    result = _results.get(run_id)
+    if result is None:
+        raise KeyError(f"No result found for run_id={run_id!r}. Call run_simulation() first.")
+    return result
+
+
 def get_vehicles(run_id: str) -> List[dict]:
     """
-    Get per-vehicle results for export/table.
-
-    Args:
-        run_id: from run_simulation()
-
-    Returns:
-        List of vehicle dicts: {vehicle_id, entry_gate, assigned_lot, search_time, ...}
+    Per-vehicle records for a run (JSON-serializable dicts): vehicle_id, entry_gate, destination_id,
+    arrival_tick (minutes), arrival_time, search/waiting/travel times (s), travel_distance_meters,
+    assigned_lot_id, final_state, internal_state, complied, vehicle_type, reassigned_count,
+    state_trace [{tick (min), t_sec, state}], ...
     """
-    # Load from runs/{scenario}/{strategy}/seed_{n}/vehicles.parquet or .json
-    return []
+    return [dict(v) for v in _result_for(run_id).vehicles]
 
 
 def get_timeline(run_id: str) -> List[dict]:
     """
-    Get full state timeline for dashboard animation.
-
-    Args:
-        run_id: from run_simulation()
-
-    Returns:
-        [{tick, occupancy_by_lot, queue_by_gate, events, ...}, ...]
+    Full per-minute timeline for dashboard animation:
+    [{tick, occupancy_by_lot, queue_by_gate, road_load_by_road, overflow_by_lot}, ...]
     """
-    # Load from runs/{scenario}/{strategy}/seed_{n}/intervals.parquet or .json
-    return []
+    out = []
+    for ts in _result_for(run_id).timesteps:
+        out.append({
+            "tick": ts["tick"],
+            "occupancy_by_lot": {k[len("parking_occupancy_"):]: v for k, v in ts.items() if k.startswith("parking_occupancy_")},
+            "queue_by_gate": {k[len("gate_queue_"):]: v for k, v in ts.items() if k.startswith("gate_queue_")},
+            "road_load_by_road": {k[len("road_load_"):]: v for k, v in ts.items() if k.startswith("road_load_")},
+            "overflow_by_lot": {k[len("overflow_"):]: v for k, v in ts.items() if k.startswith("overflow_")},
+        })
+    return out
 
 
 def get_state(run_id: str, tick: int) -> dict:
@@ -195,26 +222,151 @@ def get_state(run_id: str, tick: int) -> dict:
 
 def get_campus_state(run_id: str, tick: int) -> dict:
     """
-    Get campus state at a specific tick (as StateSnapshot).
+    Campus state at `tick` (minutes since scenario start) as a StateSnapshot dict, rebuilt from the
+    stored run: lots/gates/roads from the per-minute timeline, vehicles from their state traces.
 
-    Args:
-        run_id: from run_simulation()
-        tick: simulation tick (0â€“duration_minutes)
-
-    Returns:
-        StateSnapshot JSON-serializable dict
+    Keys: sim_time, sim_time_iso, scenario_id, seed, lots, gates, roads, pending_arrivals_by_gate
+    (arrivals scheduled in the next 5 minutes), active_events, active_disruptions,
+    travel_time_matrix [gate][lot] (seconds, free-flow), walk_time ({} -- no walking model),
+    forecast (None), vehicles, event_log.
     """
-    # Reconstruct state from timeline at tick
-    return {
-        "sim_time": tick,
-        "sim_time_iso": "2026-10-04T12:00:00Z",
-        "lots": [],
-        "gates": [],
-        "roads": [],
-        "pending_arrivals_by_gate": {},
-        "active_events": [],
-        "active_disruptions": [],
-    }
+    return _build_snapshot(run_id, tick).to_dict()
+
+
+def _build_snapshot(run_id: str, tick: int):
+    from datetime import datetime, timedelta, timezone
+
+    import networkx as nx
+
+    from digital_twin.simulation.state_snapshot import (
+        EventState,
+        GateState,
+        LotState,
+        RoadState,
+        StateSnapshot,
+        VehicleState,
+        VehicleStateEnum,
+    )
+
+    result = _result_for(run_id)
+    ctx = _run_context.get(run_id)
+    if ctx is None:
+        raise KeyError(f"No scenario context for run_id={run_id!r}.")
+    scenario = ctx["scenario"]
+    timesteps = result.timesteps
+    if not 0 <= tick < len(timesteps):
+        raise ValueError(f"tick {tick} out of range 0..{len(timesteps) - 1}")
+    ts = timesteps[tick]
+
+    lots_cfg = SimulationEngine._load_parking_lots(scenario.campus_id, _conn, scenario.availability_overrides)
+    gates_cfg = SimulationEngine._load_gates(scenario.campus_id, _conn, scenario.availability_overrides)
+    road_rows = {r["road_id"]: dict(r) for r in _conn.execute("SELECT * FROM roads WHERE campus_id=?", (scenario.campus_id,))}
+    timed = (scenario.availability_overrides or {}).get("timed_closures", [])
+    closed_now = {(c["entity_type"], c["entity_id"]) for c in timed if c["start_tick"] <= tick < c.get("end_tick", 10 ** 9)}
+
+    def occ_delta(lot_id, window):
+        key = f"parking_occupancy_{lot_id}"
+        series = [timesteps[t][key] for t in range(max(0, tick - window), tick + 1)]
+        up = sum(max(0, b - a) for a, b in zip(series, series[1:]))
+        down = sum(max(0, a - b) for a, b in zip(series, series[1:]))
+        return up, down
+
+    lots = []
+    for lot_id, cfg in lots_cfg.items():
+        occ = ts.get(f"parking_occupancy_{lot_id}", 0)
+        cap = cfg["usable_capacity"]
+        in5, out5 = occ_delta(lot_id, 5)
+        in15, out15 = occ_delta(lot_id, 15)
+        if cfg["status"] == "closed" or ("parking_lot", lot_id) in closed_now:
+            status = "closed"
+        else:
+            status = "full" if occ >= cap else "open"
+        lots.append(LotState(id=lot_id, capacity=cap, occupied=occ, available=max(0, cap - occ), reserved_free=0,
+                             status=status, inflow_5m=in5, outflow_5m=out5, arrivals_last_15m=in15, departures_last_15m=out15))
+
+    admitted_by_gate = {}
+    for v in result.vehicles:
+        if v.get("gate_admitted_tick") is not None:
+            admitted_by_gate.setdefault(v["entry_gate"], []).append(v)
+    gates = []
+    for gate_id, cfg in gates_cfg.items():
+        adm = admitted_by_gate.get(gate_id, [])
+        t5 = sum(1 for v in adm if tick - 5 < v["gate_admitted_tick"] <= tick)
+        t15 = [v for v in adm if tick - 15 < v["gate_admitted_tick"] <= tick]
+        waits = [v["waiting_time_seconds"] for v in t15]
+        closed = cfg["status"] == "closed" or ("gate", gate_id) in closed_now
+        gates.append(GateState(id=gate_id, queue_length=ts.get(f"gate_queue_{gate_id}", 0),
+                               service_rate_veh_per_min=float(cfg["capacity"]), status="closed" if closed else "open",
+                               throughput_last_5min=t5, throughput_last_15m=len(t15),
+                               avg_wait_sec_last_15m=(sum(waits) / len(waits)) if waits else 0.0))
+
+    graph = CampusGraphService().build_graph(scenario.campus_id, _conn)
+    edge_by_road = {}
+    for u, v_, d in graph.edges(data=True):
+        if d.get("road_id") and d["road_id"] not in edge_by_road:
+            edge_by_road[d["road_id"]] = d
+
+    roads = []
+    for road_id, row in road_rows.items():
+        load = ts.get(f"road_load_{road_id}", 0)
+        edge = edge_by_road.get(road_id, {})
+        cap = int(edge.get("capacity") or 20)   # same default the engine's BPR uses
+        ratio = load / cap if cap else 0.0
+        level = "low" if ratio < 0.5 else ("med" if ratio < 1.0 else "high")
+        closed = ("road", road_id) in closed_now or row.get("status") == "closed"
+        travel = row.get("expected_travel_time_seconds") or edge.get("weight_time_seconds") or 0.0
+        roads.append(RoadState(id=road_id, travel_time_sec=float(travel), congestion_ratio=ratio,
+                               status="closed" if closed else "open", current_load=load, capacity=cap,
+                               congestion_level=level))
+
+    pending = {g: 0 for g in gates_cfg}
+    for v in result.vehicles:
+        if tick < v["arrival_tick"] <= tick + 5:
+            pending[v["entry_gate"]] = pending.get(v["entry_gate"], 0) + 1
+
+    ec = scenario.event_conditions or {}
+    events = []
+    if ec and ec.get("start_tick", 0) <= tick < ec.get("start_tick", 0) + ec.get("duration_ticks", 0):
+        end = ec["start_tick"] + ec["duration_ticks"]
+        events.append(EventState(event_id=scenario.name or scenario.scenario_id, start_tick=ec["start_tick"],
+                                 duration_ticks=ec["duration_ticks"], demand_multiplier=ec.get("demand_multiplier", 1.0),
+                                 affected_zones=list(ec.get("affected_zones", [])), minutes_remaining=end - tick))
+    disruptions = [{"entity_type": t, "entity_id": e, "kind": "timed_closure"} for t, e in sorted(closed_now)]
+    ov = scenario.availability_overrides or {}
+    for key, etype in (("closed_gates", "gate"), ("closed_parking_lots", "parking_lot"), ("closed_roads", "road")):
+        disruptions += [{"entity_type": etype, "entity_id": e, "kind": "closed_for_run"} for e in ov.get(key, [])]
+
+    ttm = {}
+    for g in gates_cfg:
+        ttm[g] = {}
+        for lot_id in lots_cfg:
+            try:
+                ttm[g][lot_id] = float(nx.shortest_path_length(graph, g, lot_id, weight="weight_time_seconds"))
+            except (nx.NetworkXNoPath, nx.NodeNotFound):
+                ttm[g][lot_id] = float("inf")
+
+    vehicle_states = []
+    now_sec = (tick + 1) * 60 - 1
+    for v in result.vehicles:
+        if v["arrival_tick"] > tick:
+            continue
+        seen = [e for e in v.get("state_trace", []) if e["t_sec"] <= now_sec]
+        state = VehicleStateEnum(seen[-1]["state"]) if seen else VehicleStateEnum.SCHEDULED
+        vehicle_states.append(VehicleState(
+            id=v["vehicle_id"], vehicle_type=v.get("vehicle_type", "general"), arrival_time=v["arrival_tick"],
+            entry_gate=v["entry_gate"], destination_zone=v.get("destination_id") or "", assigned_lot=v.get("assigned_lot_id"),
+            route=[], state=state, timestamps={e["state"]: e["t_sec"] for e in seen},
+            search_time=v["search_time_seconds"] / 60.0, wait_time=v["waiting_time_seconds"] / 60.0,
+            travel_time=v["travel_time_seconds"] / 60.0, distance_m=float(v["travel_distance_meters"]),
+            reassigned_count=v["reassigned_count"]))
+
+    base = datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(minutes=scenario.start_time_min + tick)
+    return StateSnapshot(
+        sim_time=tick, sim_time_iso=base.isoformat(), lots=lots, gates=gates, roads=roads,
+        pending_arrivals_by_gate=pending, active_events=events, active_disruptions=disruptions,
+        travel_time_matrix=ttm, walk_time={}, forecast=None, scenario_id=scenario.scenario_id,
+        seed=scenario.random_seed, vehicles=vehicle_states,
+        event_log=[e for e in result.overflow_events if e["tick"] <= tick])
 
 
 def export_geojson(campus_id: str) -> dict:

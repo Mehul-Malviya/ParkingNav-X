@@ -207,6 +207,7 @@ class StateSnapshot:
             "walk_time": self.walk_time,
             "forecast": self.forecast or {},
             "event_log": self.event_log,
+            "vehicles": [{**asdict(v), "state": v.state.value} for v in self.vehicles],
             # global KPIs
             "total_occupancy_pct": self.total_occupancy_pct,
             "total_queue": self.total_queue,
@@ -224,6 +225,7 @@ class StateSnapshot:
         gates = [GateState(**gate) for gate in data.get("gates", [])]
         roads = [RoadState(**road) for road in data.get("roads", [])]
         events = [EventState(**event) for event in data.get("active_events", [])]
+        vehicles = [VehicleState(**{**v, "state": VehicleStateEnum(v["state"])}) for v in data.get("vehicles", [])]
 
         return cls(
             sim_time=data["sim_time"],
@@ -240,6 +242,7 @@ class StateSnapshot:
             scenario_id=data.get("scenario_id", ""),
             seed=data.get("seed", 0),
             event_log=data.get("event_log", []),
+            vehicles=vehicles,
         )
 
     def fork(self) -> "StateSnapshot":

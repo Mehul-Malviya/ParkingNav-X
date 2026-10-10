@@ -29,13 +29,20 @@ How long a vehicle stays parked:
 `dwell ~ Lognormal(μ=4.8, σ=0.6)` → median ≈ 120 min, capped [30, 480] min  
 Justified: most vehicles park for one class period (~90–120 min); a few stay all day.
 
+**By vehicle type / event (optional, default off):** a scenario may set `vehicle_types: {type: {share, dwell_median_minutes, dwell_sigma}}`
+(each vehicle draws a type by `share`, then its dwell from that type's lognormal) and/or `event_conditions.dwell_median_minutes` /
+`dwell_sigma` (vehicles arriving inside the event window). Precedence: event window > vehicle type > global. Only E8 sets a mix, with
+**ASSUMED placeholder values** (students 240 min, staff 420 min, visitors 60 min); no calibrated values exist yet.
+
 ---
 
 ## Gate Queue — Multi-Server FIFO
 
-- Lanes = servers; service rate = 6 vehicles/min per lane (measured estimate)
+- Service rate is a gate total in vehicles/min (main 6 = 2 lanes × 3, visitor 3 = 1 lane × 3; ASSUMED, not measured)
 - Vehicles queue FIFO; wait time = service_start − arrival_time
-- Closed gate → vehicles diverted to nearest open gate (extra travel logged)
+- Closed gate → queued and arriving vehicles are diverted to the nearest open gate
+- **Default model (`gate_model: tick`):** each tick adds `capacity × dt` service credit; a vehicle is admitted the moment a whole unit of credit is available (no service delay on an empty gate)
+- **Optional `gate_model: simpy`:** SimPy multi-lane servers (lanes = round(capacity / 3), fixed 20 s service per vehicle); a vehicle is admitted when its service completes, so an empty gate still costs 20 s. Needs `pip install simpy`; under overload both models give the same wait (parking_full: 8.83 vs 8.63 min)
 
 ---
 
@@ -59,7 +66,7 @@ Route = shortest path by current travel time via Dijkstra (NetworkX).
 `search_time = base + k × occupancy²`  (base = 0.5 min, k = 5.5 min → 6.0 min at a full lot)
 
 - `base` = 0.5 min; `k` = 5.5 min (spec formula; bounded, no divergence at occ = 1)
-- Grows quadratically as the lot fills; search time is analytic (added to metrics), not simulated tick by tick
+- Grows quadratically as the lot fills. It is simulated: on arrival the vehicle reserves a space (capacity can never be exceeded), spends exactly this time in the SEARCHING state, then PARKS and starts its dwell
 - If lot full on arrival → vehicle cruises to the next feasible lot and its `reassigned_count` increments; an overflow event is logged only if the vehicle is rejected (no feasible/reachable lot)
 
 ---
@@ -78,7 +85,7 @@ Every scenario YAML includes `warmdown_minutes: 30`. During the last 30 minutes 
 
 **Why:** Without warm-down, vehicles arriving near the simulation end would still be in mid-transit (route/parking_search state) when the clock stops, inflating the `in_system_vehicles` metric artificially. The warm-down allows all in-transit vehicles to reach a terminal state before metrics are recorded.
 
-**Effect measured (E2, 30 seeds, 10 s tick, 14,100 vehicles):** in_system at end-of-sim is 0.26% (36 vehicles) both with and without warm-down. Without warm-down, 5 of those 36 are still driving to a lot and 31 are departing; with the 30-min warm-down none are mid-transit and all 36 are in the *departure* phase — they have parked, finished their dwell and are driving out of campus. These are not stalled vehicles; they are completing the journey, and warm-down only removes the mid-transit ones. (At the earlier 1-minute tick the gap was larger, ~2.45% vs ~1.05%, because each state cost a whole minute.)
+**Effect measured (E2, 30 seeds, 10 s tick, simulated SEARCHING state, 14,100 vehicles):** in_system at end-of-sim is 0.25% (35 vehicles) without warm-down and 0.17% (24 vehicles) with the 30-min warm-down. Without warm-down, 10 of the 35 are still driving or searching and 25 are departing; with warm-down none are mid-transit and all 24 are in the *departure* phase — they have parked, finished their dwell and are driving out of campus. These are not stalled vehicles; they are completing the journey, and warm-down only removes the mid-transit ones. (At the earlier 1-minute tick the gap was larger, ~2.45% vs ~1.05%, because each state cost a whole minute.)
 
 ---
 
@@ -90,7 +97,7 @@ Every scenario YAML includes `warmdown_minutes: 30`. During the last 30 minutes 
 
 **When E5 becomes meaningful:** once Member 3's optimizer reads `use_prediction` and consumes the noisy forecast, E5 will measure robustness degradation as noise increases. B1/B2 are noise-immune by construction (reactive, no forecast dependency), which is itself a useful baseline for comparison.
 
-**Confirmed:** 30-seed run with seed override shows B1 search = 3.90 min and B2 search = 2.27 min for all three noise levels, bit-for-bit identical.
+**Confirmed:** 30-seed run with seed override shows B1 search = 3.93 min and B2 search = 2.26 min for all three noise levels, bit-for-bit identical.
 
 ---
 
@@ -133,17 +140,17 @@ It runs for 90 minutes (vs E1–E5's 600 min), so its raw metric values are not 
 
 The whole-day average (B1: 1062 m, B2: 622 m) understates the closure effect because ~79% of arrivals are unaffected. During the closure, B1 is diverted to admin (520 m) and sports (534 m) — farther than academic (450 m). B2 was already using hostel (380 m) and overflow (280 m via visitor gate) so the detour is smaller.
 
-**E3 B2 vs E1 B2 (search 2.27 vs 2.27 min):**
+**E3 B2 vs E1 B2 (search 2.26 vs 2.26 min):**
 B2 (NearestAvailable) assigns each vehicle to the nearest open lot relative to its entry gate. From gate-main, the nearest lots by travel time are hostel (76 s) and admin (104 s), not academic-main (90 s). From gate-visitor, nearest are overflow (56 s) and admin (70 s). B2 never primarily uses academic-main, so closing it in E3 has no effect on B2's behaviour or search time.
 
-**E3 B1 < E1 B1 (search 2.81 vs 3.90 min):**
+**E3 B1 < E1 B1 (search 2.83 vs 3.93 min):**
 B1 (FirstAvailable) always fills the first lot with remaining capacity, in config order. Academic-main (capacity 108) is normally filled first. When it closes (ticks 60–180), B1 routes vehicles to hostel (162), admin (72), and sports (84) — all initially emptier. Lower occupancy → shorter search time per the formula `search = 0.5 + 5.5 × occ²` min. This exposes a structural weakness of B1: it produces worse search times at high occupancy than at medium occupancy. E3 is not a "better" day for B1; it is a day where the forced redistribution accidentally lowers average occupancy during the closure window.
 
 **Over-capacity demand (high_traffic scenario, since removed):**
 Campus usable capacity = 108 + 162 + 72 + 84 + 46 = 472 spaces. With 550 vehicles, demand exceeds capacity, yet rejections stay near 0 because dwell times are stochastic (median 120 min, range 30–480 min): early arrivals depart before later ones need the space. Vehicles that find a lot full are re-routed (`reassigned_count`), not rejected; an overflow event is logged only on rejection. The only scenario that produces real rejections is parking_full (600 vehicles in 90 min, ~21.6 rejections per seed for B1).
 
 **E7_replay results are based on synthetic observations (real data pending):**
-The E7 YAML replays 350 vehicles with a morning-peak profile derived from the synthetic_observations.csv file. These will be replaced with real arrival-time observations from the counting day (Member 5). Results: B1 search 2.40 min, B2 search 1.97 min, 0 rejections.
+The E7 YAML replays 350 vehicles with a morning-peak profile derived from the synthetic_observations.csv file. These will be replaced with real arrival-time observations from the counting day (Member 5). Results: B1 search 2.42 min, B2 search 1.97 min, 0 rejections.
 
 ---
 

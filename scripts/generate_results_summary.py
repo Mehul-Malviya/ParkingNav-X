@@ -40,6 +40,7 @@ SCENARIOS = [
     ("vitap-road-closure",      "road_closure",          400, 600),
     ("vitap-parking-full",      "parking_full",          600,  90),
     ("vitap-e7-replay",         "E7_replay (synthetic)", 350, 600),
+    ("vitap-e8-vehicle-types", "E8 vehicle_types (ASSUMED)", 400, 600),
     ("vitap-e6-ablation-A",    "E6 ablation_A",         400, 600),
     ("vitap-e6-ablation-B",    "E6 ablation_B",         400, 600),
     ("vitap-e6-ablation-C",    "E6 ablation_C",         400, 600),

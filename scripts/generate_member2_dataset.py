@@ -18,6 +18,7 @@ Full column spec (frozen Member-2 contract):
 
 import csv
 import sys
+import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -63,6 +64,8 @@ COLS = [
     "day_type", "event_type", "event_intensity",
     "source",
 ]
+
+GATE_COLS = ["scenario_id", "seed", "tick", "sim_time_min", "gate_id", "queue_length", "source"]
 
 
 def load_lot_capacities() -> dict:
@@ -152,7 +155,7 @@ def main():
     apply_migrations(conn)
     load_campus_config(CAMPUS_CONFIG, conn)
 
-    engine = SimulationEngine()
+    engine = SimulationEngine(runs_dir=tempfile.mkdtemp())   # keep the shared runs/ folder untouched
     strategy = FirstAvailableStrategy()
 
     for scenario_id, meta in SCENARIOS.items():
@@ -160,6 +163,7 @@ def main():
         scen_dir.mkdir(parents=True, exist_ok=True)
 
         all_rows = []
+        gate_rows = []
 
         for seed in SEEDS:
             print(f"  {scenario_id} seed={seed} ...", flush=True)
@@ -168,6 +172,16 @@ def main():
             scenario.random_seed = seed
 
             result = engine.run(scenario, strategy, conn)
+
+            # Per-minute gate queue depth (tick = minute), one row per (seed, minute, gate)
+            for ts in result.timesteps:
+                for key, qlen in ts.items():
+                    if key.startswith("gate_queue_"):
+                        gate_rows.append({
+                            "scenario_id": scenario_id, "seed": seed, "tick": ts["tick"],
+                            "sim_time_min": start_min + ts["tick"], "gate_id": key[len("gate_queue_"):],
+                            "queue_length": qlen, "source": "simulated",
+                        })
 
             window_rows = aggregate_to_5min(result.timesteps, lot_capacities)
 
@@ -194,6 +208,13 @@ def main():
             w = csv.DictWriter(f, fieldnames=COLS)
             w.writeheader()
             w.writerows(all_rows)
+
+        gates_path = scen_dir / "gates.csv"
+        with open(gates_path, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=GATE_COLS)
+            w.writeheader()
+            w.writerows(gate_rows)
+        print(f"  -> {gates_path} ({len(gate_rows)} rows | columns: {GATE_COLS})")
 
         print(f"  -> {out_path}")
         print(f"     {len(all_rows)} rows | columns: {COLS}\n")
