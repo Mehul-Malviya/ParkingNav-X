@@ -101,24 +101,28 @@ def cmd_run(args):
     ok       = "[OK]" if sec.get("conservation_check", True) else "[FAIL]"
     print(f"\nConservation: total={total}  parked={parked}  exited={exited}  "
           f"in_system={in_sys}  rejected={rejected}  {ok}")
-    print(f"  entered={total} == parked+exited+in_system+rejected = "
-          f"{parked+exited+in_sys+rejected}")
+    bd = sec.get("in_system_breakdown", {})
+    print(f"  entered={total} = parked {parked} + exited {exited} + rejected {rejected} + "
+          f"in_system {in_sys} (queued {bd.get('queued', 0)}, driving/searching "
+          f"{bd.get('driving_or_searching', 0)}, departing {bd.get('departing', 0)})")
 
     if args.fallbacks and result.adapter_fallbacks:
         print(f"\n[FALLBACK] Strategy fell back to NearestAvailable {result.adapter_fallbacks} time(s)")
 
     if getattr(args, "verbose", False):
-        # Occupancy curve: sample lot occupancy at tick 0, peak, last tick
+        # Occupancy curve: hourly samples per lot (tick = minute) as a text bar chart
         if result.timesteps:
-            lot_keys = [k for k in result.timesteps[0] if k.startswith("parking_occupancy_")]
-            print("\nOccupancy curve (per lot):")
-            for key in sorted(lot_keys):
+            lot_keys = sorted(k for k in result.timesteps[0] if k.startswith("parking_occupancy_"))
+            print("\nOccupancy curve (occupied spaces at each hour):")
+            for key in lot_keys:
                 lot_id = key[len("parking_occupancy_"):]
                 series = [ts.get(key, 0) for ts in result.timesteps]
                 peak = max(series)
-                peak_tick = series.index(peak)
-                print(f"  {lot_id:40s}  start={series[0]:3d}  peak={peak:3d}@t={peak_tick:3d}  "
-                      f"end={series[-1]:3d}")
+                cap = max(peak, 1)
+                samples = series[::60]
+                print(f"  {lot_id}  (peak {peak} @ t={series.index(peak)})")
+                print("    " + " ".join(f"{v:3d}" for v in samples) + "   <- hourly")
+                print("    " + " ".join(("#" * round(3 * v / cap)).ljust(3) for v in samples) + "   <- level vs this lot's peak (### = peak)")
 
         # Trace first vehicle with a complete journey (exited or parked)
         traced = next(
@@ -128,7 +132,7 @@ def cmd_run(args):
         if traced:
             print(f"\nVehicle trace [{traced['vehicle_id']}]  gate={traced['entry_gate']}  lot={traced.get('assigned_lot_id','?')}")
             for step in traced.get("state_trace", []):
-                print(f"  tick={step['tick']:4d}  {step['state']}")
+                print(f"  t={step.get('t_sec', step['tick'] * 60):8.1f}s (min {step['tick']:3d})  {step['state']}")
 
         # B1 vs B2 comparison note
         print(f"\nStrategy used: {result.strategy_name}")

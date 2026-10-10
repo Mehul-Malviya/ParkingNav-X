@@ -24,6 +24,8 @@ STRATEGY_DIRS = {
            "digital_twin.simulation.strategy.FirstAvailableStrategy"],
     "B2": ["B2-NearestAvailable",
            "digital_twin.simulation.strategy.NearestAvailableStrategy"],
+    "B3": ["B3-PredictionOnly"],
+    "B4": ["P-ParkingNavX"],
 }
 
 # Canonical scenario order and display names
@@ -35,12 +37,13 @@ SCENARIOS = [
     ("vitap-e5-noise-0",        "E5 noise_0%",           400, 600),
     ("vitap-e5-noise-10",       "E5 noise_10%",          400, 600),
     ("vitap-e5-noise-20",       "E5 noise_20%",          400, 600),
-    ("vitap-gate-congestion",   "gate_congestion",       400, 180),
-    ("vitap-high-traffic",      "high_traffic",          550, 600),
     ("vitap-road-closure",      "road_closure",          400, 600),
     ("vitap-parking-full",      "parking_full",          600,  90),
-    ("vitap-peak-hour",         "peak_hour",             350, 120),
     ("vitap-e7-replay",         "E7_replay (synthetic)", 350, 600),
+    ("vitap-e6-ablation-A",    "E6 ablation_A",         400, 600),
+    ("vitap-e6-ablation-B",    "E6 ablation_B",         400, 600),
+    ("vitap-e6-ablation-C",    "E6 ablation_C",         400, 600),
+    ("vitap-e6-ablation-D",    "E6 ablation_D",         400, 600),
 ]
 
 
@@ -88,6 +91,52 @@ def mean_ci_int(rows, key):
     return f"{statistics.mean(vals):.1f}", f"{ci95(vals):.1f}"
 
 
+def _road_closure_notes() -> list:
+    """In-window vs out-of-window travel distance, computed from vehicles.parquet (seeds 0-29)."""
+    import pandas as pd
+    lo, hi = 60, 180  # closure window in road_closure.yaml
+    out = ["**road_closure** - travel distance for vehicles arriving inside vs outside the closure",
+           f"window (ticks {lo}-{hi}), seeds 0-29:", "",
+           "| Strategy | In-window travel_d | Out-of-window travel_d | Delta |",
+           "|----------|-------------------|----------------------|-------|"]
+    found = False
+    for strat in ["B1", "B2", "B3", "B4"]:
+        ins, outs = [], []
+        for dirname in STRATEGY_DIRS[strat]:
+            for seed in range(30):
+                f = RUNS / "vitap-road-closure" / dirname / f"seed_{seed}" / "vehicles.parquet"
+                if not f.exists():
+                    continue
+                d = pd.read_parquet(f)
+                d = d[d["travel_distance_meters"] > 0]
+                w = (d["arrival_tick"] >= lo) & (d["arrival_tick"] < hi)
+                ins += list(d[w]["travel_distance_meters"])
+                outs += list(d[~w]["travel_distance_meters"])
+        if ins and outs:
+            found = True
+            a, b = sum(ins) / len(ins), sum(outs) / len(outs)
+            out.append(f"| {strat} | {a:.0f} m | {b:.0f} m | {a - b:+.0f} m ({(a - b) / b * 100:+.0f}%) |")
+    out += ["", "Rejections stay at 0 because alternative paths cover all demand.", ""]
+    return out if found else []
+
+
+def _e5_notes() -> list:
+    """E5: reactive strategies must give identical search time at every noise level."""
+    out = ["**E5 noise equivalence (computed):**"]
+    for strat in ["B1", "B2", "B3", "B4"]:
+        vals = []
+        for scen in ("vitap-e5-noise-0", "vitap-e5-noise-10", "vitap-e5-noise-20"):
+            rows = load_metrics(RUNS / scen, strat)
+            vals.append(sum(r.get("avg_search_time_min", 0) for r in rows) / len(rows) if rows else None)
+        if None in vals:
+            continue
+        same = "identical" if len({round(v, 9) for v in vals}) == 1 else "DIFFERENT"
+        out.append(f"{strat}: noise_0%={vals[0]:.4f}  noise_10%={vals[1]:.4f}  noise_20%={vals[2]:.4f} ({same})")
+    out += ["Current strategies are reactive (no forecast), so the noise parameter has no effect. Results",
+            "become meaningful once Member 3's optimizer consumes the noisy forecast.", ""]
+    return out
+
+
 def main():
     lines = [
         "# Results Summary — Member 1",
@@ -110,7 +159,7 @@ def main():
         scen_dir = RUNS / scen_id
         if not scen_dir.exists():
             continue
-        for strat in ["B1", "B2"]:
+        for strat in ["B1", "B2", "B3", "B4"]:
             rows = load_metrics(scen_dir, strat)
             if not rows:
                 continue
@@ -161,28 +210,18 @@ def main():
         "Gate assignment is random (uniform over open gates). Wait time and gate queue are gate-level",
         "metrics; they can only improve with gate guidance (Member 3's optimizer).",
         "",
-        "**gate_congestion, parking_full, peak_hour** are stress scenarios with non-standard durations",
-        "(180 min, 90 min, 120 min vs E1–E5's 600 min). Their search/travel numbers are not directly",
-        "comparable to E1–E5.",
+        "**parking_full** is a stress scenario with a non-standard duration (90 min vs 600 min for",
+        "E1-E5, E7, road_closure). Its search/travel numbers are not directly comparable to the others;",
+        "it is the only scenario with real rejections (overflow = rejected).",
         "",
-        "**road_closure** — inside vs outside closure window (ticks 60–180, 10-seed average):",
+        "**B3 / B4 are demo stand-ins** (`demo_strategies.py`: PredictionOnly, ParkingNavXFull) that run",
+        "with no real forecast yet; their numbers show the harness works, not Member 3's final results.",
         "",
-        "| Strategy | In-window travel_d | Out-of-window travel_d | Δ |",
-        "|----------|-------------------|----------------------|---|",
-        "| B1 | 1273 m | 974 m | +299 m (+31%) |",
-        "| B2 | 682 m  | 594 m | +88 m  (+15%) |",
+        "**E6 ablation A-D match E1 exactly** for every strategy: the ablation flags (use_prediction,",
+        "use_optimization, ...) are stored in the scenario but are not read by the engine or by any current",
+        "strategy, so they take effect only once Member 3's strategies consume them.",
         "",
-        "B1 sends vehicles to academic-main (450 m) normally. During closure, it falls back to hostel",
-        "(380 m from gate but different route), admin (520 m), or sports (534 m). The mean detour is",
-        "+299 m. B2 was already routing to nearer lots (hostel / overflow), so the closure adds only",
-        "+88 m. Zero rejections in both cases — alternative paths cover all demand.",
-        "",
-        "**E5 noise equivalence (confirmed):**",
-        "B1: noise_0%=6.6468  noise_10%=6.6468  noise_20%=6.6468 (bit-for-bit identical)",
-        "B2: noise_0%=3.2039  noise_10%=3.2039  noise_20%=3.2039",
-        "B1/B2 are reactive (no forecast); noise parameter has no effect. Results become meaningful",
-        "once Member 3's optimizer consumes the noisy forecast.",
-        "",
+    ] + _road_closure_notes() + _e5_notes() + [
         "**E7_replay** results use synthetic observations (real counting day data pending Member 5).",
         "",
         "---",

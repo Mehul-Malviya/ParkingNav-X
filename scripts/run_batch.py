@@ -18,6 +18,10 @@ from digital_twin.config_loader import load_campus_config  # noqa: E402
 from digital_twin.db import apply_migrations, get_connection  # noqa: E402
 from digital_twin.simulation.engine import SimulationEngine  # noqa: E402
 from digital_twin.simulation.scenario import ScenarioLoader  # noqa: E402
+from digital_twin.simulation.demo_strategies import (  # noqa: E402
+    ParkingNavXFullStrategy,
+    PredictionOnlyStrategy,
+)
 from digital_twin.simulation.strategy import (  # noqa: E402
     FirstAvailableStrategy,
     NearestAvailableStrategy,
@@ -25,7 +29,13 @@ from digital_twin.simulation.strategy import (  # noqa: E402
 
 SCENARIO_DIR = ROOT / "configs" / "scenarios" / "vitap"
 CAMPUS_YAML = ROOT / "configs" / "campus" / "vitap.yaml"
-STRATEGIES = {"B1": FirstAvailableStrategy, "B2": NearestAvailableStrategy}
+# B3/B4 are the demo stand-ins in demo_strategies.py (no real forecast yet); Member 3 replaces them
+STRATEGIES = {
+    "B1": FirstAvailableStrategy,
+    "B2": NearestAvailableStrategy,
+    "B3": PredictionOnlyStrategy,
+    "B4": ParkingNavXFullStrategy,
+}
 
 
 def parse_seeds(text: str) -> list[int]:
@@ -35,11 +45,23 @@ def parse_seeds(text: str) -> list[int]:
     return [int(x) for x in text.split(",")]
 
 
+def _run_one(job):
+    stem, strat, seed = job
+    conn = get_connection(":memory:")
+    apply_migrations(conn)
+    load_campus_config(CAMPUS_YAML, conn)
+    scenario = ScenarioLoader.load(SCENARIO_DIR / f"{stem}.yaml")
+    scenario.random_seed = seed
+    SimulationEngine().run(scenario, STRATEGIES[strat](), conn)
+    return job
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--scenarios", required=True, help="Comma-separated scenario file stems, or 'all'")
     ap.add_argument("--seeds", default="0-29", help="e.g. 0-29 or 0,5,9")
-    ap.add_argument("--strategies", default="B1,B2", help="B1,B2")
+    ap.add_argument("--strategies", default="B1,B2", help="any of B1,B2,B3,B4")
+    ap.add_argument("--jobs", type=int, default=1, help="parallel worker processes (each run is independent and seeded)")
     args = ap.parse_args()
 
     if args.scenarios == "all":
@@ -50,21 +72,23 @@ def main():
     for s in strategies:
         if s not in STRATEGIES:
             sys.exit(f"Unknown strategy '{s}'. Choose from: {', '.join(STRATEGIES)}")
+    for stem in stems:
+        if not (SCENARIO_DIR / f"{stem}.yaml").exists():
+            sys.exit(f"Scenario file not found: {SCENARIO_DIR / (stem + '.yaml')}")
     seeds = parse_seeds(args.seeds)
 
-    for stem in stems:
-        yml = SCENARIO_DIR / f"{stem}.yaml"
-        if not yml.exists():
-            sys.exit(f"Scenario file not found: {yml}")
-        for strat in strategies:
-            for seed in seeds:
-                conn = get_connection(":memory:")
-                apply_migrations(conn)
-                load_campus_config(CAMPUS_YAML, conn)
-                scenario = ScenarioLoader.load(yml)
-                scenario.random_seed = seed
-                SimulationEngine().run(scenario, STRATEGIES[strat](), conn)
-        print(f"{stem}: {len(strategies)} strategies x {len(seeds)} seeds done", flush=True)
+    jobs = [(stem, strat, seed) for stem in stems for strat in strategies for seed in seeds]
+    done = 0
+    if args.jobs <= 1:
+        results = map(_run_one, jobs)
+    else:
+        from concurrent.futures import ProcessPoolExecutor
+        pool = ProcessPoolExecutor(max_workers=args.jobs)
+        results = pool.map(_run_one, jobs)
+    for stem, strat, seed in results:
+        done += 1
+        if done % 20 == 0 or done == len(jobs):
+            print(f"{done}/{len(jobs)} runs done (last: {stem} {strat} seed {seed})", flush=True)
 
 
 if __name__ == "__main__":
