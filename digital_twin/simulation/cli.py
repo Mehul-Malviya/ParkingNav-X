@@ -246,7 +246,7 @@ def cmd_make_dataset(args):
         seeds=seeds,
         output_path=args.output,
     )
-    print(f"Dataset written: {result['rows']} rows × {len(result['columns'])} columns → {result['path']}")
+    print(f"Dataset written: {result['rows']} rows x {len(result['columns'])} columns -> {result['path']}")
 
 
 # ── main ─────────────────────────────────────────────────────────────────────

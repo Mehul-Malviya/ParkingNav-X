@@ -102,7 +102,8 @@
 - [x] **ML dataset export (leak-free) delivered to Member 2**  
   → Dataset schema: 20-column CSV with 5-min resolution  
   → No leakage: features use only past/current, targets shifted forward (t+15, t+30)  
-  → Generator: `python -m simulation.cli make-dataset --scenarios E1,E2 --seeds 0-29`  
+  → Generator: `python -m digital_twin.simulation.cli make-dataset --campus vitap --scenarios E1_normal_day,E2_event_placement --seeds 0-29 --output data/ml_dataset.csv`  
+    *Verified on a 2-seed slice (800 rows, 9 columns). The export always uses B1 FirstAvailable.*  
   → Test: `test_phase9_interfaces.py::test_ml_dataset_schema()`
 
 - [x] **StateSnapshot + fork delivered to Member 3**  
@@ -142,7 +143,7 @@
 
 ### Testing & Coverage
 - [x] **≥ 60 tests, ≥ 85% coverage, CI green**  
-  → **190 tests collected** (175 passed, 15 skipped, 0 failed; see TEST SUMMARY below)  
+  → **191 tests collected** (176 passed, 15 skipped, 0 failed; see TEST SUMMARY below)  
   → **Coverage target:** ≥ 85% on `digital_twin/simulation/`  
   → Run: `pytest tests/ --cov=digital_twin --cov-report=html`  
   → CI ready for GitHub Actions on every PR
@@ -159,8 +160,10 @@
 
 ### Reproducibility & Finality
 - [x] **Every result in the final deck is regenerable by one command from stored configs + seeds**  
-  → Command: `pytest tests/ -v` (162 tests across all scenarios and strategies)  
-  → Or: `python -m simulation.batch_run --scenarios E1-E7 --seeds 0-29 --strategies B1,B2`  
+  → Tests: `pytest tests/ -q` (191 collected: 176 passed, 15 skipped)  
+  → Batch: `python scripts/run_batch.py --scenarios all --seeds 0-29 --strategies B1,B2`, then `python scripts/generate_results_summary.py` (table in `docs/member1/results_summary.md`)  
+    *Caveat: `--scenarios all` (including the E6 ablation yamls) has not been run end-to-end yet; `run_batch.py` was only smoke-tested on E1, and the 30-seed batches for the other scenarios were run with an equivalent ad-hoc script.*  
+  → Single run: `python -m digital_twin.simulation.cli run --campus vitap --scenario E1_normal_day --strategy nearest --seed 7 --verbose`  
   → All results: SHA256 deterministic, config hash + git commit in manifest  
   → No hand-edited metrics, no missing data infill, all regenerable ✓
 
@@ -193,7 +196,7 @@ See: `docs/member1/viva.md`
 ## 📋 TEST SUMMARY
 
 ```
-Total Tests: 190 collected (175 passed, 15 skipped, 0 failed)
+Total Tests: 191 collected (176 passed, 15 skipped, 0 failed)
 ├── Part 1: Campus Config (13)
 ├── Part 2: Campus Graph (7)
 ├── Part 3: Event Demand (5)
@@ -214,7 +217,7 @@ Total Tests: 190 collected (175 passed, 15 skipped, 0 failed)
 └── Scalability (7)
 ```
 
-0 failed (175 passed, 15 skipped) ✅
+0 failed (176 passed, 15 skipped) ✅
 
 **Note — E7 test coverage (15 tests) is currently skipped.** These tests require `synthetic_observations.csv` / `sample_observations.csv`, which don't exist yet. E7 (real-data counterfactual replay) depends on the Phase 1.4 observation sessions being completed first (see `observation_plan.md`). These tests will be unskipped once real observation data is collected.
 

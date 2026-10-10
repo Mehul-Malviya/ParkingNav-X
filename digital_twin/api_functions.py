@@ -314,7 +314,7 @@ def make_dataset(campus_id: str, scenario_paths: list, seeds: list, output_path:
                     "wait_time_min": v.get("waiting_time_seconds", 0) / 60.0,
                     "final_state": v.get("final_state"),
                     "complied": v.get("complied"),
-                    "travel_distance_m": v.get("outbound_distance_meters", 0),
+                    "travel_distance_m": v.get("travel_distance_meters", 0),
                 })
 
     columns = list(rows[0].keys()) if rows else []
