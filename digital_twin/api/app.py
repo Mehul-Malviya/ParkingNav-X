@@ -5,7 +5,7 @@ VIT-AP University Smart Parking Digital Twin
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, Path as PathParam
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -18,7 +18,7 @@ from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvai
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DB_PATH = ROOT / "digital_twin.db"
-CAMPUS_YAML = ROOT / "configs" / "campuses" / "vitap.yaml"
+CAMPUS_YAML = ROOT / "configs" / "campus" / "vitap.yaml"
 SCENARIO_DIR = ROOT / "configs" / "scenarios" / "vitap"
 
 app = FastAPI(
@@ -52,8 +52,26 @@ def get_conn():
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class SimulateRequest(BaseModel):
-    scenario: str = "peak_hour"
+    scenario: str = "S2_peak_hour"
     strategy: str = "P"
+
+
+SIMULATE_EXAMPLES = {
+    "e1_b1": {"summary": "E1_normal_day + B1 (First Available)", "value": {"scenario": "E1_normal_day", "strategy": "B1"}},
+    "s2_b2": {"summary": "S2_peak_hour + B2 (Nearest Available)", "value": {"scenario": "S2_peak_hour", "strategy": "B2"}},
+    "e4_b2": {"summary": "E4_gate_closure + B2 (Nearest Available)", "value": {"scenario": "E4_gate_closure", "strategy": "B2"}},
+    "full_b1": {"summary": "parking_full + B1 (First Available)", "value": {"scenario": "parking_full", "strategy": "B1"}},
+    "e2_b2": {"summary": "E2_event_placement + B2 (Nearest Available)", "value": {"scenario": "E2_event_placement", "strategy": "B2"}},
+}
+
+
+COMPARE_EXAMPLES = {
+    "e1": {"summary": "E1_normal_day", "value": "E1_normal_day"},
+    "s2": {"summary": "S2_peak_hour", "value": "S2_peak_hour"},
+    "e4": {"summary": "E4_gate_closure", "value": "E4_gate_closure"},
+    "full": {"summary": "parking_full", "value": "parking_full"},
+    "e2": {"summary": "E2_event_placement", "value": "E2_event_placement"},
+}
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -109,12 +127,17 @@ def list_strategies():
 
 
 @app.post("/simulate", tags=["Simulation"])
-def simulate(req: SimulateRequest):
+def simulate(req: SimulateRequest = Body(openapi_examples=SIMULATE_EXAMPLES)):
     """
     Run a parking simulation scenario with a chosen strategy.
 
-    - **scenario**: e.g. `peak_hour`, `E1_normal_day`, `parking_full`, `E4_gate_closure`
-    - **strategy**: `B1`, `B2`, `B3`, or `P`
+    Pick an example from the dropdown above the request body, or send your own:
+
+    - `{"scenario": "E1_normal_day", "strategy": "B1"}`
+    - `{"scenario": "S2_peak_hour", "strategy": "B2"}`
+    - `{"scenario": "E4_gate_closure", "strategy": "B2"}`
+    - `{"scenario": "parking_full", "strategy": "B1"}`
+    - `{"scenario": "E2_event_placement", "strategy": "B2"}`
     """
     scenario_file = SCENARIO_DIR / f"{req.scenario}.yaml"
     if not scenario_file.exists():
@@ -154,11 +177,13 @@ def simulate(req: SimulateRequest):
 
 
 @app.get("/compare/{scenario}", tags=["Simulation"])
-def compare_strategies(scenario: str):
+def compare_strategies(scenario: str = PathParam(openapi_examples=COMPARE_EXAMPLES)):
     """
     Run all 4 strategies on a scenario and return side-by-side comparison.
 
-    - **scenario**: e.g. `peak_hour`, `E1_normal_day`, `parking_full`
+    Pick a scenario from the dropdown, or type any name from `/scenarios`.
+
+    Scenarios: `E1_normal_day`, `S2_peak_hour`, `E4_gate_closure`, `parking_full`, `E2_event_placement`
     """
     scenario_file = SCENARIO_DIR / f"{scenario}.yaml"
     if not scenario_file.exists():
