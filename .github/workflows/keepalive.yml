@@ -10,4 +10,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping backend
-        run: curl -fsS -m 90 --retry 3 --retry-delay 10 https://parkingnav-x.onrender.com/ || true
+        run: curl -fsS -m 90 --retry 3 --retry-delay 10 https://parkingnav-x-isgs.onrender.com/ || true

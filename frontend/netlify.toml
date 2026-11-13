@@ -5,7 +5,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://parkingnav-x.onrender.com/:splat"
+  to = "https://parkingnav-x-isgs.onrender.com/:splat"
   status = 200
 
 [[redirects]]
