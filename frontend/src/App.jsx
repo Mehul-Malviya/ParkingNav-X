@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import CampusMap from './components/CampusMap'
 import ForecastPanel from './components/ForecastPanel'
 import ScenarioControls from './components/ScenarioControls'
@@ -20,6 +20,12 @@ const TABS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState('map')
   const [pendingDest, setPendingDest] = useState(null)
+  const [waking, setWaking] = useState(false)
+  useEffect(() => {
+    const h = (e) => setWaking(!!e.detail)
+    window.addEventListener('api-waking', h)
+    return () => window.removeEventListener('api-waking', h)
+  }, [])
 
   const handleNavigateTo = (dest) => {
     setPendingDest(dest)
@@ -28,6 +34,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {waking && (
+        <div className="bg-yellow-100 text-yellow-900 text-sm text-center py-2">
+          Waking up the server (free hosting sleeps when idle) — this can take up to a minute…
+        </div>
+      )}
       {/* Header */}
       <header className="bg-vitap-blue text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">

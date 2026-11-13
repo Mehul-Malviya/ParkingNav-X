@@ -2,6 +2,32 @@ import axios from 'axios'
 
 const BASE = '/api'
 
+// Render's free tier sleeps when idle and takes ~50s to wake; the host proxy answers 502/503/504 meanwhile.
+// Retry idempotent GETs while it wakes and tell the UI (window 'api-waking' event) so it can show a banner.
+const WAKE_STATUS = [502, 503, 504]
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+let waking = false
+const setWaking = (v) => {
+  if (waking === v) return
+  waking = v
+  try { window.dispatchEvent(new CustomEvent('api-waking', { detail: v })) } catch { /* non-browser */ }
+}
+axios.interceptors.response.use(
+  (res) => { setWaking(false); return res },
+  async (err) => {
+    const cfg = err.config
+    const wakingUp = !err.response || WAKE_STATUS.includes(err.response.status)
+    if (cfg && wakingUp && (cfg.method || 'get').toLowerCase() === 'get' && (cfg.__retries || 0) < 12) {
+      cfg.__retries = (cfg.__retries || 0) + 1
+      setWaking(true)
+      await sleep(5000)
+      return axios(cfg)
+    }
+    setWaking(false)
+    throw err
+  },
+)
+
 // Write key for a live deployment (PARKINGNAV_API_KEY on the server); kept for this browser tab only.
 export const getWriteKey = () => { try { return sessionStorage.getItem('writeKey') || '' } catch { return '' } }
 export const setWriteKey = (k) => { try { sessionStorage.setItem('writeKey', k) } catch { /* private mode */ } }
