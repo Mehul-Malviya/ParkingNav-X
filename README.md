@@ -86,9 +86,15 @@ docker compose up --build
 
 ## Campus: VIT-AP University
 
-- **Gates**: Main Gate (16.4912°N, 80.5018°E), Visitor Gate (16.4895°N, 80.4960°E)
+- **Gates**: Main Gate and Alternative (Visitor) Gate
 - **Parking Lots**: Academic Main (120), Hostel (180), Admin/Visitor (80), Sports (100), Overflow (60)
 - **Total Capacity**: 540 spaces (usable: 472)
+- **Coordinates**: `configs/campus/vitap.yaml` is the single source of truth (YAML → SQLite → `/campus` → map). Never copy coordinates into code or docs, and don't hand-edit them: the file is generated from `configs/campus/vitap_calibration.yaml` + the committed OpenStreetMap extract `data/osm/vitap_osm_extract.json` by `python scripts/calibrate_campus_from_osm.py --apply` (refresh the extract with `scripts/fetch_osm_extract.py`). Map data © OpenStreetMap contributors (ODbL).
+- **Exact vs approximate**: every node carries `coordinate_source`. `osm_way:<id>` / `osm_relation:<id>` = exact (OpenStreetMap). `image_calibrated` = **approximate ±25 m** (gates, four of the five lots, Library, Sports Complex), read off a reference map image, **not GPS-surveyed**. The UI marks approximate points with a dashed dot, a "≈" label and an accuracy ring. Only the Overflow lot has a real footprint; other `boundary_polygon` values are placeholders and are not drawn.
+- **AP-2 is removed** (config, roads, edges, DB, API, UI): no OSM building and no reference coordinates. Removing a destination shifts the seeded simulation draws, so re-running experiments gives different numbers than the committed results. MH-5, MH-4, LH-2 and the new LH-3 are exact OSM buildings (multipolygon relations).
+- **LH-3** is excluded from seeded simulation demand (`include_in_simulation: false`): the engine draws vehicle destinations from the destinations table, so adding one shifts every committed result. Its two roads have weights derived from OSM geometry (0.8 s/m); all other weights are unchanged.
+- **Roads**: geometry follows real OSM roads, but `length_meters` / travel times are the original values and are **not** recalibrated to it (see `docs/road_length_discrepancies.md`, `docs/map_calibration.md`).
+- **Convention**: `latitude`/`longitude` in config and DB, `{lat, lng}` in the API, `[lat, lng]` for Leaflet. Never `[lng, lat]`.
 
 ## API Endpoints
 

@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import {
   MapContainer, TileLayer, Marker, Popup, Circle,
-  Tooltip, Polyline, useMap,
+  Tooltip, Polyline, Polygon, useMap,
 } from 'react-leaflet'
 import L from 'leaflet'
 import { api } from '../api'
+import ForecastBasis from './ForecastBasis'
+import { FALLBACK_CENTER, FALLBACK_ZOOM, boundsOf, isCoord, pointLabelIcon, positionNote, splitAccess } from '../mapConfig'
 import 'leaflet/dist/leaflet.css'
 
 // Fix Leaflet default icon
@@ -14,9 +16,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
-
-// VIT-AP approximate center
-const VITAP_CENTER = [16.4935, 80.4995]
 
 function fillColor(rate) {
   if (rate >= 0.90) return '#ef4444'
@@ -35,8 +34,21 @@ function categoryColor(cat) {
   return '#6b7280'
 }
 
-function categoryIcon(cat, name) {
-  const color = categoryColor(cat)
+// Dashed ring whose radius is the real positional uncertainty (metres), only for
+// approximate points. Leaflet sizes Circle in metres, so it scales with zoom.
+function AccuracyRing({ item }) {
+  if (!isCoord(item) || item.exact || !item.accuracy_m) return null
+  return (
+    <Circle
+      center={[item.lat, item.lng]}
+      radius={item.accuracy_m}
+      interactive={false}
+      pathOptions={{ color: '#6b7280', weight: 1, dashArray: '3 4', fillColor: '#9ca3af', fillOpacity: 0.08 }}
+    />
+  )
+}
+
+function categoryIcon(cat, name, approximate) {
   const emoji = cat?.includes('hostel') ? '🏠'
     : cat?.includes('academic') ? '🎓'
     : cat?.includes('food') || cat?.includes('cafeteria') ? '🍽️'
@@ -44,40 +56,40 @@ function categoryIcon(cat, name) {
     : cat?.includes('admin') ? '🏛️'
     : cat?.includes('library') ? '📚'
     : '📍'
-  return L.divIcon({
-    html: `<div style="background:${color};color:white;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:bold;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.3);">${emoji} ${name.length > 12 ? name.slice(0, 12) + '…' : name}</div>`,
-    className: '',
-    iconAnchor: [40, 10],
+  return pointLabelIcon({
+    label: `${emoji} ${name.length > 12 ? name.slice(0, 12) + '…' : name}`,
+    color: categoryColor(cat),
+    approximate,
   })
 }
 
-function gateIcon(name, status) {
-  return L.divIcon({
-    html: `<div style="background:#003087;color:white;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:bold;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.4);">${status === 'open' ? '🚗' : '🚫'} ${name}</div>`,
-    className: '',
-    iconAnchor: [40, 12],
+function gateIcon(name, status, approximate) {
+  return pointLabelIcon({
+    label: `${status === 'open' ? '🚗' : '🚫'} ${name}`,
+    color: '#003087',
+    emphasis: true,
+    approximate,
   })
 }
 
+// Fits the view to the campus once, and again only if the located features
+// themselves change. campus is re-fetched every 30 s; keying on the bounds
+// (not the campus object) stops that refresh from resetting the user's pan/zoom.
 function FitBounds({ campus }) {
   const map = useMap()
+  const pts = boundsOf(campus)
+  const key = JSON.stringify(pts)
   useEffect(() => {
-    if (!campus) return
-    const allPts = [
-      ...(campus.gates || []).map(g => [g.lat, g.lng]),
-      ...(campus.parking_lots || []).map(l => [l.lat, l.lng]),
-      ...(campus.destinations || []).map(d => [d.lat, d.lng]),
-    ].filter(([la, lo]) => la && lo)
-    if (allPts.length > 0) {
-      map.fitBounds(allPts, { padding: [30, 30] })
-    }
-  }, [campus, map])
+    if (pts.length > 0) map.fitBounds(pts, { padding: [30, 30] })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, map])
   return null
 }
 
 export default function CampusMap({ onNavigateTo }) {
   const [campus, setCampus] = useState(null)
   const [predictions, setPredictions] = useState([])
+  const [forecastBasis, setForecastBasis] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -110,6 +122,7 @@ export default function CampusMap({ onNavigateTo }) {
 
       if (predictionResult.status === 'fulfilled') {
         setPredictions(predictionResult.value.data.predictions ?? [])
+        setForecastBasis(predictionResult.value.data.forecast_basis ?? null)
       } else {
         setPredictions([])
         errors.push(
@@ -173,32 +186,49 @@ export default function CampusMap({ onNavigateTo }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Map */}
         <div className="lg:col-span-2 rounded-lg overflow-hidden border border-gray-200 shadow" style={{ height: 480 }}>
-          <MapContainer center={VITAP_CENTER} zoom={16} style={{ height: '100%', width: '100%' }}>
+          <MapContainer center={FALLBACK_CENTER} zoom={FALLBACK_ZOOM} style={{ height: '100%', width: '100%' }}>
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {campus && <FitBounds campus={campus} />}
 
-            {/* Road network */}
+            {/* Road network. Stretches not on a mapped road (access links) are dotted. */}
             {showRoads && roadLines.map(road => {
               const positions = road.geometry.map(pt => [pt.lat, pt.lng])
+              const { startLink, main, endLink } = splitAccess(
+                positions, road.access_start_m || 0, road.access_end_m || 0)
               const isDrive = road.is_driveable
+              const color = isDrive ? '#3b82f6' : '#94a3b8'
               return (
-                <Polyline
-                  key={road.id}
-                  positions={positions}
-                  pathOptions={{
-                    color: isDrive ? '#3b82f6' : '#94a3b8',
-                    weight: isDrive ? 3 : 1.5,
-                    opacity: isDrive ? 0.7 : 0.5,
-                    dashArray: isDrive ? null : '4 4',
-                  }}
-                >
-                  <Tooltip sticky>
-                    <span className="text-xs">{road.name} · {road.length_meters}m · {Math.round(road.travel_time_seconds/60)}min</span>
-                  </Tooltip>
-                </Polyline>
+                <React.Fragment key={road.id}>
+                  {main.length >= 2 && (
+                    <Polyline
+                      positions={main}
+                      pathOptions={{
+                        color,
+                        weight: isDrive ? 3 : 1.5,
+                        opacity: isDrive ? 0.7 : 0.5,
+                        dashArray: isDrive ? null : '4 4',
+                      }}
+                    >
+                      <Tooltip sticky>
+                        <span className="text-xs">{road.name} · {road.length_meters}m · {Math.round(road.travel_time_seconds/60)}min</span>
+                      </Tooltip>
+                    </Polyline>
+                  )}
+                  {[startLink, endLink].map((link, i) => link.length >= 2 && (
+                    <Polyline
+                      key={`${road.id}-access-${i}`}
+                      positions={link}
+                      pathOptions={{ color: '#64748b', weight: 2, opacity: 0.9, dashArray: '1 6', lineCap: 'round' }}
+                    >
+                      <Tooltip sticky>
+                        <span className="text-xs">Access link: no mapped road here ({road.name})</span>
+                      </Tooltip>
+                    </Polyline>
+                  ))}
+                </React.Fragment>
               )
             })}
 
@@ -210,72 +240,106 @@ export default function CampusMap({ onNavigateTo }) {
               />
             )}
 
-            {/* Parking lot circles */}
+            {/* Parking lots. A lot with a real (OpenStreetMap) footprint is drawn as that footprint
+                only; a 55 m circle would cover the footprints and the nearby gate. Lots without a
+                footprint get a circle at their (approximate) centre. Placeholder boxes are never drawn. */}
             {(campus?.parking_lots || []).map(lot => {
               const pred = predMap[lot.id]
               const fill = pred ? pred.predicted_fill_rate : 0.4
+              const shortName = lot.name.replace(' Lot', '').replace(' Parking', '')
+              const label = (
+                <div className="text-xs font-semibold">
+                  {shortName}<br />
+                  <span style={{ color: fillColor(fill) }}>{(fill * 100).toFixed(0)}%</span>
+                </div>
+              )
+              const popup = (
+                <div className="text-sm min-w-40">
+                  <strong className="text-blue-800">{lot.name}</strong><br />
+                  <span className="text-gray-500">Status: </span>
+                  <span className={lot.status === 'open' ? 'text-green-600' : 'text-red-600'}>{lot.status}</span><br />
+                  Usable: <strong>{lot.usable_capacity}</strong> spaces<br />
+                  Forecast (15m): <strong style={{ color: fillColor(fill) }}>{(fill * 100).toFixed(1)}%</strong><br />
+                  {pred && (
+                    <>
+                      90% CI: [{(pred.lower_90 * 100).toFixed(0)}%, {(pred.upper_90 * 100).toFixed(0)}%]<br />
+                      Model: <em>{pred.model || '—'}</em><br />
+                      {pred.proactive_alert && <span className="text-red-600 font-bold">⚠️ OVERFLOW RISK</span>}
+                    </>
+                  )}
+                  <div className="mt-1 text-xs text-gray-400">[SYNTHETIC data — not real occupancy]</div>
+                  <div className="mt-1 text-xs text-gray-500">{positionNote(lot)}</div>
+                </div>
+              )
+              const hasFootprint = (lot.boundary || []).length > 0
               return (
-                <Circle
-                  key={lot.id}
-                  center={[lot.lat, lot.lng]}
-                  radius={55}
-                  pathOptions={{
-                    fillColor: fillColor(fill),
-                    fillOpacity: 0.8,
-                    color: fill >= 0.90 ? '#dc2626' : '#1d4ed8',
-                    weight: 2.5,
-                  }}
-                >
-                  <Tooltip permanent direction="top" offset={[0, -22]}>
-                    <div className="text-xs font-semibold">
-                      {lot.name.replace(' Lot', '').replace(' Parking', '')}<br />
-                      <span style={{ color: fillColor(fill) }}>{(fill * 100).toFixed(0)}%</span>
-                    </div>
-                  </Tooltip>
-                  <Popup>
-                    <div className="text-sm min-w-40">
-                      <strong className="text-blue-800">{lot.name}</strong><br />
-                      <span className="text-gray-500">Status: </span>
-                      <span className={lot.status === 'open' ? 'text-green-600' : 'text-red-600'}>{lot.status}</span><br />
-                      Usable: <strong>{lot.usable_capacity}</strong> spaces<br />
-                      Forecast (15m): <strong style={{ color: fillColor(fill) }}>{(fill * 100).toFixed(1)}%</strong><br />
-                      {pred && (
-                        <>
-                          90% CI: [{(pred.lower_90 * 100).toFixed(0)}%, {(pred.upper_90 * 100).toFixed(0)}%]<br />
-                          Model: <em>{pred.model || '—'}</em><br />
-                          {pred.proactive_alert && <span className="text-red-600 font-bold">⚠️ OVERFLOW RISK</span>}
-                        </>
-                      )}
-                      <div className="mt-1 text-xs text-gray-400">[SYNTHETIC data — not real occupancy]</div>
-                    </div>
-                  </Popup>
-                </Circle>
+                <React.Fragment key={lot.id}>
+                  {hasFootprint ? (
+                    // Each footprint carries its own label, placed below it (away from any gate above).
+                    lot.boundary.map((ring, i) => (
+                      <Polygon
+                        key={`${lot.id}-b${i}`}
+                        positions={ring.map(p => [p.lat, p.lng])}
+                        pathOptions={{
+                          color: fill >= 0.90 ? '#dc2626' : '#1d4ed8',
+                          weight: 2.5,
+                          fillColor: fillColor(fill),
+                          fillOpacity: 0.6,
+                        }}
+                      >
+                        <Tooltip permanent direction="bottom" offset={[0, 6]}>{label}</Tooltip>
+                        <Popup>{popup}</Popup>
+                      </Polygon>
+                    ))
+                  ) : (
+                    <>
+                      <AccuracyRing item={lot} />
+                      <Circle
+                        center={[lot.lat, lot.lng]}
+                        radius={55}
+                        pathOptions={{
+                          fillColor: fillColor(fill),
+                          fillOpacity: 0.8,
+                          color: fill >= 0.90 ? '#dc2626' : '#1d4ed8',
+                          weight: 2.5,
+                        }}
+                      >
+                        <Tooltip permanent direction="top" offset={[0, -22]}>{label}</Tooltip>
+                        <Popup>{popup}</Popup>
+                      </Circle>
+                    </>
+                  )}
+                </React.Fragment>
               )
             })}
 
             {/* Gate markers */}
             {(campus?.gates || []).map(gate => (
-              <Marker
-                key={gate.id}
-                position={[gate.lat, gate.lng]}
-                icon={gateIcon(gate.name, gate.status)}
-              >
-                <Popup>
-                  <div className="text-sm">
-                    <strong>{gate.name}</strong><br />
-                    Throughput: {gate.capacity} veh/min<br />
-                    Status: <span className={gate.status === 'open' ? 'text-green-600' : 'text-red-600'}>{gate.status}</span>
-                  </div>
-                </Popup>
-              </Marker>
+              <React.Fragment key={gate.id}>
+                <AccuracyRing item={gate} />
+                <Marker
+                  position={[gate.lat, gate.lng]}
+                  icon={gateIcon(gate.name, gate.status, !gate.exact)}
+                >
+                  <Popup>
+                    <div className="text-sm">
+                      <strong>{gate.name}</strong><br />
+                      Throughput: {gate.capacity} veh/min<br />
+                      Status: <span className={gate.status === 'open' ? 'text-green-600' : 'text-red-600'}>{gate.status}</span>
+                      <div className="mt-1 text-xs text-gray-500">{positionNote(gate)}</div>
+                    </div>
+                  </Popup>
+                </Marker>
+              </React.Fragment>
             ))}
 
             {/* Destination markers */}
-            {showDests && (campus?.destinations || []).map(dest => (
+            {showDests && (campus?.destinations || []).filter(isCoord).map(dest => (
+              <React.Fragment key={dest.id}>
+              <AccuracyRing item={dest} />
               <Marker
-                key={dest.id}
                 position={[dest.lat, dest.lng]}
-                icon={categoryIcon(dest.category, dest.name)}
+                icon={categoryIcon(dest.category, dest.name, !dest.exact)}
               >
                 <Popup>
                   <div className="text-sm min-w-36">
@@ -284,6 +348,7 @@ export default function CampusMap({ onNavigateTo }) {
                     {dest.nearest_lots?.length > 0 && (
                       <span className="text-xs text-gray-400">Nearest lots: {dest.nearest_lots.length}</span>
                     )}
+                    <div className="mt-1 text-xs text-gray-500">{positionNote(dest)}</div>
                     {onNavigateTo && (
                       <button
                         onClick={() => onNavigateTo(dest)}
@@ -295,6 +360,7 @@ export default function CampusMap({ onNavigateTo }) {
                   </div>
                 </Popup>
               </Marker>
+              </React.Fragment>
             ))}
           </MapContainer>
         </div>
@@ -330,6 +396,7 @@ export default function CampusMap({ onNavigateTo }) {
 
           {/* Lot cards */}
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Parking Lots</div>
+          <ForecastBasis basis={forecastBasis} />
           {loading && <div className="text-sm text-gray-400">Loading…</div>}
           {(campus?.parking_lots || []).map(lot => {
             const pred = predMap[lot.id]
@@ -383,6 +450,18 @@ export default function CampusMap({ onNavigateTo }) {
               <div className="flex items-center gap-2 text-gray-600">
                 <div className="w-6 border-t border-dashed border-gray-400 flex-shrink-0" />
                 Walking path
+              </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <div className="w-6 border-t-2 border-dotted border-slate-500 flex-shrink-0" />
+                Access link (no mapped road)
+              </div>
+              <div className="flex items-center gap-2 text-gray-600 mt-1">
+                <div className="w-3 h-3 rounded-full flex-shrink-0 bg-gray-600 border-2 border-white" />
+                Exact position (OpenStreetMap)
+              </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <div className="w-3 h-3 rounded-full flex-shrink-0 bg-white border-2 border-dashed border-gray-600" />
+                ≈ Approximate (±25 m, not surveyed)
               </div>
             </div>
           </div>

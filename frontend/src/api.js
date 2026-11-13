@@ -34,6 +34,7 @@ export const api = {
   optimize:          (scenario = 'E1_normal_day', weight_profile = 'P1') =>
     axios.post(`${BASE}/optimize`, { scenario, weight_profile }),
   getRecommendations: () => axios.get(`${BASE}/recommendations`),
+  getOptimizeProfiles: () => axios.get(`${BASE}/optimize/profiles`),
 
   // Routing
   getRoute:          (origin, destination, mode = 'drive') =>

@@ -264,7 +264,13 @@ def _validate_db_schema(raw: dict) -> list:
             errors.append(f"Road '{road_id}' start_node_id '{start_id}' does not exist in this campus.")
         if end_id not in known_node_ids:
             errors.append(f"Road '{road_id}' end_node_id '{end_id}' does not exist in this campus.")
-        if len(geometry) < 2:
+        if start_id in known_node_ids and end_id in known_node_ids and (
+                node_coords.get(start_id) is None or node_coords.get(end_id) is None):
+            # A node without coordinates (reference data not available yet) cannot be drawn,
+            # so its roads carry no geometry. The routing weights still apply.
+            if geometry:
+                errors.append(f"Road '{road_id}' has geometry but an endpoint has no coordinates.")
+        elif len(geometry) < 2:
             errors.append(
                 f"Road '{road_id}' geometry has fewer than 2 points; a road must have a real walked path, "
                 "not just its two endpoints implied."
@@ -332,67 +338,94 @@ def load_campus_config(path, conn: sqlite3.Connection) -> str:
 
     for g in raw.get("gates", []):
         conn.execute(
-            """INSERT INTO gates (campus_id, gate_id, name, latitude, longitude, capacity, status, metadata, configuration_version)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """INSERT INTO gates (campus_id, gate_id, name, latitude, longitude, capacity, status, metadata,
+                 configuration_version, coordinate_source, coordinate_accuracy_m)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(campus_id, gate_id) DO UPDATE SET
                  name=excluded.name, latitude=excluded.latitude, longitude=excluded.longitude,
                  capacity=excluded.capacity, status=excluded.status, metadata=excluded.metadata,
-                 configuration_version=excluded.configuration_version""",
+                 configuration_version=excluded.configuration_version,
+                 coordinate_source=excluded.coordinate_source,
+                 coordinate_accuracy_m=excluded.coordinate_accuracy_m""",
             (campus_id, g["gate_id"], g["name"], g.get("latitude"), g.get("longitude"),
-             g["capacity"], g.get("status", "open"), json.dumps(g.get("metadata", {})), config_version),
+             g["capacity"], g.get("status", "open"), json.dumps(g.get("metadata", {})), config_version,
+             g.get("coordinate_source"), g.get("coordinate_accuracy_m")),
         )
 
     for r in raw.get("roads", []):
         conn.execute(
             """INSERT INTO roads (campus_id, road_id, name, start_node_id, end_node_id, length_meters,
-                 expected_travel_time_seconds, is_walkable, is_driveable, status, geometry, configuration_version)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 expected_travel_time_seconds, is_walkable, is_driveable, status, geometry, configuration_version,
+                 geometry_source, access_start_m, access_end_m)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(campus_id, road_id) DO UPDATE SET
                  name=excluded.name, start_node_id=excluded.start_node_id, end_node_id=excluded.end_node_id,
                  length_meters=excluded.length_meters, expected_travel_time_seconds=excluded.expected_travel_time_seconds,
                  is_walkable=excluded.is_walkable, is_driveable=excluded.is_driveable, status=excluded.status,
-                 geometry=excluded.geometry, configuration_version=excluded.configuration_version""",
+                 geometry=excluded.geometry, configuration_version=excluded.configuration_version,
+                 geometry_source=excluded.geometry_source,
+                 access_start_m=excluded.access_start_m, access_end_m=excluded.access_end_m""",
             (campus_id, r["road_id"], r["name"], r["start_node_id"], r["end_node_id"], r["length_meters"],
              r.get("expected_travel_time_seconds"), int(r.get("is_walkable", True)), int(r.get("is_driveable", True)),
-             r.get("status", "open"), json.dumps(r["geometry"]), config_version),
+             r.get("status", "open"), json.dumps(r["geometry"]), config_version, r.get("geometry_source"),
+             r.get("access_start_m"), r.get("access_end_m")),
         )
 
     for p in raw.get("parking_lots", []):
         conn.execute(
             """INSERT INTO parking_lots (campus_id, parking_lot_id, name, latitude, longitude, boundary_polygon,
                  zone, status, total_capacity, usable_capacity, reserved_capacity, restricted_capacity,
-                 temporarily_unavailable_capacity, configuration_version)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 temporarily_unavailable_capacity, configuration_version,
+                 coordinate_source, coordinate_accuracy_m, boundary_source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(campus_id, parking_lot_id) DO UPDATE SET
                  name=excluded.name, latitude=excluded.latitude, longitude=excluded.longitude,
                  boundary_polygon=excluded.boundary_polygon, zone=excluded.zone, status=excluded.status,
                  total_capacity=excluded.total_capacity, usable_capacity=excluded.usable_capacity,
                  reserved_capacity=excluded.reserved_capacity, restricted_capacity=excluded.restricted_capacity,
                  temporarily_unavailable_capacity=excluded.temporarily_unavailable_capacity,
-                 configuration_version=excluded.configuration_version""",
+                 configuration_version=excluded.configuration_version,
+                 coordinate_source=excluded.coordinate_source,
+                 coordinate_accuracy_m=excluded.coordinate_accuracy_m,
+                 boundary_source=excluded.boundary_source""",
             (campus_id, p["parking_lot_id"], p["name"], p.get("latitude"), p.get("longitude"),
              json.dumps(p.get("boundary_polygon")) if p.get("boundary_polygon") else None,
              p.get("zone"), p.get("status", "open"), p["total_capacity"], p["usable_capacity"],
              p.get("reserved_capacity", 0), p.get("restricted_capacity", 0),
-             p.get("temporarily_unavailable_capacity", 0), config_version),
+             p.get("temporarily_unavailable_capacity", 0), config_version,
+             p.get("coordinate_source"), p.get("coordinate_accuracy_m"), p.get("boundary_source")),
         )
 
     for d in raw.get("destinations", []):
         conn.execute(
             """INSERT INTO destinations (campus_id, destination_id, name, category, latitude, longitude,
-                 department_names, searchable_aliases, nearest_gate_ids, nearest_parking_lot_ids, configuration_version)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 department_names, searchable_aliases, nearest_gate_ids, nearest_parking_lot_ids, configuration_version,
+                 coordinate_source, coordinate_accuracy_m, simulation_demand)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(campus_id, destination_id) DO UPDATE SET
                  name=excluded.name, category=excluded.category, latitude=excluded.latitude,
                  longitude=excluded.longitude, department_names=excluded.department_names,
                  searchable_aliases=excluded.searchable_aliases, nearest_gate_ids=excluded.nearest_gate_ids,
                  nearest_parking_lot_ids=excluded.nearest_parking_lot_ids,
-                 configuration_version=excluded.configuration_version""",
+                 configuration_version=excluded.configuration_version,
+                 coordinate_source=excluded.coordinate_source,
+                 coordinate_accuracy_m=excluded.coordinate_accuracy_m,
+                 simulation_demand=excluded.simulation_demand""",
             (campus_id, d["destination_id"], d["name"], d.get("category", "other"), d.get("latitude"), d.get("longitude"),
              json.dumps(d.get("department_names")) if d.get("department_names") else None,
              json.dumps(d.get("searchable_aliases", [])), json.dumps(d.get("nearest_gate_ids", [])),
-             json.dumps(d.get("nearest_parking_lot_ids", [])), config_version),
+             json.dumps(d.get("nearest_parking_lot_ids", [])), config_version,
+             d.get("coordinate_source"), d.get("coordinate_accuracy_m"),
+             int(d.get("include_in_simulation", True))),
         )
+
+    # The upserts above never delete. Drop roads/destinations this config no longer lists
+    # (e.g. a destination removed for lack of reference coordinates), otherwise a database
+    # created from an older config keeps serving them with their old positions.
+    for table, id_col, key in (("roads", "road_id", "roads"), ("destinations", "destination_id", "destinations")):
+        keep = [x[id_col] for x in raw.get(key, [])]
+        marks = ",".join("?" * len(keep)) or "NULL"
+        conn.execute(f"DELETE FROM {table} WHERE campus_id = ? AND {id_col} NOT IN ({marks})", (campus_id, *keep))
 
     def _upsert_event(e_campus_id, e):
         conn.execute(

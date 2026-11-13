@@ -22,6 +22,7 @@ from digital_twin.prediction.features import (
     LOT_CAPACITIES, LOT_IDS, build_features, load_data
 )
 
+LIVE_HALF_LIFE_MIN = 60  # how fast an observed deviation from the typical level fades
 _PREDICTOR_SINGLETON: Optional["PredictionEngine"] = None
 _DEMAND_DF = None  # cached DataFrame — loaded once, reused by all predict() calls
 MODEL_DIR = Path(__file__).resolve().parent.parent.parent / "experiments" / "models"
@@ -203,13 +204,24 @@ class PredictionEngine:
         self._current_fills[lot_id] = max(0.0, min(1.0, fill_rate))
         self._ma.update(lot_id, fill_rate)
 
-    def predict(self, lot_id: str, horizon_minutes: int = 15) -> Dict:
+    def predict(self, lot_id: str, horizon_minutes: int = 15, at=None, live_fill=None) -> Dict:
         """
         Predict fill rate at horizon_minutes from now.
         Returns: {fill_rate, lower_90, upper_90, model}
+
+        With no `at` / `live_fill` this is the original static behaviour (the model's input is the
+        last row of the demand data); the simulation relies on that, so it must not change.
+        With `at` (campus-local datetime) the input is the synthetic row for the same weekday and
+        15-minute slot, so the forecast follows the time of day; `live_fill` (a fresh recorded
+        occupancy) replaces the model's own current-fill input.
         """
         if not self._fitted:
             self.fit_all(horizon_steps=max(1, horizon_minutes // 15))
+
+        if at is not None:
+            result = self._predict_for_time(lot_id, horizon_minutes, at, live_fill)
+            if result is not None:
+                return result
 
         # Try XGBoost first
         if lot_id in self._xgb._models:
@@ -231,6 +243,63 @@ class PredictionEngine:
             "upper_90": min(1.0, ma_pred + 0.10),
             "model": "MovingAverage",
         }
+
+    def _slot_table(self, lot_id: str):
+        """(X, weekday, hour, minute) for every usable row of this lot, cached."""
+        cache = self.__dict__.setdefault("_slot_cache", {})
+        if lot_id not in cache:
+            import pandas as pd
+            df = _get_demand_df()
+            lot_df = df[df["lot_id"] == lot_id] if "lot_id" in df.columns else df
+            X, _y, ts = build_features(lot_df, lot_id, 1)  # the models are trained for +15 min
+            idx = pd.DatetimeIndex(ts)
+            typical = lot_df.set_index("timestamp")["fill_rate"].reindex(idx).values  # fill at each row's time
+            cache[lot_id] = (X, idx.dayofweek.values, idx.hour.values, idx.minute.values, typical)
+        return cache[lot_id]
+
+    def _slot_row(self, lot_id: str, when):
+        """Index of the most recent synthetic row for the weekday / 15-min slot of `when`, else None."""
+        X, dow, hour, minute, typical = self._slot_table(lot_id)
+        slot_min = (when.minute // 15) * 15
+        rows = ((dow == when.weekday()) & (hour == when.hour) & (minute == slot_min)).nonzero()[0]
+        return int(rows[-1]) if len(rows) else None
+
+    def _predict_for_time(self, lot_id: str, horizon_minutes: int, at, live_fill) -> Optional[Dict]:
+        """Forecast for `at` + horizon from the synthetic row of the matching weekday/time slot."""
+        if lot_id not in self._xgb._models:
+            return None
+        from datetime import timedelta
+        # The model predicts +15 min from its input row, so the input row is `horizon - 15` ahead.
+        row_time = at + timedelta(minutes=max(0, horizon_minutes - 15))
+        i = self._slot_row(lot_id, row_time)
+        if i is None:
+            return None
+        X, _dow, _hour, _minute, typical = self._slot_table(lot_id)
+        result = self._xgb.predict(lot_id, X[i].copy())   # the model's time-of-day pattern
+        result["model"] = "XGBoost"
+
+        used_live = False
+        if live_fill is not None:
+            j = self._slot_row(lot_id, at)
+            if j is not None and typical[j] == typical[j]:          # not NaN
+                # Observed deviation from the typical level right now, carried forward with a decay
+                # (half-life LIVE_HALF_LIFE_MIN). A heuristic: the model itself ignores its lag inputs.
+                dev = float(live_fill) - float(typical[j])
+                adj = dev * 0.5 ** (horizon_minutes / LIVE_HALF_LIFE_MIN)
+                for key in ("fill_rate", "lower_90", "upper_90"):
+                    result[key] = max(0.0, min(1.0, result[key] + adj))
+                used_live = True
+        days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        result["basis"] = {
+            "mode": "time_of_day",
+            "slot": f"{days[row_time.weekday()]} {row_time.hour:02d}:{(row_time.minute // 15) * 15:02d}",
+            "live_fill_used": used_live,
+        }
+        return result
+
+    def bind(self, at=None, live_fills: Optional[Dict[str, float]] = None) -> "BoundPredictor":
+        """A view of this engine with a fixed time and live fills, same interface as the engine."""
+        return BoundPredictor(self, at, live_fills or {})
 
     def predict_all(self, horizon_minutes: int = 15) -> Dict[str, Dict]:
         """Predict all lots at once."""
@@ -255,3 +324,76 @@ def get_predictor() -> PredictionEngine:
         _PREDICTOR_SINGLETON = PredictionEngine()
         _PREDICTOR_SINGLETON.fit_all()
     return _PREDICTOR_SINGLETON
+
+
+class BoundPredictor:
+    """PredictionEngine with `at` / live fills fixed, so callers that only know predict()/predict_all()
+    (risk engine, optimizer) get time-aware forecasts without any change."""
+
+    def __init__(self, engine: PredictionEngine, at, live_fills: Dict[str, float]):
+        self._e, self._at, self._live = engine, at, live_fills
+
+    def predict(self, lot_id: str, horizon_minutes: int = 15) -> Dict:
+        return self._e.predict(lot_id, horizon_minutes, at=self._at, live_fill=self._live.get(lot_id))
+
+    def predict_all(self, horizon_minutes: int = 15) -> Dict[str, Dict]:
+        return {lid: self.predict(lid, horizon_minutes) for lid in LOT_IDS}
+
+    def get_forecast_snapshot(self, horizon_minutes: int = 15) -> Dict:
+        preds = self.predict_all(horizon_minutes)
+        return {
+            "lot_fill_rates": {lid: preds[lid]["fill_rate"] for lid in LOT_IDS},
+            "lot_fill_rates_upper": {lid: preds[lid].get("upper_90", preds[lid]["fill_rate"]) for lid in LOT_IDS},
+            "horizon_minutes": horizon_minutes,
+            "timestamp": time.time(),
+        }
+
+
+CAMPUS_TZ = "Asia/Kolkata"          # campus timezone (configs/campus/vitap.yaml)
+LIVE_MAX_AGE_MIN = 30               # an occupancy reading older than this is not "live"
+
+
+def campus_now():
+    """Current campus-local wall-clock time as a naive datetime."""
+    from datetime import datetime, timedelta, timezone
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo(CAMPUS_TZ)
+    except Exception:
+        tz = timezone(timedelta(hours=5, minutes=30))
+    return datetime.now(tz).replace(tzinfo=None)
+
+
+def fresh_live_fills(conn) -> Dict[str, float]:
+    """Latest recorded fill per lot, only if recorded within LIVE_MAX_AGE_MIN minutes."""
+    out: Dict[str, float] = {}
+    try:
+        caps = {r[0]: r[1] for r in conn.execute(
+            "SELECT parking_lot_id, usable_capacity FROM parking_lots WHERE campus_id='vitap'").fetchall()}
+        for lot_id in LOT_IDS:
+            row = conn.execute(
+                """SELECT occupied_spaces, (julianday('now') - julianday(recorded_at)) * 1440.0
+                   FROM lot_occupancy_history WHERE lot_id=? ORDER BY recorded_at DESC LIMIT 1""",
+                (lot_id,)).fetchone()
+            if row and row[1] is not None and row[1] <= LIVE_MAX_AGE_MIN and caps.get(lot_id, 0) > 0:
+                out[lot_id] = min(1.0, row[0] / caps[lot_id])
+    except Exception:
+        pass
+    return out
+
+
+def forecast_context(conn, as_of=None):
+    """(bound predictor, basis dict) for API use. `as_of` is an optional campus-local datetime/ISO string."""
+    from datetime import datetime
+    at = campus_now()
+    if as_of:
+        at = as_of if isinstance(as_of, datetime) else datetime.fromisoformat(str(as_of))
+    live = {} if as_of else fresh_live_fills(conn)   # a what-if time must not mix in today's live data
+    basis = {
+        "mode": "time_of_day",
+        "as_of": at.isoformat(timespec="minutes"),
+        "timezone": CAMPUS_TZ,
+        "live_lots": sorted(live),
+        "data": "synthetic daily pattern",
+    }
+    return get_predictor().bind(at=at, live_fills=live), basis
