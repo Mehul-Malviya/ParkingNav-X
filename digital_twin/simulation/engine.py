@@ -965,7 +965,7 @@ class SimulationEngine:
 
     @staticmethod
     def _load_destination_ids(campus_id, conn) -> list:
-        return [row["destination_id"] for row in conn.execute("SELECT destination_id FROM destinations WHERE campus_id=?", (campus_id,))]
+        return [row["destination_id"] for row in conn.execute("SELECT destination_id FROM destinations WHERE campus_id=? AND simulation_demand=1", (campus_id,))]
 
     @staticmethod
     def _route_target(destination_id, destinations, parking_lots, open_lot_ids):

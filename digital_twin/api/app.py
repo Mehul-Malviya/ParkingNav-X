@@ -4,6 +4,7 @@ VIT-AP University Smart Parking Digital Twin
 """
 import json
 import math
+import re
 import statistics
 import uuid
 from pathlib import Path
@@ -78,6 +79,57 @@ def _build_graph(conn):
     return _graph_service.build_graph("vitap", conn)
 
 
+def _provenance(source, accuracy_m):
+    """How a coordinate was obtained. exact == taken from an OpenStreetMap way."""
+    return {
+        "coordinate_source": source,
+        "accuracy_m": accuracy_m,
+        "exact": bool(source and source.startswith(("osm_way", "osm_relation"))),
+    }
+
+
+def _parse_boundary(raw):
+    """Stored boundary_polygon (JSON string of lat-first POLYGON/MULTIPOLYGON text)
+    -> list of rings, each a list of {"lat", "lng"}."""
+    if not raw:
+        return []
+    text = json.loads(raw) if raw.startswith('"') else raw
+    rings = []
+    for ring in re.findall(r"\(([^()]+)\)", text):
+        pts = []
+        for pair in ring.split(","):
+            lat, lng = pair.split()
+            pts.append({"lat": float(lat), "lng": float(lng)})
+        rings.append(pts)
+    return rings
+
+
+def _route_geometry(graph, path):
+    """Polyline for a routed path, as [{"lat", "lng"}, ...].
+
+    Follows each traversed road's own geometry (the same polyline /campus draws),
+    so a highlighted route lies on the roads instead of cutting straight between
+    node centres. Falls back to node coordinates where a road has no geometry.
+    """
+    points = []
+
+    def _add(lat, lng):
+        if lat is None or lng is None:
+            return
+        pt = {"lat": lat, "lng": lng}
+        if not points or points[-1] != pt:
+            points.append(pt)
+
+    for i, node_id in enumerate(path):
+        if i > 0:
+            edge = graph.edges[path[i - 1], node_id]
+            for p in edge.get("geometry") or []:
+                _add(p["lat"], p["lng"])
+        nd = graph.nodes[node_id]
+        _add(nd.get("latitude"), nd.get("longitude"))
+    return points
+
+
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class SimulateRequest(BaseModel):
@@ -146,16 +198,20 @@ def get_campus():
     """Return VIT-AP campus summary: gates, parking lots, roads, destinations."""
     conn = get_conn()
     gates = conn.execute(
-        "SELECT gate_id, name, latitude, longitude, capacity, status FROM gates WHERE campus_id='vitap'"
+        "SELECT gate_id, name, latitude, longitude, capacity, status, coordinate_source, coordinate_accuracy_m "
+        "FROM gates WHERE campus_id='vitap'"
     ).fetchall()
     lots = conn.execute(
-        "SELECT parking_lot_id, name, latitude, longitude, total_capacity, usable_capacity, status FROM parking_lots WHERE campus_id='vitap'"
+        "SELECT parking_lot_id, name, latitude, longitude, total_capacity, usable_capacity, status, "
+        "coordinate_source, coordinate_accuracy_m, boundary_polygon, boundary_source "
+        "FROM parking_lots WHERE campus_id='vitap'"
     ).fetchall()
     roads = conn.execute(
-        "SELECT road_id, name, start_node_id, end_node_id, length_meters, expected_travel_time_seconds, is_walkable, is_driveable, status, geometry FROM roads WHERE campus_id='vitap'"
+        "SELECT road_id, name, start_node_id, end_node_id, length_meters, expected_travel_time_seconds, is_walkable, is_driveable, status, geometry, geometry_source, access_start_m, access_end_m FROM roads WHERE campus_id='vitap'"
     ).fetchall()
     dests = conn.execute(
-        "SELECT destination_id, name, category, latitude, longitude, nearest_parking_lot_ids FROM destinations WHERE campus_id='vitap'"
+        "SELECT destination_id, name, category, latitude, longitude, nearest_parking_lot_ids, "
+        "coordinate_source, coordinate_accuracy_m FROM destinations WHERE campus_id='vitap'"
     ).fetchall()
 
     return {
@@ -163,12 +219,17 @@ def get_campus():
         "name": "VIT-AP University",
         "location": "Amaravati, Andhra Pradesh, India",
         "gates": [
-            {"id": r[0], "name": r[1], "lat": r[2], "lng": r[3], "capacity": r[4], "status": r[5]}
+            {"id": r[0], "name": r[1], "lat": r[2], "lng": r[3], "capacity": r[4], "status": r[5],
+             **_provenance(r[6], r[7])}
             for r in gates
         ],
         "parking_lots": [
             {"id": r[0], "name": r[1], "lat": r[2], "lng": r[3],
-             "total_capacity": r[4], "usable_capacity": r[5], "status": r[6]}
+             "total_capacity": r[4], "usable_capacity": r[5], "status": r[6],
+             **_provenance(r[7], r[8]),
+             "boundary_source": r[10],
+             # Only a real footprint is exposed as a boundary; a "placeholder" box is not drawn as one.
+             "boundary": _parse_boundary(r[9]) if r[10] and r[10].startswith("osm_way") else []}
             for r in lots
         ],
         "roads": [
@@ -179,6 +240,10 @@ def get_campus():
                 "is_walkable": bool(r[6]), "is_driveable": bool(r[7]),
                 "status": r[8],
                 "geometry": json.loads(r[9]) if r[9] else [],
+                "geometry_source": r[10],
+                # metres at each end that are not on a mapped road (drawn dotted by the UI)
+                "access_start_m": r[11],
+                "access_end_m": r[12],
             }
             for r in roads
         ],
@@ -187,6 +252,7 @@ def get_campus():
                 "id": r[0], "name": r[1], "category": r[2],
                 "lat": r[3], "lng": r[4],
                 "nearest_lots": json.loads(r[5]) if r[5] else [],
+                **_provenance(r[6], r[7]),
             }
             for r in dests
         ],
@@ -380,7 +446,13 @@ def compare_strategies(scenario: str):
         sc = ScenarioLoader.load(scenario_file)
         engine = SimulationEngine()
         run_id = f"api-cmp-{uuid.uuid4().hex[:6]}"
-        result = engine.run(sc, strategy, conn, run_id=run_id)
+        try:
+            result = engine.run(sc, strategy, conn, run_id=run_id)
+        except Exception as e:  # surface the real cause to the UI instead of a bare 500
+            raise HTTPException(
+                status_code=500,
+                detail=f"Strategy {code} failed on '{scenario}': {type(e).__name__}: {e}",
+            )
         m = result.metrics
         results[code] = {
             "overflow_events":     m.get("overflow_events_count"),
@@ -461,12 +533,7 @@ def get_route(origin: str, destination: str, mode: str = "drive"):
     except nx.NodeNotFound as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    # Build geometry from path nodes
-    geometry = []
-    for node_id in path:
-        nd = graph.nodes[node_id]
-        if nd.get("latitude") and nd.get("longitude"):
-            geometry.append({"lat": nd["latitude"], "lng": nd["longitude"]})
+    geometry = _route_geometry(graph, path)
 
     # Build segment list
     segments = []
@@ -556,11 +623,7 @@ def find_parking(destination_id: str, gate_id: str = "vitap-gate-main"):
             path = nx.dijkstra_path(filtered, origin, dest, weight="weight_time_seconds")
             t = nx.dijkstra_path_length(filtered, origin, dest, weight="weight_time_seconds")
             d = nx.dijkstra_path_length(filtered, origin, dest, weight="weight_distance_meters")
-            geo = []
-            for n in path:
-                nd = graph.nodes[n]
-                if nd.get("latitude") and nd.get("longitude"):
-                    geo.append({"lat": nd["latitude"], "lng": nd["longitude"]})
+            geo = _route_geometry(graph, path)
             return {"path": path, "time_seconds": round(t), "distance_meters": round(d), "geometry": geo}
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             return None
@@ -812,6 +875,13 @@ def get_risk_forecast(horizon: int = 15):
 
 
 # ── Optimization endpoints ─────────────────────────────────────────────────────
+
+@app.get("/optimize/profiles", tags=["Optimization"])
+def optimize_profiles():
+    """The weight profiles (P1/P2/P3) with their real weights, so the UI never keeps its own copy."""
+    from digital_twin.optimization.engine import describe_profiles
+    return {"profiles": describe_profiles()}
+
 
 @app.post("/optimize", tags=["Optimization"])
 def optimize(req: OptimizeRequest):

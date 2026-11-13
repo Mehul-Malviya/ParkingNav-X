@@ -13,23 +13,27 @@ const PRIORITY_ICONS = {
   INFO:     'ℹ️',
 }
 
-const WEIGHT_PROFILES = [
-  { id: 'P1', label: 'P1 — Minimize Wait Time', desc: 'Prioritizes reducing gate queue and wait time' },
-  { id: 'P2', label: 'P2 — Balanced',           desc: 'Equal weight across all objectives' },
-  { id: 'P3', label: 'P3 — Minimize Overflow',  desc: 'Heavily penalizes overflow events' },
+// Fallback only: the real profile definitions (with weights) come from GET /optimize/profiles.
+const FALLBACK_PROFILES = [
+  { id: 'P1', label: 'P1 — Minimize Wait Time', description: '' },
+  { id: 'P2', label: 'P2 — Balanced',           description: '' },
+  { id: 'P3', label: 'P3 — Minimize Overflow',  description: '' },
 ]
+const WEIGHT_KEYS = [['w1', 'wait'], ['w2', 'queue'], ['w3', 'search'], ['w4', 'balance'], ['w5', 'overflow']]
 
-function CostBar({ label, value }) {
+// One objective term. Bar = this term's share of J (weight x cost / J), so it changes with the
+// selected profile; the raw cost does not depend on the profile, the weight does.
+function CostBar({ label, weight, cost, contribution, total }) {
+  const share = total > 0 ? Math.min(1, contribution / total) : 0
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="w-36 text-gray-500 shrink-0">{label}</span>
+      <span className="w-32 text-gray-600 shrink-0">{label}</span>
       <div className="flex-1 bg-gray-200 rounded-full h-2">
-        <div
-          className="h-2 rounded-full bg-blue-500 transition-all"
-          style={{ width: `${Math.min(100, value * 100)}%` }}
-        />
+        <div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${share * 100}%` }} />
       </div>
-      <span className="w-10 text-right text-gray-700">{(value * 100).toFixed(0)}%</span>
+      <span className="w-40 text-right text-gray-700 tabular-nums">
+        {weight.toFixed(2)} × {cost.toFixed(3)} = {contribution.toFixed(3)}
+      </span>
     </div>
   )
 }
@@ -37,6 +41,7 @@ function CostBar({ label, value }) {
 export default function RecommendationPanel() {
   const [recs, setRecs] = useState([])
   const [profile, setProfile] = useState('P1')
+  const [profiles, setProfiles] = useState(FALLBACK_PROFILES)
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [error, setError] = useState('')
@@ -73,7 +78,12 @@ export default function RecommendationPanel() {
     }
   }
 
-  useEffect(() => { fetchRecs() }, [])
+  useEffect(() => {
+    api.getOptimizeProfiles()
+      .then(res => { if (res.data?.profiles?.length) setProfiles(res.data.profiles) })
+      .catch(() => {})  // keep the fallback labels; recommendations still load
+    fetchRecs()
+  }, [])
 
   return (
     <div className="space-y-5">
@@ -91,7 +101,7 @@ export default function RecommendationPanel() {
           Optimization Weight Profile
         </label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {WEIGHT_PROFILES.map(wp => (
+          {profiles.map(wp => (
             <label
               key={wp.id}
               className={`flex items-start gap-2 p-3 border rounded-lg cursor-pointer transition-colors ${
@@ -111,7 +121,12 @@ export default function RecommendationPanel() {
               />
               <div>
                 <div className="text-sm font-medium text-gray-800">{wp.label}</div>
-                <div className="text-xs text-gray-500">{wp.desc}</div>
+                <div className="text-xs text-gray-500">{wp.description}</div>
+                {wp.weights && (
+                  <div className="mt-1 text-xs text-gray-600 tabular-nums">
+                    {WEIGHT_KEYS.map(([k, name]) => `${name} ${wp.weights[k].toFixed(2)}`).join(' · ')}
+                  </div>
+                )}
               </div>
             </label>
           ))}
@@ -170,14 +185,19 @@ export default function RecommendationPanel() {
               )}
 
               {/* Alternative lots */}
-              {rec.alternatives && rec.alternatives.length > 0 && (
+              {rec.type !== 'LOT_RANKING' && rec.alternatives && rec.alternatives.length > 0 && (
                 <div className="mt-2">
                   <div className="text-xs text-gray-500 mb-1">Suggested alternatives:</div>
                   <div className="flex gap-2">
                     {rec.alternatives.map(alt => (
                       <div key={alt.lot_id} className="bg-white bg-opacity-70 rounded px-2 py-1 text-xs">
                         <span className="font-medium">{alt.lot_name}</span>
-                        <span className="text-gray-500 ml-1">({(alt.forecast_fill * 100).toFixed(0)}% full)</span>
+                        <span className="text-gray-500 ml-1">
+                          {(() => {
+                            const f = alt.forecast_fill ?? alt.forecast_fill_rate_15min
+                            return Number.isFinite(f) ? `(${(f * 100).toFixed(0)}% full)` : ''
+                          })()}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -187,6 +207,12 @@ export default function RecommendationPanel() {
               {/* Lot ranking */}
               {rec.type === 'LOT_RANKING' && rec.ranked_lots && (
                 <div className="mt-2 space-y-1.5">
+                  <div className="text-xs text-gray-500">
+                    J = objective if the next vehicles are sent to that lot, under profile {rec.weight_profile || profile} (lower is better); the bracket is the change from the system J below.
+                    {rec.ranked_lots.some(l => l.current_fill_source && l.current_fill_source !== 'recorded') && (
+                      <span className="italic"> No recent recorded occupancy for some lots (a snapshot older than 30 min is not treated as current), so the 15-min forecast is used as their current fill.</span>
+                    )}
+                  </div>
                   {rec.ranked_lots.map((lot, i) => (
                     <div key={lot.lot_id} className={`flex items-center gap-2 text-xs p-2 rounded ${
                       lot.recommended ? 'bg-green-50' : 'bg-white bg-opacity-50'
@@ -194,30 +220,51 @@ export default function RecommendationPanel() {
                       <span className="text-gray-400 font-bold w-4">#{i + 1}</span>
                       <span className="flex-1 font-medium">{lot.lot_name}</span>
                       <span className="text-gray-500">{lot.available_spaces} spaces free</span>
-                      <span className={`font-bold ${lot.forecast_fill_rate_15min >= 0.9 ? 'text-red-600' : lot.forecast_fill_rate_15min >= 0.7 ? 'text-orange-500' : 'text-green-600'}`}>
-                        {(lot.forecast_fill_rate_15min * 100).toFixed(0)}%
+                      {Number.isFinite(lot.objective_score) && (
+                        <span className="text-gray-400" title={`Objective J if the next vehicles go here (profile ${rec.weight_profile || profile})`}>
+                          J {lot.objective_score.toFixed(3)}
+                          {Number.isFinite(lot.objective_delta) && ` (${lot.objective_delta >= 0 ? '+' : ''}${lot.objective_delta.toFixed(3)})`}
+                        </span>
+                      )}
+                      <span className="text-gray-500 tabular-nums" title={`Current fill source: ${lot.current_fill_source}`}>
+                        now {(lot.current_fill_rate * 100).toFixed(0)}%
                       </span>
-                      {lot.recommended && <span className="text-green-600 font-bold">✓ Recommend</span>}
+                      <span className={`font-bold tabular-nums ${lot.forecast_fill_rate_15min >= 0.9 ? 'text-red-600' : lot.forecast_fill_rate_15min >= 0.7 ? 'text-orange-500' : 'text-green-600'}`}>
+                        → {(lot.forecast_fill_rate_15min * 100).toFixed(0)}% in 15 min
+                      </span>
+                      {i === 0
+                        ? <span className="text-green-700 font-bold">★ Best</span>
+                        : <span className={lot.recommended ? 'text-gray-400' : 'text-red-500 font-semibold'}>
+                            {lot.recommended ? 'available' : 'avoid'}
+                          </span>}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Cost function */}
+              {/* Cost function: weights come from the selected profile */}
               {rec.cost_function && (
                 <div className="mt-3 p-3 bg-white bg-opacity-60 rounded">
                   <div className="text-xs font-semibold text-gray-600 mb-2">
-                    Objective J = {rec.cost_function.J?.toFixed(3) ?? '—'} (profile: {rec.weight_profile || profile})
+                    System objective J = {rec.cost_function.J?.toFixed(3) ?? '—'} for the state used to rank
+                    ({rec.cost_function.basis || 'current state'}; profile {rec.weight_profile || profile}); each row is weight × cost = contribution.
                   </div>
                   <div className="space-y-1">
                     {[
-                      ['w1 · Waiting Time', rec.cost_function.waiting_time],
-                      ['w2 · Queue Cost', rec.cost_function.queue_cost],
-                      ['w3 · Search Travel', rec.cost_function.search_travel],
-                      ['w4 · Util. Imbalance', rec.cost_function.utilization_imbalance],
-                      ['w5 · Overflow Penalty', rec.cost_function.overflow_penalty],
-                    ].map(([label, val]) => (
-                      <CostBar key={label} label={label} value={val ?? 0} />
+                      ['Waiting time',    'w1', 'waiting_time'],
+                      ['Queue cost',      'w2', 'queue_cost'],
+                      ['Search travel',   'w3', 'search_travel'],
+                      ['Util. imbalance', 'w4', 'utilization_imbalance'],
+                      ['Overflow penalty','w5', 'overflow_penalty'],
+                    ].map(([label, wk, ck]) => (
+                      <CostBar
+                        key={ck}
+                        label={label}
+                        weight={rec.cost_function.weights?.[wk] ?? 0}
+                        cost={rec.cost_function[ck] ?? 0}
+                        contribution={rec.cost_function.weighted?.[ck] ?? 0}
+                        total={rec.cost_function.J ?? 0}
+                      />
                     ))}
                   </div>
                 </div>

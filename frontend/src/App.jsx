@@ -74,8 +74,7 @@ export default function App() {
       </main>
 
       <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-200 mt-8">
-        ParkingNav-X · VIT-AP University, Amaravati · B.Tech CSE Capstone 2026 ·
-        <span className="text-amber-500 ml-1">[SYNTHETIC DATA — Not real campus occupancy]</span>
+        ParkingNav-X · VIT-AP University, Amaravati · B.Tech CSE Capstone 2026
       </footer>
     </div>
   )

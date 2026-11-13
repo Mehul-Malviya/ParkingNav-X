@@ -5,6 +5,8 @@ finding -- that's the Navigation module's job, built on top of what's
 exposed here (the graph object itself, or its GeoJSON/JSON export).
 """
 
+import json
+
 import networkx as nx
 
 
@@ -36,7 +38,23 @@ class CampusGraphService:
             graph.add_node(row["destination_id"], type="destination", latitude=row["latitude"],
                             longitude=row["longitude"], status="open")
 
+        # Road polylines are the source of truth for where a route is drawn.
+        # Each is stored start->end; an edge travelling end->start gets it reversed.
+        roads = {}
+        for row in conn.execute(
+            "SELECT road_id, start_node_id, end_node_id, geometry FROM roads WHERE campus_id=?",
+            (campus_id,),
+        ):
+            try:
+                points = json.loads(row["geometry"]) if row["geometry"] else []
+            except (TypeError, ValueError):
+                points = []
+            roads[row["road_id"]] = (row["start_node_id"], row["end_node_id"], points)
+
         for row in conn.execute("SELECT * FROM routes_graph_edges WHERE campus_id=?", (campus_id,)):
+            start_id, _, points = roads.get(row["road_id"], (None, None, []))
+            if points and row["from_node_id"] != start_id:
+                points = list(reversed(points))
             graph.add_edge(
                 row["from_node_id"], row["to_node_id"],
                 road_id=row["road_id"],
@@ -45,6 +63,7 @@ class CampusGraphService:
                 is_walkable=bool(row["is_walkable"]),
                 is_driveable=bool(row["is_driveable"]),
                 status=row["status"],
+                geometry=points,
             )
 
         self._cache[campus_id] = graph

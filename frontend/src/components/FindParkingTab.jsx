@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import {
-  MapContainer, TileLayer, Marker, Popup, Polyline, Circle, Tooltip,
+  MapContainer, TileLayer, Marker, Popup, Polyline, Circle, Tooltip, useMap,
 } from 'react-leaflet'
 import L from 'leaflet'
 import { api } from '../api'
+import { FALLBACK_CENTER, FALLBACK_ZOOM, isCoord, positionNote } from '../mapConfig'
 import 'leaflet/dist/leaflet.css'
 
 delete L.Icon.Default.prototype._getIconUrl
@@ -13,7 +14,17 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
-const VITAP_CENTER = [16.4935, 80.4995]
+// Keeps the selected route in view. MapContainer's `center` prop only applies on
+// first mount, so without this the map would not follow a changed selection.
+function FitRoute({ points }) {
+  const map = useMap()
+  const key = JSON.stringify(points)
+  useEffect(() => {
+    if (points.length >= 2) map.fitBounds(points, { padding: [40, 40], maxZoom: 18 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, map])
+  return null
+}
 
 function fillColor(rate) {
   if (rate >= 0.90) return '#ef4444'
@@ -22,11 +33,15 @@ function fillColor(rate) {
   return '#22c55e'
 }
 
+// Fixed 24x24 box so the pin tip (bottom centre) sits exactly on the coordinate,
+// regardless of how wide the emoji glyph renders.
 function starIcon() {
   return L.divIcon({
-    html: `<div style="font-size:22px;line-height:1;">📍</div>`,
+    html: `<div style="width:24px;height:24px;font-size:22px;line-height:24px;text-align:center;">📍</div>`,
     className: '',
-    iconAnchor: [11, 22],
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+    popupAnchor: [0, -24],
   })
 }
 
@@ -62,11 +77,11 @@ export default function FindParkingTab({ initialDest }) {
 
           setCampus(res.data)
 
-          if (initialDest) {
-            setSelectedDest(initialDest.id)
-          } else if (res.data.destinations?.length) {
-            setSelectedDest(res.data.destinations[0].id)
-          }
+          // Only select a destination that still exists in the freshly loaded campus; a
+          // stale id (e.g. a destination removed from the config) must never be requested.
+          const available = res.data.destinations || []
+          const wanted = initialDest && available.find(d => d.id === initialDest.id)
+          setSelectedDest(wanted ? wanted.id : (available[0]?.id ?? ''))
         } catch (e) {
           if (cancelled) return
 
@@ -87,6 +102,10 @@ export default function FindParkingTab({ initialDest }) {
 
   const findParking = async () => {
     if (!selectedDest) return
+    if (campus && !campus.destinations?.some(d => d.id === selectedDest)) {
+      setError('This destination no longer exists. Reload the page to refresh the destination list.')
+      return
+    }
     setLoading(true)
     setResult(null)
     setError(null)
@@ -95,7 +114,11 @@ export default function FindParkingTab({ initialDest }) {
       setResult(res.data)
       setSelectedOption(0)
     } catch (e) {
-      setError(e.response?.data?.detail || e.message || 'Failed to find parking')
+      setError(
+        e.response?.status === 404
+          ? 'That destination is no longer available. Reload the page to refresh the destination list.'
+          : (e.response?.data?.detail || e.message || 'Failed to find parking')
+      )
     } finally {
       setLoading(false)
     }
@@ -105,9 +128,9 @@ export default function FindParkingTab({ initialDest }) {
   const destNode = campus?.destinations?.find(d => d.id === selectedDest)
 
   // Build map center from destination or default
-  const mapCenter = destNode
+  const mapCenter = isCoord(destNode)
     ? [destNode.lat, destNode.lng]
-    : VITAP_CENTER
+    : FALLBACK_CENTER
 
   // Route geometry for display
   const driveCoords = option?.drive_route?.geometry?.map(p => [p.lat, p.lng]) || []
@@ -221,13 +244,20 @@ export default function FindParkingTab({ initialDest }) {
 
           {/* Map + detail */}
           <div className="lg:col-span-2 space-y-3">
+            {destNode && !isCoord(destNode) && (
+              <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                {destNode.name} has no reference coordinates yet, so it is not drawn on the map.
+                Lot ranking and walk times still use the routing graph.
+              </div>
+            )}
             {/* Map */}
             <div className="rounded-lg overflow-hidden border border-gray-200 shadow" style={{ height: 340 }}>
-              <MapContainer center={mapCenter} zoom={16} style={{ height: '100%', width: '100%' }}>
+              <MapContainer center={mapCenter} zoom={FALLBACK_ZOOM} style={{ height: '100%', width: '100%' }}>
                 <TileLayer
                   attribution='&copy; OpenStreetMap'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                <FitRoute points={[...driveCoords, ...walkCoords]} />
 
                 {/* All parking lot markers */}
                 {result.options.map((opt, idx) => {
@@ -255,11 +285,12 @@ export default function FindParkingTab({ initialDest }) {
                 })}
 
                 {/* Destination marker */}
-                {destNode && (
+                {isCoord(destNode) && (
                   <Marker position={[destNode.lat, destNode.lng]} icon={starIcon()}>
                     <Popup>
                       <strong>📍 {destNode.name}</strong><br />
-                      {destNode.category?.replace(/_/g, ' ')}
+                      {destNode.category?.replace(/_/g, ' ')}<br />
+                      <span className="text-xs text-gray-500">{positionNote(destNode)}</span>
                     </Popup>
                   </Marker>
                 )}
