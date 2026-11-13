@@ -153,6 +153,25 @@ As of Phase 3 (2026-10-26):
 - Skipped tests: E5/E6 statistical assertions (now wired; will unskip after experiment matrix runs)
 - Full suite runtime: ~8 minutes
 
+## Using Real Parking Counts
+
+Real counts (`source` = `sensor` or `manual`) are stored in `lot_occupancy_history`; simulation output and synthetic rows are tagged so they are never mistaken for real data.
+
+```bash
+# CSV: columns timestamp, lot_id, occupied_spaces [, source]; naive timestamps are campus-local (IST)
+python scripts/import_observations.py data/observations/my_counts.csv --source manual
+
+# Live feed: POST /observations (one reading) or POST /observations/batch (a list)
+# {"timestamp": "2026-11-13T17:45:00+05:30", "lot_id": "vitap-lot-hostel", "occupied_spaces": 61, "source": "sensor"}
+
+# Refit the forecast after importing (the API also refits at startup)
+curl -X POST http://localhost:8000/predict/retrain
+```
+
+- **Going live:** set `PARKINGNAV_API_KEY` on the server to require an `X-API-Key` header on `POST /observations`, `/observations/batch` and `/predict/retrain` (the Record Counts tab has an access-key field), and set `PARKINGNAV_ALLOWED_ORIGINS` (comma-separated) to restrict browser origins. Unset, both stay open for local development.
+- A reading under 30 minutes old adjusts that lot's forecast immediately.
+- A lot's model trains on real data once it has a week (672 x 15-min) of readings; until then it stays on synthetic data, and the UI says which. Gaps are never interpolated; a lot with many gaps may fall back to MovingAverage (listed as `lots_without_xgboost` in the retrain response).
+
 ## Data Provenance
 
 All occupancy data is **[SYNTHETIC]** — generated from configurable demand models, not real VIT-AP sensor readings. Campus coordinates are from real OpenStreetMap data. All prediction outputs are explicitly labelled `[SYNTHETIC]` in API responses.

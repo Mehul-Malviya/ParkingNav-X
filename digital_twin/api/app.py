@@ -2,8 +2,10 @@
 ParkingNav-X REST API
 VIT-AP University Smart Parking Digital Twin
 """
+import hmac
 import json
 import math
+import os
 import re
 import statistics
 import uuid
@@ -11,7 +13,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import networkx as nx
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -38,10 +40,19 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # PARKINGNAV_ALLOWED_ORIGINS: comma-separated origins for a live deployment; unset = any origin (dev).
+    allow_origins=[o.strip() for o in os.environ.get("PARKINGNAV_ALLOWED_ORIGINS", "*").split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def require_write_key(x_api_key: Optional[str] = Header(default=None)):
+    """Guard for endpoints that change data. If PARKINGNAV_API_KEY is set (live deployment), requests must send
+    it as an X-API-Key header; if unset (local dev, tests) the endpoints stay open."""
+    key = os.environ.get("PARKINGNAV_API_KEY")
+    if key and not hmac.compare_digest(x_api_key or "", key):
+        raise HTTPException(status_code=401, detail="Missing or invalid X-API-Key")
+
 
 STRATEGIES = {
     "B1": FirstAvailableStrategy(),
@@ -69,8 +80,8 @@ def get_conn():
 def _startup_prewarm():
     """Pre-warm the prediction engine so the first API request is not slow."""
     try:
-        from digital_twin.prediction.engine import get_predictor
-        get_predictor()  # fits all models once; result cached as singleton
+        from digital_twin.prediction.engine import retrain
+        retrain(get_conn())  # fits all models once (real data where available); cached as singleton
     except Exception:
         pass  # non-fatal — predictions will fall back to MovingAverage
 
@@ -309,45 +320,26 @@ def operator_override(req: OperatorOverrideRequest):
     }
 
 
-@app.post("/observations", tags=["Campus"])
+@app.post("/observations", tags=["Campus"], dependencies=[Depends(require_write_key)])
 def post_observation(obs: ObservationRecord):
     """
-    Ingest a single occupancy observation into lot_occupancy_history.
-    Updates the live Digital Twin state so risk/prediction endpoints reflect it.
+    Record one occupancy reading. source=sensor|manual counts as real data (live forecasts, retraining);
+    source=synthetic is stored but never treated as real. A naive timestamp is campus-local (IST).
     """
-    conn = get_conn()
-    # Validate lot exists
-    row = conn.execute(
-        "SELECT usable_capacity FROM parking_lots WHERE campus_id='vitap' AND parking_lot_id=?",
-        (obs.lot_id,)
-    ).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail=f"Lot '{obs.lot_id}' not found")
-    cap = row[0]
-    if obs.occupied_spaces < 0 or obs.occupied_spaces > cap:
-        raise HTTPException(
-            status_code=400,
-            detail=f"occupied_spaces {obs.occupied_spaces} out of range [0, {cap}]"
-        )
-    fill_rate = round(obs.occupied_spaces / cap, 4) if cap > 0 else 0.0
-    try:
-        conn.execute(
-            """INSERT INTO lot_occupancy_history (lot_id, occupied_spaces, fill_rate, recorded_at)
-               VALUES (?, ?, ?, ?)""",
-            (obs.lot_id, obs.occupied_spaces, fill_rate, obs.timestamp)
-        )
-        conn.commit()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"DB write failed: {e}")
-    return {
-        "accepted": True,
-        "lot_id": obs.lot_id,
-        "occupied_spaces": obs.occupied_spaces,
-        "fill_rate": fill_rate,
-        "timestamp": obs.timestamp,
-        "source": obs.source,
-        "note": "[SYNTHETIC] Observation recorded; risk/prediction endpoints will reflect updated state.",
-    }
+    from digital_twin.observations import record_observations
+    res = record_observations(get_conn(), [obs.model_dump()])
+    if res["rejected"]:
+        err = res["rejected"][0]["error"]
+        raise HTTPException(status_code=404 if err.startswith("unknown lot") else 400, detail=err)
+    return {**res, "lot_id": obs.lot_id, "occupied_spaces": obs.occupied_spaces,
+            "timestamp": obs.timestamp, "source": obs.source}
+
+
+@app.post("/observations/batch", tags=["Campus"], dependencies=[Depends(require_write_key)])
+def post_observations_batch(batch: List[ObservationRecord]):
+    """Record many readings at once. Bad rows are reported, good rows are still stored; duplicates are skipped."""
+    from digital_twin.observations import record_observations
+    return record_observations(get_conn(), [o.model_dump() for o in batch])
 
 
 @app.get("/campus/graph", tags=["Campus"])
@@ -403,7 +395,8 @@ def simulate(req: SimulateRequest):
             fill_rate = round(occupied / cap, 4)
             try:
                 conn.execute(
-                    "INSERT INTO lot_occupancy_history (lot_id, occupied_spaces, fill_rate) VALUES (?, ?, ?)",
+                    "INSERT INTO lot_occupancy_history (lot_id, occupied_spaces, fill_rate, source) "
+                    "VALUES (?, ?, ?, 'simulation')",
                     (lot_id, int(occupied), fill_rate),
                 )
             except Exception:
@@ -790,6 +783,20 @@ def _explain_structured(lot_id, lot_name, fill_rate, drive_t, walk_t, preferred,
 
 # ── Prediction endpoints ───────────────────────────────────────────────────────
 
+def _data_source_label(prefix: str) -> str:
+    from digital_twin.prediction.engine import data_description
+    d = data_description()
+    return f"[SYNTHETIC] {prefix} synthetic demand data" if d["mode"] == "synthetic" else f"[{d['mode'].upper()}] {prefix} {d['label']}"
+
+
+@app.post("/predict/retrain", tags=["Prediction"], dependencies=[Depends(require_write_key)])
+def retrain_predictor():
+    """Refit the forecast models on current data: real recorded occupancy for every lot with at least a week
+    of readings, synthetic for the rest. Run after importing or posting real observations."""
+    from digital_twin.prediction.engine import retrain
+    return retrain(get_conn())
+
+
 @app.get("/predict/occupancy", tags=["Prediction"])
 def predict_occupancy(lot_id: str = "vitap-lot-academic-main", horizon_minutes: int = 15,
                       as_of: Optional[str] = None):
@@ -808,7 +815,7 @@ def predict_occupancy(lot_id: str = "vitap-lot-academic-main", horizon_minutes: 
             "model": result["model"],
             "proactive_alert": bool(result["fill_rate"] >= 0.90),
             "forecast_basis": basis,
-            "data_source": "[SYNTHETIC] Trained on synthetic demand data",
+            "data_source": _data_source_label("Trained on"),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
@@ -827,7 +834,9 @@ def predict_all_lots(horizon_minutes: int = 15, as_of: Optional[str] = None):
     ]
     try:
         from digital_twin.prediction.engine import forecast_context
+        from digital_twin.prediction.engine import data_description
         predictor, basis = forecast_context(get_conn(), as_of)
+        real = set(data_description()["real_lots"])
         predictions = []
         for lot_id in lot_ids:
             r = predictor.predict(lot_id=lot_id, horizon_minutes=horizon_minutes)
@@ -839,12 +848,13 @@ def predict_all_lots(horizon_minutes: int = 15, as_of: Optional[str] = None):
                 "proactive_alert": bool(r["fill_rate"] >= 0.90),
                 "model": r.get("model", "unknown"),
                 "live_fill_used": bool(r.get("basis", {}).get("live_fill_used")),
+                "trained_on": "real" if lot_id in real else "synthetic",
             })
         return {
             "horizon_minutes": horizon_minutes,
             "forecast_basis": basis,
             "predictions": predictions,
-            "data_source": "[SYNTHETIC] XGBoost model on synthetic demand data",
+            "data_source": _data_source_label("XGBoost model"),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")

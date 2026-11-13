@@ -90,6 +90,7 @@ export default function CampusMap({ onNavigateTo }) {
   const [campus, setCampus] = useState(null)
   const [predictions, setPredictions] = useState([])
   const [forecastBasis, setForecastBasis] = useState(null)
+  const [forecastSource, setForecastSource] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -123,6 +124,7 @@ export default function CampusMap({ onNavigateTo }) {
       if (predictionResult.status === 'fulfilled') {
         setPredictions(predictionResult.value.data.predictions ?? [])
         setForecastBasis(predictionResult.value.data.forecast_basis ?? null)
+        setForecastSource(predictionResult.value.data.data_source ?? null)
       } else {
         setPredictions([])
         errors.push(
@@ -267,7 +269,9 @@ export default function CampusMap({ onNavigateTo }) {
                       {pred.proactive_alert && <span className="text-red-600 font-bold">⚠️ OVERFLOW RISK</span>}
                     </>
                   )}
-                  <div className="mt-1 text-xs text-gray-400">[SYNTHETIC data — not real occupancy]</div>
+                  <div className="mt-1 text-xs text-gray-400">
+                    {pred?.trained_on === 'real' ? 'Trained on recorded occupancy' : '[SYNTHETIC data — not real occupancy]'}
+                  </div>
                   <div className="mt-1 text-xs text-gray-500">{positionNote(lot)}</div>
                 </div>
               )
@@ -466,7 +470,7 @@ export default function CampusMap({ onNavigateTo }) {
             </div>
           </div>
           <div className="text-xs text-gray-400 italic">
-            [SYNTHETIC] Forecast from XGBoost model. Not real occupancy data.
+            {forecastSource || '[SYNTHETIC] Forecast from XGBoost model. Not real occupancy data.'}
           </div>
         </div>
       </div>

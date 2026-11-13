@@ -32,7 +32,33 @@ LOT_CAPACITIES = {
 }
 
 
-def load_data() -> pd.DataFrame:
+MIN_REAL_POINTS = 7 * 96   # a lot needs a week of real 15-minute readings before its model trains on them
+
+
+def load_data(conn=None) -> pd.DataFrame:
+    """Training data: synthetic demand, with real recorded occupancy replacing it for every lot that has
+    at least MIN_REAL_POINTS real readings (needs `conn`). Rows carry a `data_source` column."""
+    df = _load_synthetic()
+    if conn is None:
+        return df
+    from digital_twin.observations import real_demand_frame
+    real = real_demand_frame(conn)
+    if real.empty:
+        return df
+    enough = [lot for lot, g in real.groupby("lot_id") if g["fill_rate"].notna().sum() >= MIN_REAL_POINTS]
+    if not enough:
+        return df
+    return pd.concat([df[~df["lot_id"].isin(enough)], real[real["lot_id"].isin(enough)]], ignore_index=True)
+
+
+def real_lots(df: pd.DataFrame) -> list:
+    """Lots whose rows in `df` are real recorded occupancy."""
+    if "data_source" not in df.columns:
+        return []
+    return sorted(df.loc[df["data_source"] == "real", "lot_id"].unique())
+
+
+def _load_synthetic() -> pd.DataFrame:
     """Load the synthetic demand CSV; generate synthetic data if missing."""
     if DATA_PATH.exists():
         df = pd.read_csv(DATA_PATH)

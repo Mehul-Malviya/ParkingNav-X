@@ -2,6 +2,11 @@ import axios from 'axios'
 
 const BASE = '/api'
 
+// Write key for a live deployment (PARKINGNAV_API_KEY on the server); kept for this browser tab only.
+export const getWriteKey = () => { try { return sessionStorage.getItem('writeKey') || '' } catch { return '' } }
+export const setWriteKey = (k) => { try { sessionStorage.setItem('writeKey', k) } catch { /* private mode */ } }
+const keyHeader = () => (getWriteKey() ? { headers: { 'X-API-Key': getWriteKey() } } : {})
+
 export const api = {
   // Info
   getRoot:           () => axios.get(`${BASE}/`),
@@ -24,6 +29,10 @@ export const api = {
     axios.get(`${BASE}/predict/occupancy`, { params: { lot_id, horizon_minutes } }),
   predictAll:        (horizon_minutes = 15) =>
     axios.get(`${BASE}/predict/all`, { params: { horizon_minutes } }),
+
+  // Real occupancy counts
+  recordObservation: (obs) => axios.post(`${BASE}/observations`, obs, keyHeader()),
+  retrainPredictor:  () => axios.post(`${BASE}/predict/retrain`, null, keyHeader()),
 
   // Risk
   getRiskCurrent:    () => axios.get(`${BASE}/risk/current`),
