@@ -107,7 +107,9 @@ def get_conn():
 
 @app.on_event("startup")
 def _startup_prewarm():
-    """Pre-warm the prediction engine so the first API request is not slow."""
+    """Load the DB + campus data eagerly, then pre-warm the prediction engine."""
+    with _sim_lock:
+        get_conn()  # migrations + campus config load; fail loudly at boot rather than on the first request
     try:
         from digital_twin.prediction.engine import retrain
         with _sim_lock:

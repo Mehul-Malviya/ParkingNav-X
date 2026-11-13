@@ -1,4 +1,14 @@
-﻿# ParkingNav-X
+---
+title: ParkingNav-X API
+emoji: 🅿️
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
+# ParkingNav-X
 
 **Event-Aware Predictive Digital Twin for Proactive Campus Parking and Mobility Management**
 
