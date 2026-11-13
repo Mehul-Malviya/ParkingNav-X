@@ -1,0 +1,27 @@
+services:
+  # FastAPI backend, built from the existing root Dockerfile
+  - type: web
+    name: parkingnav-api
+    runtime: docker
+    plan: starter  # free plan works for a demo, but sleeps when idle and loses the SQLite DB on restart
+    healthCheckPath: /
+    envVars:
+      - key: PARKINGNAV_API_KEY      # guards write endpoints (count entry etc.)
+        generateValue: true
+      - key: PARKINGNAV_ALLOWED_ORIGINS
+        sync: false                  # set to the frontend URL after first deploy
+
+  # React frontend as a static site; /api/* is proxied to the backend like nginx.conf does locally
+  - type: web
+    name: parkingnav-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://parkingnav-api.onrender.com/*
+      - type: rewrite
+        source: /*
+        destination: /index.html

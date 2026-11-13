@@ -26,7 +26,7 @@ from digital_twin.simulation.scenario import ScenarioLoader
 from digital_twin.simulation.strategy import FirstAvailableStrategy, NearestAvailableStrategy
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-DB_PATH = ROOT / "digital_twin.db"
+DB_PATH = Path(os.environ.get("PARKINGNAV_DB_PATH", ROOT / "digital_twin.db"))
 CAMPUS_YAML = ROOT / "configs" / "campus" / "vitap.yaml"
 SCENARIO_DIR = ROOT / "configs" / "scenarios" / "vitap"
 RESULTS_FILE = ROOT / "experiments" / "results" / "all_results.json"
