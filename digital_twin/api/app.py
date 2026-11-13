@@ -8,6 +8,7 @@ import math
 import os
 import re
 import statistics
+import threading
 import uuid
 from pathlib import Path
 from typing import List, Optional
@@ -65,6 +66,10 @@ _graph_service = CampusGraphService()
 
 # ── Cached DB connection (migrations run once at startup, not per-request) ────
 _db_conn = None
+# The single shared sqlite connection is not safe for concurrent cursor use
+# (commits in one thread invalidate another thread's open cursor -> "no more
+# rows available"). Simulation runs and startup retraining hold this lock.
+_sim_lock = threading.RLock()
 
 
 def get_conn():
@@ -81,7 +86,8 @@ def _startup_prewarm():
     """Pre-warm the prediction engine so the first API request is not slow."""
     try:
         from digital_twin.prediction.engine import retrain
-        retrain(get_conn())  # fits all models once (real data where available); cached as singleton
+        with _sim_lock:
+            retrain(get_conn())  # fits all models once (real data where available); cached as singleton
     except Exception:
         pass  # non-fatal — predictions will fall back to MovingAverage
 
@@ -383,7 +389,8 @@ def simulate(req: SimulateRequest):
     scenario = ScenarioLoader.load(scenario_file)
     engine = SimulationEngine()
     run_id = f"api-{uuid.uuid4().hex[:8]}"
-    result = engine.run(scenario, strategy, conn, run_id=run_id)
+    with _sim_lock:
+        result = engine.run(scenario, strategy, conn, run_id=run_id)
 
     # Populate lot_occupancy_history so the risk engine sees real data
     if result.timesteps:
@@ -440,7 +447,8 @@ def compare_strategies(scenario: str):
         engine = SimulationEngine()
         run_id = f"api-cmp-{uuid.uuid4().hex[:6]}"
         try:
-            result = engine.run(sc, strategy, conn, run_id=run_id)
+            with _sim_lock:
+                result = engine.run(sc, strategy, conn, run_id=run_id)
         except Exception as e:  # surface the real cause to the UI instead of a bare 500
             raise HTTPException(
                 status_code=500,
@@ -1061,7 +1069,8 @@ def run_experiment(req: ExperimentRunRequest):
             t0 = _time.time()
             try:
                 engine = SimulationEngine()
-                result = engine.run(sc, strategy, conn, run_id=run_id)
+                with _sim_lock:
+                    result = engine.run(sc, strategy, conn, run_id=run_id)
                 m = result.metrics
                 rec = {
                     "run_id": run_id, "scenario": req.scenario,
