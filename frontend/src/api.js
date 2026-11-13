@@ -21,8 +21,29 @@ export const api = {
   getStrategies:     () => axios.get(`${BASE}/strategies`),
   simulate:          (scenario, strategy) =>
     axios.post(`${BASE}/simulate`, { scenario, strategy }),
-  compareStrategies: (scenario) =>
-    axios.get(`${BASE}/compare/${scenario}`),
+  // Starts a background comparison and polls until done (a full comparison
+  // outlasts the host's request timeout, so it can't be a single request).
+  compareStrategies: async (scenario) => {
+    await axios.post(`${BASE}/compare/${scenario}/start`)
+    const deadline = Date.now() + 20 * 60 * 1000
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 4000))
+      let res
+      try {
+        res = await axios.get(`${BASE}/compare/${scenario}/status`)
+      } catch (e) {
+        if (e.response?.status === 502 || e.response?.status === 503 || !e.response) continue // host waking/busy
+        throw e
+      }
+      if (res.data.status === 'done') return res
+      if (res.data.status === 'error') {
+        const err = new Error(res.data.error || 'Comparison failed')
+        err.response = { data: { detail: res.data.error } }
+        throw err
+      }
+    }
+    throw new Error('Comparison timed out')
+  },
 
   // Prediction
   predictOccupancy:  (lot_id, horizon_minutes = 15) =>

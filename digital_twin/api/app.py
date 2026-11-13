@@ -86,6 +86,16 @@ def sim_conn():
     return private
 
 
+def _run_sim(scenario, strategy, run_id):
+    """Run one simulation on a private DB snapshot; only one runs at a time."""
+    with _sim_lock:
+        sconn = sim_conn()
+        try:
+            return SimulationEngine().run(scenario, strategy, sconn, run_id=run_id)
+        finally:
+            sconn.close()
+
+
 def get_conn():
     global _db_conn
     if _db_conn is None:
@@ -403,11 +413,7 @@ def simulate(req: SimulateRequest):
     scenario = ScenarioLoader.load(scenario_file)
     engine = SimulationEngine()
     run_id = f"api-{uuid.uuid4().hex[:8]}"
-    sconn = sim_conn()
-    try:
-        result = engine.run(scenario, strategy, sconn, run_id=run_id)
-    finally:
-        sconn.close()
+    result = _run_sim(scenario, strategy, run_id)
 
     # Populate lot_occupancy_history so the risk engine sees real data
     if result.timesteps:
@@ -448,27 +454,18 @@ def simulate(req: SimulateRequest):
     }
 
 
-@app.get("/compare/{scenario}", tags=["Simulation"])
-def compare_strategies(scenario: str):
-    """Run all 4 strategies on a scenario and return side-by-side comparison."""
+def _compare_scenario(scenario: str) -> dict:
     scenario_file = SCENARIO_DIR / f"{scenario}.yaml"
     if not scenario_file.exists():
         available = [f.stem for f in SCENARIO_DIR.glob("*.yaml")]
         raise HTTPException(status_code=404, detail=f"Scenario '{scenario}' not found. Available: {available}")
 
-    conn = get_conn()
     results = {}
     for code in ["B1", "B2", "B3", "P"]:
-        strategy = STRATEGIES[code]
         sc = ScenarioLoader.load(scenario_file)
-        engine = SimulationEngine()
         run_id = f"api-cmp-{uuid.uuid4().hex[:6]}"
         try:
-            sconn = sim_conn()
-            try:
-                result = engine.run(sc, strategy, sconn, run_id=run_id)
-            finally:
-                sconn.close()
+            result = _run_sim(sc, STRATEGIES[code], run_id)
         except Exception as e:  # surface the real cause to the UI instead of a bare 500
             raise HTTPException(
                 status_code=500,
@@ -483,6 +480,54 @@ def compare_strategies(scenario: str):
             "peak_gate_queue":     m.get("max_gate_queue"),
         }
     return {"scenario": scenario, "comparison": results}
+
+
+@app.get("/compare/{scenario}", tags=["Simulation"])
+def compare_strategies(scenario: str):
+    """Run all 4 strategies on a scenario and return side-by-side comparison (blocking)."""
+    return _compare_scenario(scenario)
+
+
+# Background compare jobs: a full comparison takes minutes on small hosts, longer
+# than a proxy's request timeout, so the UI starts a job and polls for it.
+_compare_jobs = {}          # scenario -> {"status", "result", "error"}
+_compare_jobs_lock = threading.Lock()
+
+
+def _compare_worker(scenario: str):
+    try:
+        res = _compare_scenario(scenario)
+        job = {"status": "done", "result": res, "error": None}
+    except HTTPException as e:
+        job = {"status": "error", "result": None, "error": str(e.detail)}
+    except Exception as e:
+        job = {"status": "error", "result": None, "error": f"{type(e).__name__}: {e}"}
+    with _compare_jobs_lock:
+        _compare_jobs[scenario] = job
+
+
+@app.post("/compare/{scenario}/start", tags=["Simulation"])
+def start_compare(scenario: str):
+    """Start (or reuse) a background comparison; poll GET /compare/{scenario}/status."""
+    if not (SCENARIO_DIR / f"{scenario}.yaml").exists():
+        available = [f.stem for f in SCENARIO_DIR.glob("*.yaml")]
+        raise HTTPException(status_code=404, detail=f"Scenario '{scenario}' not found. Available: {available}")
+    with _compare_jobs_lock:
+        job = _compare_jobs.get(scenario)
+        if job is None or job["status"] == "error":
+            _compare_jobs[scenario] = {"status": "running", "result": None, "error": None}
+            threading.Thread(target=_compare_worker, args=(scenario,), daemon=True).start()
+        return {"scenario": scenario, "status": _compare_jobs[scenario]["status"]}
+
+
+@app.get("/compare/{scenario}/status", tags=["Simulation"])
+def compare_status(scenario: str):
+    with _compare_jobs_lock:
+        job = _compare_jobs.get(scenario)
+    if job is None:
+        raise HTTPException(status_code=404, detail="No comparison started for this scenario")
+    return {"scenario": scenario, "status": job["status"], "error": job["error"],
+            **(job["result"] or {})}
 
 
 @app.get("/events", tags=["Campus"])
@@ -1089,11 +1134,7 @@ def run_experiment(req: ExperimentRunRequest):
             t0 = _time.time()
             try:
                 engine = SimulationEngine()
-                sconn = sim_conn()
-                try:
-                    result = engine.run(sc, strategy, sconn, run_id=run_id)
-                finally:
-                    sconn.close()
+                result = _run_sim(sc, strategy, run_id)
                 m = result.metrics
                 rec = {
                     "run_id": run_id, "scenario": req.scenario,
