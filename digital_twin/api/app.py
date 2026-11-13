@@ -593,8 +593,8 @@ def find_parking(destination_id: str, gate_id: str = "vitap-gate-main"):
 
     # Get predictions for fill rates
     try:
-        from digital_twin.prediction.engine import get_predictor
-        predictor = get_predictor()
+        from digital_twin.prediction.engine import forecast_context
+        predictor, _basis = forecast_context(conn)
         preds = predictor.predict_all(15)
     except Exception:
         preds = {}
@@ -791,11 +791,13 @@ def _explain_structured(lot_id, lot_name, fill_rate, drive_t, walk_t, preferred,
 # ── Prediction endpoints ───────────────────────────────────────────────────────
 
 @app.get("/predict/occupancy", tags=["Prediction"])
-def predict_occupancy(lot_id: str = "vitap-lot-academic-main", horizon_minutes: int = 15):
-    """Predict occupancy for a parking lot at horizon_minutes from now."""
+def predict_occupancy(lot_id: str = "vitap-lot-academic-main", horizon_minutes: int = 15,
+                      as_of: Optional[str] = None):
+    """Predict occupancy for a parking lot at horizon_minutes from now (or from `as_of`, a campus-local
+    ISO time, for what-if views)."""
     try:
-        from digital_twin.prediction.engine import get_predictor
-        predictor = get_predictor()
+        from digital_twin.prediction.engine import forecast_context
+        predictor, basis = forecast_context(get_conn(), as_of)
         result = predictor.predict(lot_id=lot_id, horizon_minutes=horizon_minutes)
         return {
             "lot_id": lot_id,
@@ -805,6 +807,7 @@ def predict_occupancy(lot_id: str = "vitap-lot-academic-main", horizon_minutes: 
             "upper_90": round(float(result["upper_90"]), 4),
             "model": result["model"],
             "proactive_alert": bool(result["fill_rate"] >= 0.90),
+            "forecast_basis": basis,
             "data_source": "[SYNTHETIC] Trained on synthetic demand data",
         }
     except Exception as e:
@@ -812,8 +815,9 @@ def predict_occupancy(lot_id: str = "vitap-lot-academic-main", horizon_minutes: 
 
 
 @app.get("/predict/all", tags=["Prediction"])
-def predict_all_lots(horizon_minutes: int = 15):
-    """Predict occupancy for all VIT-AP parking lots."""
+def predict_all_lots(horizon_minutes: int = 15, as_of: Optional[str] = None):
+    """Predict occupancy for all VIT-AP parking lots. Follows the campus clock (synthetic daily pattern),
+    adjusted by recent live occupancy where it exists; `as_of` shows the pattern for another time."""
     lot_ids = [
         "vitap-lot-academic-main",
         "vitap-lot-hostel",
@@ -822,8 +826,8 @@ def predict_all_lots(horizon_minutes: int = 15):
         "vitap-lot-overflow",
     ]
     try:
-        from digital_twin.prediction.engine import get_predictor
-        predictor = get_predictor()
+        from digital_twin.prediction.engine import forecast_context
+        predictor, basis = forecast_context(get_conn(), as_of)
         predictions = []
         for lot_id in lot_ids:
             r = predictor.predict(lot_id=lot_id, horizon_minutes=horizon_minutes)
@@ -834,9 +838,11 @@ def predict_all_lots(horizon_minutes: int = 15):
                 "upper_90": round(float(r["upper_90"]), 4),
                 "proactive_alert": bool(r["fill_rate"] >= 0.90),
                 "model": r.get("model", "unknown"),
+                "live_fill_used": bool(r.get("basis", {}).get("live_fill_used")),
             })
         return {
             "horizon_minutes": horizon_minutes,
+            "forecast_basis": basis,
             "predictions": predictions,
             "data_source": "[SYNTHETIC] XGBoost model on synthetic demand data",
         }
@@ -860,16 +866,16 @@ def get_current_risk():
 
 
 @app.get("/risk/forecast", tags=["Risk"])
-def get_risk_forecast(horizon: int = 15):
-    """Return forecasted risk scores at horizon minutes ahead."""
+def get_risk_forecast(horizon: int = 15, as_of: Optional[str] = None):
+    """Return forecasted risk scores at horizon minutes ahead (time-aware, like /predict/all)."""
     try:
         from digital_twin.risk.engine import RiskEngine
-        from digital_twin.prediction.engine import get_predictor
+        from digital_twin.prediction.engine import forecast_context
         conn = get_conn()
-        predictor = get_predictor()
+        predictor, basis = forecast_context(conn, as_of)
         re = RiskEngine(conn, predictor=predictor)
         scores = re.compute_forecast(horizon_minutes=horizon)
-        return {"horizon_minutes": horizon, "risks": scores}
+        return {"horizon_minutes": horizon, "forecast_basis": basis, "risks": scores}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Risk forecast failed: {e}")
 

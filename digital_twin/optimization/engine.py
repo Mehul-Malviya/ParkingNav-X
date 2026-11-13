@@ -400,8 +400,8 @@ class MultiObjectiveOptimizer:
         # Try to get forecast
         forecast_fills = None
         try:
-            from digital_twin.prediction.engine import get_predictor
-            predictor = get_predictor()
+            from digital_twin.prediction.engine import forecast_context
+            predictor, _basis = forecast_context(conn)   # campus clock + fresh live occupancy
             snapshot = predictor.get_forecast_snapshot(15)
             forecast_fills = snapshot.get("lot_fill_rates")
         except Exception:

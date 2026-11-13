@@ -5,6 +5,7 @@ import {
 } from 'react-leaflet'
 import L from 'leaflet'
 import { api } from '../api'
+import ForecastBasis from './ForecastBasis'
 import { FALLBACK_CENTER, FALLBACK_ZOOM, boundsOf, isCoord, pointLabelIcon, positionNote, splitAccess } from '../mapConfig'
 import 'leaflet/dist/leaflet.css'
 
@@ -88,6 +89,7 @@ function FitBounds({ campus }) {
 export default function CampusMap({ onNavigateTo }) {
   const [campus, setCampus] = useState(null)
   const [predictions, setPredictions] = useState([])
+  const [forecastBasis, setForecastBasis] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -120,6 +122,7 @@ export default function CampusMap({ onNavigateTo }) {
 
       if (predictionResult.status === 'fulfilled') {
         setPredictions(predictionResult.value.data.predictions ?? [])
+        setForecastBasis(predictionResult.value.data.forecast_basis ?? null)
       } else {
         setPredictions([])
         errors.push(
@@ -393,6 +396,7 @@ export default function CampusMap({ onNavigateTo }) {
 
           {/* Lot cards */}
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Parking Lots</div>
+          <ForecastBasis basis={forecastBasis} />
           {loading && <div className="text-sm text-gray-400">Loading…</div>}
           {(campus?.parking_lots || []).map(lot => {
             const pred = predMap[lot.id]

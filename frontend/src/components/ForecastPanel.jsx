@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import ForecastBasis from './ForecastBasis'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer, ReferenceLine
@@ -30,6 +31,7 @@ function RiskBadge({ score, severity }) {
 export default function ForecastPanel() {
   const [predictions, setPredictions] = useState([])
   const [risks, setRisks] = useState(null)
+  const [basis, setBasis] = useState(null)
   const [horizon, setHorizon] = useState(15)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -48,6 +50,7 @@ export default function ForecastPanel() {
 
       if (predResult.status === 'fulfilled') {
         setPredictions(predResult.value.data.predictions ?? [])
+        setBasis(predResult.value.data.forecast_basis ?? null)
       } else {
         setPredictions([])
         errors.push(
@@ -80,7 +83,12 @@ export default function ForecastPanel() {
     }
   }
 
-  useEffect(() => { fetchData() }, [horizon])
+  useEffect(() => {
+    fetchData()
+    // The forecast follows the campus clock, so refresh it periodically.
+    const id = setInterval(fetchData, 60000)
+    return () => clearInterval(id)
+  }, [horizon])
 
   // Prepare bar chart data
   const barData = predictions.map(p => ({
@@ -115,6 +123,7 @@ export default function ForecastPanel() {
             </div>
           )}
           <p className="text-sm text-gray-500">Occupancy predictions with 90% conformal intervals + multi-dimensional risk scores</p>
+          <ForecastBasis basis={basis} />
         </div>
         <div className="flex items-center gap-2">
           <label className="text-sm text-gray-600">Horizon:</label>
