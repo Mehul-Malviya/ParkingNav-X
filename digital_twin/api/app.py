@@ -72,6 +72,20 @@ _db_conn = None
 _sim_lock = threading.RLock()
 
 
+def sim_conn():
+    """Private in-memory snapshot of the live DB for one simulation run, so
+    runs never share cursors/commits with other requests."""
+    import sqlite3
+    live = get_conn()
+    private = sqlite3.connect(":memory:", check_same_thread=False)
+    private.row_factory = sqlite3.Row
+    with _sim_lock:
+        live.commit()
+        live.backup(private)
+    private.execute("PRAGMA foreign_keys = ON")
+    return private
+
+
 def get_conn():
     global _db_conn
     if _db_conn is None:
@@ -389,8 +403,11 @@ def simulate(req: SimulateRequest):
     scenario = ScenarioLoader.load(scenario_file)
     engine = SimulationEngine()
     run_id = f"api-{uuid.uuid4().hex[:8]}"
-    with _sim_lock:
-        result = engine.run(scenario, strategy, conn, run_id=run_id)
+    sconn = sim_conn()
+    try:
+        result = engine.run(scenario, strategy, sconn, run_id=run_id)
+    finally:
+        sconn.close()
 
     # Populate lot_occupancy_history so the risk engine sees real data
     if result.timesteps:
@@ -447,8 +464,11 @@ def compare_strategies(scenario: str):
         engine = SimulationEngine()
         run_id = f"api-cmp-{uuid.uuid4().hex[:6]}"
         try:
-            with _sim_lock:
-                result = engine.run(sc, strategy, conn, run_id=run_id)
+            sconn = sim_conn()
+            try:
+                result = engine.run(sc, strategy, sconn, run_id=run_id)
+            finally:
+                sconn.close()
         except Exception as e:  # surface the real cause to the UI instead of a bare 500
             raise HTTPException(
                 status_code=500,
@@ -1069,8 +1089,11 @@ def run_experiment(req: ExperimentRunRequest):
             t0 = _time.time()
             try:
                 engine = SimulationEngine()
-                with _sim_lock:
-                    result = engine.run(sc, strategy, conn, run_id=run_id)
+                sconn = sim_conn()
+                try:
+                    result = engine.run(sc, strategy, sconn, run_id=run_id)
+                finally:
+                    sconn.close()
                 m = result.metrics
                 rec = {
                     "run_id": run_id, "scenario": req.scenario,
