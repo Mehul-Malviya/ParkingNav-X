@@ -238,7 +238,7 @@ export default function FindParkingTab({ initialDest }) {
               </button>
             ))}
             <div className="text-xs text-gray-400 italic">
-              [SYNTHETIC] Based on XGBoost fill forecast, not real occupancy.
+              Based on the XGBoost fill forecast; the map tab states whether it was trained on real or synthetic data.
             </div>
           </div>
 

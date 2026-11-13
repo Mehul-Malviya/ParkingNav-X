@@ -56,3 +56,5 @@ frontend/dist/
 *.db-shm
 *.db-wal
 
+
+*.db.before_demo

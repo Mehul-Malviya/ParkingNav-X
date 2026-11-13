@@ -36,6 +36,33 @@ def _get_demand_df():
     return _DEMAND_DF
 
 
+def retrain(conn=None):
+    """Refit every model on current data: real recorded occupancy where a lot has enough, synthetic
+    otherwise. Returns what each lot was trained on."""
+    global _DEMAND_DF, _PREDICTOR_SINGLETON
+    from digital_twin.prediction.features import real_lots
+    _DEMAND_DF = load_data(conn)
+    _PREDICTOR_SINGLETON = PredictionEngine()
+    _PREDICTOR_SINGLETON.fit_all()
+    real = real_lots(_DEMAND_DF)
+    xgb = _PREDICTOR_SINGLETON._xgb._models
+    return {"real_lots": real, "synthetic_lots": [l for l in LOT_IDS if l not in real],
+            # a lot with real data but too many gaps for the 24 h lag features falls back to MovingAverage
+            "lots_without_xgboost": [l for l in LOT_IDS if l not in xgb]}
+
+
+def data_description() -> Dict:
+    """Honest label for what the loaded models were trained on."""
+    from digital_twin.prediction.features import real_lots
+    real = real_lots(_get_demand_df())
+    if not real:
+        return {"mode": "synthetic", "real_lots": [], "label": "synthetic daily pattern"}
+    mode = "real" if len(real) == len(LOT_IDS) else "mixed"
+    return {"mode": mode, "real_lots": real,
+            "label": ("trained on recorded occupancy" if mode == "real"
+                      else f"trained on recorded occupancy for {len(real)} of {len(LOT_IDS)} lots, synthetic for the rest")}
+
+
 class HistoricalAveragePredictor:
     """Predict based on historical mean for (hour, day_of_week) slot."""
 
@@ -94,7 +121,7 @@ class MovingAveragePredictor:
             occ_col = "occupied" if "occupied" in lot_df.columns else lot_df.columns[0]
             lot_df["fill_rate"] = lot_df.get(occ_col, 0) / cap
         n_train = int(len(lot_df) * 0.70)
-        train = lot_df.iloc[:n_train]["fill_rate"].values
+        train = lot_df.iloc[:n_train]["fill_rate"].dropna().values
         ema = float(train[0]) if len(train) > 0 else 0.5
         residuals = []
         for v in train:
@@ -373,7 +400,8 @@ def fresh_live_fills(conn) -> Dict[str, float]:
         for lot_id in LOT_IDS:
             row = conn.execute(
                 """SELECT occupied_spaces, (julianday('now') - julianday(recorded_at)) * 1440.0
-                   FROM lot_occupancy_history WHERE lot_id=? ORDER BY recorded_at DESC LIMIT 1""",
+                   FROM lot_occupancy_history WHERE lot_id=? AND source NOT IN ('simulation', 'synthetic')
+                   ORDER BY recorded_at DESC LIMIT 1""",
                 (lot_id,)).fetchone()
             if row and row[1] is not None and row[1] <= LIVE_MAX_AGE_MIN and caps.get(lot_id, 0) > 0:
                 out[lot_id] = min(1.0, row[0] / caps[lot_id])
@@ -394,6 +422,6 @@ def forecast_context(conn, as_of=None):
         "as_of": at.isoformat(timespec="minutes"),
         "timezone": CAMPUS_TZ,
         "live_lots": sorted(live),
-        "data": "synthetic daily pattern",
+        "data": data_description()["label"],
     }
     return get_predictor().bind(at=at, live_fills=live), basis

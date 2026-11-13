@@ -5,6 +5,7 @@ import ScenarioControls from './components/ScenarioControls'
 import RecommendationPanel from './components/RecommendationPanel'
 import ExperimentsDashboard from './components/ExperimentsDashboard'
 import FindParkingTab from './components/FindParkingTab'
+import RecordCountsTab from './components/RecordCountsTab'
 
 const TABS = [
   { id: 'map',        label: '🗺️ Digital Twin Map' },
@@ -13,6 +14,7 @@ const TABS = [
   { id: 'scenario',   label: '⚙️ Scenarios' },
   { id: 'recommend',  label: '💡 Recommendations' },
   { id: 'experiments',label: '🔬 Experiments' },
+  { id: 'record',     label: '📝 Record Counts' },
 ]
 
 export default function App() {
@@ -71,6 +73,7 @@ export default function App() {
         {activeTab === 'scenario'    && <ScenarioControls />}
         {activeTab === 'recommend'   && <RecommendationPanel />}
         {activeTab === 'experiments' && <ExperimentsDashboard />}
+        {activeTab === 'record'      && <RecordCountsTab />}
       </main>
 
       <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-200 mt-8">
