@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { api } from './api'
 import CampusMap from './components/CampusMap'
 import ForecastPanel from './components/ForecastPanel'
 import ScenarioControls from './components/ScenarioControls'
@@ -20,11 +21,24 @@ const TABS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState('map')
   const [pendingDest, setPendingDest] = useState(null)
+  const [backendReady, setBackendReady] = useState(false)
   const [waking, setWaking] = useState(false)
+
+  // Wake up Render backend on load — retries until /health returns ok
   useEffect(() => {
-    const h = (e) => setWaking(!!e.detail)
-    window.addEventListener('api-waking', h)
-    return () => window.removeEventListener('api-waking', h)
+    let attempts = 0
+    const MAX = 10
+    const ping = async () => {
+      try {
+        const { data } = await api.getRoot()
+        if (data) { setBackendReady(true); setWaking(false); return }
+      } catch {}
+      attempts++
+      if (attempts < MAX) setTimeout(ping, 4000)
+      else setWaking(false)
+    }
+    setWaking(true)
+    ping()
   }, [])
 
   const handleNavigateTo = (dest) => {
@@ -34,9 +48,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {waking && (
-        <div className="bg-yellow-100 text-yellow-900 text-sm text-center py-2">
-          Waking up the server (free hosting sleeps when idle) — this can take up to a minute…
+      {/* Wake-up banner — shown while Render backend is cold-starting */}
+      {waking && !backendReady && (
+        <div className="bg-yellow-400 text-yellow-900 text-center text-sm py-2 px-4 font-medium">
+          ⏳ Backend is waking up — this may take up to 30 seconds on first load…
         </div>
       )}
       {/* Header */}
