@@ -18,7 +18,10 @@ arrival_rate_profile:
     - { time: 480, rate: 0.3 }
     - { time: 600, rate: 0.1 }
 event_conditions:
-  event_id: event-sports-fest-2026
+  ad_hoc: true
+  demand_multiplier: 1.5
+  affected_zones:
+    - sports_zone
   start_minute: 120
   end_minute: 600
 availability_overrides:

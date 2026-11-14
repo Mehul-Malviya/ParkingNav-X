@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer
 } from 'recharts'
 import { api } from '../api'
+
+const COMPARE_METRICS = [
+  { key: 'avg_search_time_min', label: 'Avg Search Time (min)' },
+  { key: 'avg_wait_time_min',   label: 'Avg Wait Time (min)' },
+  { key: 'avg_gate_queue',      label: 'Avg Gate Queue' },
+  { key: 'overflow_events',     label: 'Overflow Events' },
+]
 
 const STRATEGY_LABELS = {
   B1: 'B1 First Available',
@@ -30,6 +37,7 @@ export default function ScenarioControls() {
   const [comparing, setComparing] = useState(false)
   const [simError, setSimError] = useState('')
   const [compareError, setCompareError] = useState('')
+  const [compareMetric, setCompareMetric] = useState('avg_search_time_min')
 
   useEffect(() => {
     Promise.all([api.getScenarios(), api.getStrategies()]).then(([sRes, stRes]) => {
@@ -70,37 +78,14 @@ export default function ScenarioControls() {
     }
   }
 
-  // Build comparison chart data
-  const chartData = compareResult ? [
-    {
-      metric: 'Search Time (min)',
-      B1: compareResult.comparison?.B1?.avg_search_time_min ?? 0,
-      B2: compareResult.comparison?.B2?.avg_search_time_min ?? 0,
-      B3: compareResult.comparison?.B3?.avg_search_time_min ?? 0,
-      P: compareResult.comparison?.P?.avg_search_time_min ?? 0,
-    },
-    {
-      metric: 'Wait Time (min)',
-      B1: compareResult.comparison?.B1?.avg_wait_time_min ?? 0,
-      B2: compareResult.comparison?.B2?.avg_wait_time_min ?? 0,
-      B3: compareResult.comparison?.B3?.avg_wait_time_min ?? 0,
-      P: compareResult.comparison?.P?.avg_wait_time_min ?? 0,
-    },
-    {
-      metric: 'Avg Gate Queue',
-      B1: compareResult.comparison?.B1?.avg_gate_queue ?? 0,
-      B2: compareResult.comparison?.B2?.avg_gate_queue ?? 0,
-      B3: compareResult.comparison?.B3?.avg_gate_queue ?? 0,
-      P: compareResult.comparison?.P?.avg_gate_queue ?? 0,
-    },
-    {
-      metric: 'Overflow Events',
-      B1: compareResult.comparison?.B1?.overflow_events ?? 0,
-      B2: compareResult.comparison?.B2?.overflow_events ?? 0,
-      B3: compareResult.comparison?.B3?.overflow_events ?? 0,
-      P: compareResult.comparison?.P?.overflow_events ?? 0,
-    },
-  ] : []
+  // Build comparison chart: one bar per strategy for the selected metric
+  const activeCmpMeta = COMPARE_METRICS.find(m => m.key === compareMetric) || COMPARE_METRICS[0]
+  const chartData = compareResult
+    ? ['B1', 'B2', 'B3', 'P'].map(code => ({
+        strategy: code,
+        value: compareResult.comparison?.[code]?.[activeCmpMeta.key] ?? null,
+      }))
+    : []
 
   return (
     <div className="space-y-6">
@@ -199,19 +184,31 @@ export default function ScenarioControls() {
       {/* Comparison chart */}
       {compareResult && (
         <div className="bg-white rounded-lg shadow p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+          <h3 className="text-sm font-semibold text-gray-700 mb-1">
             Strategy Comparison — {compareResult.scenario}
           </h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+          <div className="mb-3 flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-600">Metric:</label>
+            <select
+              value={compareMetric}
+              onChange={e => setCompareMetric(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs"
+            >
+              {COMPARE_METRICS.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
+            </select>
+            <span className="text-xs text-gray-400">lower is better ↓</span>
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="metric" tick={{ fontSize: 11 }} />
+              <XAxis dataKey="strategy" tick={{ fontSize: 13, fontWeight: 600 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              {['B1', 'B2', 'B3', 'P'].map(code => (
-                <Bar key={code} dataKey={code} name={STRATEGY_LABELS[code]} fill={STRATEGY_COLORS[code]} />
-              ))}
+              <Tooltip formatter={(v) => [v?.toFixed ? v.toFixed(3) : v, activeCmpMeta.label]} />
+              <Bar dataKey="value" name={activeCmpMeta.label} radius={[4, 4, 0, 0]}>
+                {chartData.map(entry => (
+                  <Cell key={entry.strategy} fill={STRATEGY_COLORS[entry.strategy]} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
 
