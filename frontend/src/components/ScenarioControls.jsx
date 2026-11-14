@@ -129,21 +129,28 @@ export default function ScenarioControls() {
             </select>
           </div>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={runSimulation}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? '⏳ Running...' : '▶ Run Simulation'}
-          </button>
-          <button
-            onClick={runComparison}
-            disabled={comparing}
-            className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50"
-          >
-            {comparing ? '⏳ Comparing...' : '⚖️ Compare All Strategies'}
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-3">
+            <button
+              onClick={runSimulation}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? '⏳ Running...' : '▶ Run Simulation'}
+            </button>
+            <button
+              onClick={runComparison}
+              disabled={comparing}
+              className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+            >
+              {comparing ? '⏳ Comparing...' : '⚖️ Compare All Strategies'}
+            </button>
+          </div>
+          {(loading || comparing) && (
+            <p className="text-xs text-amber-600 font-medium">
+              ⏳ Running on free hosting — this takes 60–90 seconds, please wait…
+            </p>
+          )}
         </div>
       </div>
 
