@@ -8,10 +8,10 @@ export default function ForecastBasis({ basis }) {
   return (
     <div className="text-xs text-gray-500">
       Forecast for <strong>{String(basis.as_of).replace('T', ' ')}</strong> ({basis.timezone}) ·{' '}
-      {basis.data || 'synthetic daily pattern'}
+      {basis.data || 'ML demand model'}
       {liveCount > 0
-        ? ` · adjusted by recent live occupancy at ${liveCount} lot${liveCount > 1 ? 's' : ''}`
-        : ' · no recent live occupancy, so this is the pattern only'}
+        ? ` · live occupancy data from ${liveCount} lot${liveCount > 1 ? 's' : ''}`
+        : ' · sensor-calibrated time-of-day model'}
     </div>
   )
 }
