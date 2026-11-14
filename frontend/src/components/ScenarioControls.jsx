@@ -37,7 +37,9 @@ export default function ScenarioControls() {
       setScenarios(scens)
       if (scens.length > 0) setSelectedScenario(scens[0])
       setStrategies(stRes.data.strategies || [])
-    }).catch(console.error)
+    }).catch(e => {
+      setSimError(`Could not load scenarios/strategies: ${e.message}`)
+    })
   }, [])
 
   const runSimulation = async () => {

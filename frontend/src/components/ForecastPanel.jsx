@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import ForecastBasis from './ForecastBasis'
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts'
 import { api } from '../api'
@@ -14,7 +14,6 @@ const LOT_NAMES = {
   'vitap-lot-overflow':       'Overflow',
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
 function RiskBadge({ score, severity }) {
   const cls = severity === 'CRITICAL' ? 'bg-red-100 text-red-800 border-red-300' :
@@ -108,8 +107,6 @@ export default function ForecastPanel() {
     upper: Math.round(p.upper_90 * 100),
     alert: p.proactive_alert,
   }))
-
-  const lotIds = predictions.map(p => p.lot_id)
 
   return (
     <div className="space-y-6">
