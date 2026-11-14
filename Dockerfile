@@ -7,11 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Ensure experiments directory exists
-RUN mkdir -p experiments/results experiments/runs experiments/models
-
-# DB lives on a Render persistent disk mounted at /data; fall back to /app for local dev
-ENV PARKINGNAV_DB_PATH=/data/digital_twin.db
+# Ensure experiments directory exists and DB directory exists
+RUN mkdir -p experiments/results experiments/runs experiments/models /data
 
 EXPOSE 8000
 
