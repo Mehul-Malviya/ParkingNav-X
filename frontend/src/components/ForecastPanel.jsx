@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import ForecastBasis from './ForecastBasis'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer, ReferenceLine
+  ResponsiveContainer, ReferenceLine
 } from 'recharts'
 import { api } from '../api'
 

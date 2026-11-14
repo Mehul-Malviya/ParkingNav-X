@@ -87,15 +87,13 @@ class ParkingNavXFullStrategy(AllocationStrategy):
     """
 
     label = "P-ParkingNavX"
-    # Soft-threshold: lots above this fill get a score penalty multiplier
-    # rather than being hard-filtered.  Hard filter only at physical capacity.
-    FILL_SOFT_THRESHOLD = 0.80   # above this, fill penalty steepens
-    FILL_HARD_THRESHOLD = 0.95   # proactive: skip if forecast says lot will be this full
-    # Weight of gate queue depth (vehicles) in the composite score.
-    # Normalised: 10 vehicles in queue ≈ same cost as 10% extra fill penalty.
-    GATE_QUEUE_WEIGHT = 50.0     # metres-equivalent per vehicle in queue
+    # P uses PREDICTED fill, so thresholds match B3's but are applied to forecast not current.
+    # This gives proactive avoidance: P skips a lot at current 65% if forecast says it'll hit 80%.
+    FILL_SOFT_THRESHOLD = 0.60   # steepen penalty above 60% predicted fill
+    FILL_HARD_THRESHOLD = 0.80   # hard-skip when PREDICTED fill ≥ 80% (B3 uses current fill)
+    GATE_QUEUE_WEIGHT = 50.0
 
-    def __init__(self, weight_profile: str = "P2"):
+    def __init__(self, weight_profile: str = "P1"):
         self._forecast = None
         self._use_prediction = True
         self._use_optimization = True
@@ -172,26 +170,23 @@ class ParkingNavXFullStrategy(AllocationStrategy):
                 weight="weight_distance_meters"
             )
 
-            # ── Composite score aligned with J-function components ────────────
-            # w3 (search travel): normalise distance to [0,1] over 1 km max
-            w = self._weights
-            search_cost = min(1.0, distance / 1000.0)
-
-            # w5 (overflow penalty): steepens above soft threshold
+            # ── Composite score: same unit as B3 (metres × fill factor) + gate penalty ──
+            # Identical formula to B3 but using PREDICTED fill (not current).
+            # When fill is rising (lot filling up), effective_fill > current → stronger avoidance.
+            # When fill is falling (lot emptying), effective_fill < current → picks lots B3 avoids.
+            # Above FILL_SOFT_THRESHOLD: multiplier steepens to penalise congested routing.
             if effective_fill <= self.FILL_SOFT_THRESHOLD:
-                overflow_cost = effective_fill
+                fill_multiplier = 1.0 + effective_fill
             else:
-                overflow_cost = self.FILL_SOFT_THRESHOLD + (
+                fill_multiplier = 1.0 + self.FILL_SOFT_THRESHOLD + (
                     (effective_fill - self.FILL_SOFT_THRESHOLD) * 3.0
                 )
 
-            # w1+w2 (waiting + queue): gate queue normalised to [0,1] over 20 veh
-            queue_cost = min(1.0, my_queue / 20.0) if self._use_optimization else 0.0
+            # Gate queue penalty in metres-equivalent (zero when use_optimization=False)
+            queue_penalty = (my_queue * self.GATE_QUEUE_WEIGHT
+                             if self._use_optimization else 0.0)
 
-            # Composite: J-weighted components keep units consistent
-            score = (w["w3"] * search_cost
-                     + w["w5"] * overflow_cost
-                     + (w["w1"] + w["w2"]) * queue_cost)
+            score = distance * fill_multiplier + queue_penalty
 
             if score < best_score:
                 best_lot, best_score = lot_id, score
