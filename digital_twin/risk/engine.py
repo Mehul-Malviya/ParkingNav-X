@@ -54,23 +54,35 @@ class RiskEngine:
         self._alert_state: dict = {}
 
     def _get_lot_states(self) -> Dict[str, Dict]:
-        """Query current lot occupancy from DB."""
+        """Query current lot occupancy from DB, falling back to time-aware predictions."""
         if self._conn is None:
             return {}
         rows = self._conn.execute(
             "SELECT parking_lot_id, usable_capacity, status FROM parking_lots WHERE campus_id='vitap'"
         ).fetchall()
-        # Try to get occupancy from time_series or simulation metrics
+
+        # Seed fills from prediction engine (time-aware) rather than a fixed 40% default
+        pred_fills: Dict[str, float] = {}
+        if self._predictor is not None:
+            try:
+                snap = self._predictor.predict_all(15)
+                pred_fills = {lid: d["fill_rate"] for lid, d in snap.items()}
+            except Exception:
+                pass
+
         states = {}
         for row in rows:
             lot_id, cap, status = row[0], row[1], row[2]
-            # Default: no occupancy data → assume 40% fill (conservative)
+            cap = cap or LOT_CAPACITIES.get(lot_id, 100)
+            # Use prediction as default; fall back to 40% only when no predictor
+            default_fill = pred_fills.get(lot_id, 0.4)
             states[lot_id] = {
-                "capacity": cap or LOT_CAPACITIES.get(lot_id, 100),
-                "occupied": int((cap or 100) * 0.4),
+                "capacity": cap,
+                "occupied": int(cap * default_fill),
                 "status": status or "open",
             }
-        # Try to pull actual occupancy from lot_occupancy_history table
+
+        # Override with fresh recorded occupancy where available (more accurate than prediction)
         try:
             for lot_id in states:
                 row = self._conn.execute(
@@ -84,22 +96,43 @@ class RiskEngine:
             pass
         return states
 
-    def _get_gate_states(self) -> Dict[str, Dict]:
-        """Query current gate queue lengths from DB."""
+    def _get_gate_states(self, lot_states: Optional[Dict] = None) -> Dict[str, Dict]:
+        """Query current gate queue lengths from DB, estimating from lot fill when no live data."""
         if self._conn is None:
             return {}
         rows = self._conn.execute(
             "SELECT gate_id, capacity, status FROM gates WHERE campus_id='vitap'"
         ).fetchall()
+
+        # Estimate gate pressure from which lots each gate serves
+        gate_lot_map = {
+            "vitap-gate-main":    ["vitap-lot-academic-main", "vitap-lot-admin-visitor", "vitap-lot-hostel"],
+            "vitap-gate-visitor": ["vitap-lot-admin-visitor", "vitap-lot-overflow"],
+        }
+        avg_fill_by_gate: Dict[str, float] = {}
+        if lot_states:
+            for gate_id, served_lots in gate_lot_map.items():
+                fills = []
+                for lid in served_lots:
+                    s = lot_states.get(lid)
+                    if s and s["capacity"] > 0:
+                        fills.append(s["occupied"] / s["capacity"])
+                avg_fill_by_gate[gate_id] = sum(fills) / len(fills) if fills else 0.4
+
         states = {}
         for row in rows:
             gate_id, cap, status = row[0], row[1], row[2]
+            gate_cap = cap or GATE_CAPACITIES.get(gate_id, 5)
+            # Queue grows sharply above 70% fill: ~0 at ≤70%, ~GATE_QUEUE_CRITICAL at 100%
+            fill = avg_fill_by_gate.get(gate_id, 0.4)
+            est_queue = round(max(0.0, (fill - 0.70) / 0.30) ** 1.5 * GATE_QUEUE_CRITICAL, 1)
             states[gate_id] = {
-                "capacity": cap or GATE_CAPACITIES.get(gate_id, 5),
-                "queue_length": 0,  # live data would come from simulation
+                "capacity": gate_cap,
+                "queue_length": est_queue,
                 "status": status or "open",
             }
-        # Pull from gate_state table (written by twin_service after each simulate call)
+
+        # Override with real gate_state table data where available
         try:
             for gate_id in states:
                 row = self._conn.execute(
@@ -236,7 +269,7 @@ class RiskEngine:
     def compute_all(self) -> Dict:
         """Compute and return all risk scores from current DB state."""
         lot_states = self._get_lot_states()
-        gate_states = self._get_gate_states()
+        gate_states = self._get_gate_states(lot_states)
 
         of_risk = self.overflow_risk(lot_states)
         gq_risk = self.gate_queue_risk(gate_states)
@@ -327,7 +360,7 @@ class RiskEngine:
                 "est_search_seconds": search_sec,
             }
 
-        gate_states = self._get_gate_states()
+        gate_states = self._get_gate_states(forecasted_lot_states)
         of_risk = self.overflow_risk(forecasted_lot_states)
         gq_risk = self.gate_queue_risk(gate_states)
         road_risk = self.road_congestion_risk()
