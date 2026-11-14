@@ -188,95 +188,132 @@ export default function ForecastPanel() {
         ))}
       </div>
 
-      {/* Risk Scores */}
+      {/* Risk Dashboard */}
       {risks && (
         <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Risk Scores at +{horizon} minutes</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Risk Dashboard at +{horizon} minutes</h3>
+
+          {/* Network KPI row */}
+          {(() => {
+            const lm = risks.lot_metrics ?? {}
+            const fills = Object.values(lm).map(m => m.fill_forecast ?? 0)
+            const avgFill = fills.length ? fills.reduce((a,b)=>a+b,0)/fills.length : 0
+            const rising = Object.values(lm).filter(m => m.trend === 'rising').length
+            const netPct = Math.round((risks.network_risk?.score ?? 0) * 100)
+            const netColor = netPct >= 75 ? '#ef4444' : netPct >= 50 ? '#f97316' : netPct >= 25 ? '#eab308' : '#22c55e'
+            return (
+              <div className="grid grid-cols-4 gap-3 mb-5">
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-xs text-gray-500 mb-1">Network Risk</div>
+                  <div className="text-2xl font-bold" style={{color: netColor}}>{netPct}%</div>
+                  <div className="text-xs mt-1" style={{color: netColor}}>{risks.network_risk?.severity}</div>
+                </div>
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-xs text-gray-500 mb-1">Avg Fill</div>
+                  <div className="text-2xl font-bold text-blue-600">{Math.round(avgFill*100)}%</div>
+                  <div className="text-xs text-gray-400 mt-1">across {fills.length} lots</div>
+                </div>
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-xs text-gray-500 mb-1">Lots Rising</div>
+                  <div className="text-2xl font-bold text-orange-500">{rising}</div>
+                  <div className="text-xs text-gray-400 mt-1">of {fills.length} filling</div>
+                </div>
+                <div className="border rounded-lg p-3 text-center">
+                  <div className="text-xs text-gray-500 mb-1">Gate Wait</div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {Math.max(...Object.values(risks.gate_queue_risk ?? {}).map(g => g.est_wait_seconds ?? 0), 0)}s
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">max est. wait</div>
+                </div>
+              </div>
+            )
+          })()}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Network Risk */}
+            {/* Lot-by-lot capacity panel */}
             <div className="p-3 border rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold">Network-wide Risk</span>
-                {risks.network_risk && <RiskBadge {...risks.network_risk} />}
-              </div>
-              {risks.network_risk && (
-                <>
-                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-1">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${Math.max(risks.network_risk.score * 100, 2)}%`,
-                        backgroundColor: risks.network_risk.severity === 'CRITICAL' ? '#ef4444' :
-                                         risks.network_risk.severity === 'HIGH' ? '#f97316' :
-                                         risks.network_risk.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
-                      }}
-                    />
-                  </div>
-                  <div className="text-xs text-gray-400 text-right">{(risks.network_risk.score * 100).toFixed(1)}%</div>
-                </>
-              )}
-            </div>
-
-            {/* Overflow Risk per lot */}
-            <div className="p-3 border rounded-lg">
-              <div className="text-sm font-semibold mb-2">Overflow Risk by Lot</div>
-              <div className="space-y-2">
-                {risks.overflow_risk && Object.entries(risks.overflow_risk).map(([lotId, r]) => (
-                  <div key={lotId}>
-                    <div className="flex items-center justify-between text-xs mb-0.5">
-                      <span className="text-gray-600">{LOT_NAMES[lotId] || lotId}</span>
-                      <RiskBadge {...r} />
+              <div className="text-sm font-semibold mb-3">Lot Capacity &amp; Fill Trend</div>
+              <div className="space-y-4">
+                {risks.lot_metrics && Object.entries(risks.lot_metrics).map(([lotId, m]) => {
+                  const pct = Math.round(m.fill_forecast * 100)
+                  const color = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f97316' : pct >= 40 ? '#eab308' : '#22c55e'
+                  const trendIcon = m.trend === 'rising' ? '↑' : m.trend === 'falling' ? '↓' : '→'
+                  const trendColor = m.trend === 'rising' ? '#f97316' : m.trend === 'falling' ? '#22c55e' : '#6b7280'
+                  return (
+                    <div key={lotId}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-medium text-gray-700">{LOT_NAMES[lotId] || lotId}</span>
+                        <span className="flex items-center gap-1">
+                          <span style={{color: trendColor}} className="font-bold">{trendIcon} {Math.abs(m.fill_velocity_pct_per_min).toFixed(2)}%/min</span>
+                          <span className="font-semibold ml-1" style={{color}}>{pct}%</span>
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden relative">
+                        <div className="h-full rounded-full transition-all" style={{width:`${pct}%`, backgroundColor: color}} />
+                        <div className="absolute top-0 bottom-0 w-px bg-orange-400 opacity-70" style={{left:'70%'}} />
+                        <div className="absolute top-0 bottom-0 w-px bg-red-500 opacity-70" style={{left:'90%'}} />
+                      </div>
+                      <div className="flex justify-between text-xs mt-1 text-gray-400">
+                        <span>{m.spaces_free} spaces free</span>
+                        {m.time_to_warn_minutes != null
+                          ? <span className="text-orange-500 font-medium">⚠ fills to 70% in {m.time_to_warn_minutes}m</span>
+                          : m.time_to_alert_minutes != null
+                            ? <span className="text-red-500 font-medium">🚨 hits 90% in {m.time_to_alert_minutes}m</span>
+                            : <span>{m.pct_to_warn}% below warning</span>}
+                      </div>
                     </div>
-                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{
-                        width: `${Math.max(r.score * 100, 1)}%`,
-                        backgroundColor: r.severity === 'CRITICAL' ? '#ef4444' : r.severity === 'HIGH' ? '#f97316' : r.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
-                      }} />
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
-            {/* Gate Queue Risk */}
-            <div className="p-3 border rounded-lg">
-              <div className="text-sm font-semibold mb-2">Gate Queue Risk</div>
-              <div className="space-y-2">
-                {risks.gate_queue_risk && Object.entries(risks.gate_queue_risk).map(([gateId, r]) => (
-                  <div key={gateId}>
-                    <div className="flex items-center justify-between text-xs mb-0.5">
-                      <span className="text-gray-600 capitalize">{gateId.replace('vitap-gate-', '').replace(/-/g, ' ')} Gate</span>
-                      <RiskBadge {...r} />
-                    </div>
-                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{
-                        width: `${Math.max(r.score * 100, 1)}%`,
-                        backgroundColor: r.severity === 'CRITICAL' ? '#ef4444' : r.severity === 'HIGH' ? '#f97316' : r.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
-                      }} />
-                    </div>
-                  </div>
-                ))}
+            {/* Gate + Search panel */}
+            <div className="p-3 border rounded-lg space-y-4">
+              <div>
+                <div className="text-sm font-semibold mb-3">Gate Queue Forecast</div>
+                <div className="space-y-3">
+                  {risks.gate_queue_risk && Object.entries(risks.gate_queue_risk).map(([gateId, g]) => {
+                    const pct = Math.round((g.score ?? 0) * 100)
+                    const color = g.severity === 'CRITICAL' ? '#ef4444' : g.severity === 'HIGH' ? '#f97316' : g.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
+                    const name = gateId.replace('vitap-gate-','').replace(/-/g,' ')
+                    return (
+                      <div key={gateId}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-medium text-gray-700 capitalize">{name} Gate</span>
+                          <span style={{color}} className="font-semibold">
+                            ~{g.est_wait_seconds ?? 0}s wait · {g.est_queue_vehicles ?? 0} vehicles
+                          </span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{width:`${Math.max(pct,3)}%`, backgroundColor: color}} />
+                        </div>
+                        <div className="text-xs text-gray-400 text-right mt-0.5">{pct}% congestion index</div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Search Risk */}
-            <div className="p-3 border rounded-lg">
-              <div className="text-sm font-semibold mb-2">Search Time Risk by Lot</div>
-              <div className="space-y-2">
-                {risks.search_risk && Object.entries(risks.search_risk).map(([lotId, r]) => (
-                  <div key={lotId}>
-                    <div className="flex items-center justify-between text-xs mb-0.5">
-                      <span className="text-gray-600">{LOT_NAMES[lotId] || lotId}</span>
-                      <RiskBadge {...r} />
-                    </div>
-                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{
-                        width: `${Math.max(r.score * 100, 1)}%`,
-                        backgroundColor: r.severity === 'CRITICAL' ? '#ef4444' : r.severity === 'HIGH' ? '#f97316' : r.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
-                      }} />
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <div className="text-sm font-semibold mb-3">Estimated Search Time by Lot</div>
+                <div className="space-y-3">
+                  {risks.lot_metrics && Object.entries(risks.lot_metrics).map(([lotId, m]) => {
+                    const sec = m.est_search_seconds ?? 30
+                    const color = sec >= 180 ? '#ef4444' : sec >= 90 ? '#f97316' : sec >= 60 ? '#eab308' : '#22c55e'
+                    const barPct = Math.min(Math.round(sec / 3), 100)
+                    return (
+                      <div key={lotId}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-medium text-gray-700">{LOT_NAMES[lotId] || lotId}</span>
+                          <span style={{color}} className="font-semibold">~{sec}s avg</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{width:`${Math.max(barPct,3)}%`, backgroundColor: color}} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           </div>

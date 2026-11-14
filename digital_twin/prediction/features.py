@@ -59,8 +59,9 @@ def real_lots(df: pd.DataFrame) -> list:
 
 
 def _load_synthetic() -> pd.DataFrame:
-    """Load the synthetic demand CSV; generate synthetic data if missing."""
-    if DATA_PATH.exists():
+    """Load the synthetic demand CSV; (re)generate if missing or stale."""
+    _code_mtime = Path(__file__).stat().st_mtime
+    if DATA_PATH.exists() and DATA_PATH.stat().st_mtime >= _code_mtime:
         df = pd.read_csv(DATA_PATH)
         if "datetime" in df.columns and "timestamp" not in df.columns:
             df = df.rename(columns={"datetime": "timestamp"})
@@ -86,44 +87,110 @@ def _load_synthetic() -> pd.DataFrame:
         if "lot_id" not in df.columns:
             df["lot_id"] = LOT_IDS[0]
         return df
-    # Generate synthetic data for 30 days at 15-minute intervals
-    return _generate_synthetic_data()
+    # Generate and cache synthetic data
+    df = _generate_synthetic_data()
+    try:
+        DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(DATA_PATH, index=False)
+    except Exception:
+        pass
+    return df
+
+
+def _lot_fill(lot_id: str, hour: float, dow: int, rng) -> float:
+    """
+    Realistic VIT-AP-calibrated fill rate for each lot.
+    hour: fractional hour (e.g. 8.25 = 08:15)
+    dow: 0=Mon … 6=Sun
+    Returns fill_rate in [0, 1].
+    """
+    is_weekend = dow >= 5
+    # Friday is lighter than Mon-Thu; Mon has a slight rush
+    weekday_scale = {0: 1.05, 1: 1.0, 2: 1.0, 3: 0.98, 4: 0.88}.get(dow, 0.5 if is_weekend else 1.0)
+
+    def bell(h, peak, width, height):
+        return height * np.exp(-0.5 * ((h - peak) / width) ** 2)
+
+    if lot_id == "vitap-lot-academic-main":
+        # Sharp morning rush 8-10am, secondary 2-4pm, dead by 7pm
+        if is_weekend:
+            base = bell(hour, 10, 1.5, 0.25) + 0.05
+        else:
+            base = (bell(hour, 9.0, 0.9, 0.82) + bell(hour, 14.5, 1.2, 0.60)
+                    + bell(hour, 11.5, 0.8, 0.20) + 0.04)
+        noise_sd = 0.04
+
+    elif lot_id == "vitap-lot-hostel":
+        # Always moderately full (residents park overnight); dips when everyone goes to class
+        if is_weekend:
+            base = 0.55 + bell(hour, 11, 2.0, 0.20) + bell(hour, 16, 2.5, 0.15)
+        else:
+            base = (0.45
+                    - bell(hour, 9.5, 1.5, 0.20)   # students leave for class
+                    + bell(hour, 13.0, 1.0, 0.15)  # lunch return
+                    + bell(hour, 18.5, 1.5, 0.30)  # evening return
+                    + bell(hour, 22.0, 2.0, 0.10))
+        noise_sd = 0.05
+
+    elif lot_id == "vitap-lot-admin-visitor":
+        # 9-to-5 office pattern, closed weekends
+        if is_weekend:
+            base = 0.05 + bell(hour, 11, 2, 0.12)
+        else:
+            base = (bell(hour, 10.0, 1.5, 0.65) + bell(hour, 15.0, 1.5, 0.45)
+                    + 0.05 * (8 <= hour <= 17))
+        noise_sd = 0.04
+
+    elif lot_id == "vitap-lot-sports":
+        # Peaks on evenings and weekends (games, practice)
+        if is_weekend:
+            base = bell(hour, 10, 2, 0.60) + bell(hour, 16, 2, 0.70) + 0.08
+        else:
+            base = bell(hour, 17.5, 1.5, 0.65) + bell(hour, 12.5, 1.0, 0.20) + 0.05
+        noise_sd = 0.06
+
+    elif lot_id == "vitap-lot-overflow":
+        # Spills over from academic during peak — correlated but delayed
+        if is_weekend:
+            base = 0.03 + bell(hour, 11, 2, 0.08)
+        else:
+            base = (bell(hour, 9.5, 1.0, 0.35) + bell(hour, 15.0, 1.5, 0.22)
+                    + 0.02)
+        noise_sd = 0.03
+
+    else:
+        base = 0.3
+        noise_sd = 0.05
+
+    fill = float(np.clip(base * weekday_scale + rng.normal(0, noise_sd), 0.0, 1.0))
+    return fill
 
 
 def _generate_synthetic_data() -> pd.DataFrame:
-    """Generate 30 days of realistic VIT-AP occupancy data."""
+    """
+    Generate 90 days of realistic VIT-AP-calibrated occupancy data.
+    Each lot has a distinct daily shape, lot-specific peaks, and day-of-week variation
+    so the prediction model learns real structure (not just a flat average).
+    """
     rng = np.random.default_rng(42)
-    dates = pd.date_range("2024-09-01", periods=30 * 24 * 4, freq="15min")
+    # 90 days gives enough train/val/test split depth for the XGBoost model
+    dates = pd.date_range("2024-07-01", periods=90 * 24 * 4, freq="15min")
     records = []
     for ts in dates:
-        hour = ts.hour
-        dow = ts.dayofweek  # 0=Mon
+        dow = ts.dayofweek
+        hour_frac = ts.hour + ts.minute / 60.0
         is_weekend = dow >= 5
-        # Base demand profile: peak 9-11am and 2-4pm on weekdays
-        base = 0.3 if is_weekend else (
-            0.7 if 8 <= hour <= 11 else
-            0.6 if 13 <= hour <= 16 else
-            0.4 if 7 <= hour <= 18 else 0.15
-        )
         for lot_id in LOT_IDS:
             cap = LOT_CAPACITIES[lot_id]
-            # Lot-specific multipliers
-            mult = {
-                "vitap-lot-academic-main": 1.3,
-                "vitap-lot-hostel": 0.8,
-                "vitap-lot-admin-visitor": 0.9,
-                "vitap-lot-sports": 0.6,
-                "vitap-lot-overflow": 0.3,
-            }[lot_id]
-            fill = min(1.0, max(0.0, base * mult + rng.normal(0, 0.05)))
+            fill = _lot_fill(lot_id, hour_frac, dow, rng)
             records.append({
                 "timestamp": ts,
                 "lot_id": lot_id,
                 "occupied": int(fill * cap),
                 "capacity": cap,
-                "fill_rate": fill,
+                "fill_rate": round(fill, 4),
                 "day_of_week": dow,
-                "hour": hour,
+                "hour": ts.hour,
                 "minute": ts.minute,
                 "is_weekend": int(is_weekend),
             })
