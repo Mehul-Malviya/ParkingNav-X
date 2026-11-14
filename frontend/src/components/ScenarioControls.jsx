@@ -28,6 +28,8 @@ export default function ScenarioControls() {
   const [compareResult, setCompareResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [comparing, setComparing] = useState(false)
+  const [simError, setSimError] = useState('')
+  const [compareError, setCompareError] = useState('')
 
   useEffect(() => {
     Promise.all([api.getScenarios(), api.getStrategies()]).then(([sRes, stRes]) => {
@@ -41,11 +43,12 @@ export default function ScenarioControls() {
   const runSimulation = async () => {
     setLoading(true)
     setSimResult(null)
+    setSimError('')
     try {
       const res = await api.simulate(selectedScenario, selectedStrategy)
       setSimResult(res.data)
     } catch (e) {
-      alert(`Simulation failed: ${e.response?.data?.detail || e.message}`)
+      setSimError(`Simulation failed: ${e.response?.data?.detail || e.message}`)
     } finally {
       setLoading(false)
     }
@@ -54,11 +57,12 @@ export default function ScenarioControls() {
   const runComparison = async () => {
     setComparing(true)
     setCompareResult(null)
+    setCompareError('')
     try {
       const res = await api.compareStrategies(selectedScenario)
       setCompareResult(res.data)
     } catch (e) {
-      alert(`Comparison failed: ${e.response?.data?.detail || e.message}`)
+      setCompareError(`Comparison failed: ${e.response?.data?.detail || e.message}`)
     } finally {
       setComparing(false)
     }
@@ -150,6 +154,16 @@ export default function ScenarioControls() {
             <p className="text-xs text-amber-600 font-medium">
               ⏳ Running on free hosting — this takes 60–90 seconds, please wait…
             </p>
+          )}
+          {simError && (
+            <div role="alert" className="p-3 rounded border border-red-200 bg-red-50 text-red-700 text-sm">
+              {simError}
+            </div>
+          )}
+          {compareError && (
+            <div role="alert" className="p-3 rounded border border-red-200 bg-red-50 text-red-700 text-sm">
+              {compareError}
+            </div>
           )}
         </div>
       </div>

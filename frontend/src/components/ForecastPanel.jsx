@@ -32,6 +32,7 @@ export default function ForecastPanel() {
   const [predictions, setPredictions] = useState([])
   const [risks, setRisks] = useState(null)
   const [basis, setBasis] = useState(null)
+  const [modelMetrics, setModelMetrics] = useState(null)
   const [horizon, setHorizon] = useState(15)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -84,6 +85,13 @@ export default function ForecastPanel() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    // Fetch model metrics once (not on every horizon change — evaluation is expensive)
+    api.getModelMetrics()
+      .then(r => setModelMetrics(r.data))
+      .catch(() => { /* optional — panel still works without */ })
+  }, [])
 
   useEffect(() => {
     fetchData()
@@ -187,6 +195,32 @@ export default function ForecastPanel() {
           </div>
         ))}
       </div>
+
+      {/* Model Accuracy Card */}
+      {modelMetrics?.summary && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            Model Accuracy — {modelMetrics.model}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'MAE (fill rate)', value: modelMetrics.summary.mae != null ? modelMetrics.summary.mae.toFixed(4) : '—', sub: 'mean abs error', color: 'text-blue-700' },
+              { label: 'RMSE', value: modelMetrics.summary.rmse != null ? modelMetrics.summary.rmse.toFixed(4) : '—', sub: 'root mean sq error', color: 'text-indigo-700' },
+              { label: 'R²', value: modelMetrics.summary.r2 != null ? modelMetrics.summary.r2.toFixed(3) : '—', sub: 'coefficient of determination', color: modelMetrics.summary.r2 >= 0.8 ? 'text-green-700' : 'text-orange-600' },
+              { label: '90% CI Coverage', value: modelMetrics.summary.coverage_90 != null ? `${(modelMetrics.summary.coverage_90 * 100).toFixed(1)}%` : '—', sub: 'conformal intervals', color: 'text-teal-700' },
+            ].map(({ label, value, sub, color }) => (
+              <div key={label} className="text-center p-3 border rounded-lg">
+                <div className={`text-xl font-bold ${color}`}>{value}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                <div className="text-xs text-gray-400">{sub}</div>
+              </div>
+            ))}
+          </div>
+          <div className="text-xs text-gray-400 mt-2">
+            Averaged across {modelMetrics.summary.n_lots} lots · {modelMetrics.horizon_minutes}-min horizon · evaluated on 15% held-out test split
+          </div>
+        </div>
+      )}
 
       {/* Risk Dashboard */}
       {risks && (

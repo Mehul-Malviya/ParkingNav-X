@@ -95,6 +95,10 @@ export const api = {
   getRecommendations: () => axios.get(`${BASE}/recommendations`),
   getOptimizeProfiles: () => axios.get(`${BASE}/optimize/profiles`),
 
+  // Data quality
+  getDataSummary:     () => axios.get(`${BASE}/data/summary`),
+  getModelMetrics:    () => axios.get(`${BASE}/predict/model-metrics`),
+
   // Routing
   getRoute:          (origin, destination, mode = 'drive') =>
     axios.get(`${BASE}/route`, { params: { origin, destination, mode } }),

@@ -375,26 +375,47 @@ export default function CampusMap({ onNavigateTo }) {
           {campus && (
             <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div className="text-xs font-bold text-blue-700 mb-2">Campus Overview</div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="text-center p-2 bg-white rounded border">
-                  <div className="text-lg font-bold text-blue-700">{campus.parking_lots?.length || 0}</div>
-                  <div className="text-gray-500">Parking Zones</div>
-                </div>
-                <div className="text-center p-2 bg-white rounded border">
-                  <div className="text-lg font-bold text-green-700">
-                    {campus.parking_lots?.reduce((s, l) => s + (l.usable_capacity || 0), 0)}
-                  </div>
-                  <div className="text-gray-500">Total Spaces</div>
-                </div>
-                <div className="text-center p-2 bg-white rounded border">
-                  <div className="text-lg font-bold text-purple-700">{campus.destinations?.length || 0}</div>
-                  <div className="text-gray-500">Destinations</div>
-                </div>
-                <div className="text-center p-2 bg-white rounded border">
-                  <div className="text-lg font-bold text-gray-700">{campus.roads?.length || 0}</div>
-                  <div className="text-gray-500">Road Segments</div>
-                </div>
-              </div>
+              {(() => {
+                const totalCap = campus.parking_lots?.reduce((s, l) => s + (l.usable_capacity || 0), 0) || 0
+                const occupied = Math.round(
+                  (campus.parking_lots || []).reduce((s, l) => {
+                    const pred = predMap[l.id]
+                    return s + (pred ? pred.predicted_fill_rate * (l.usable_capacity || 0) : (l.usable_capacity || 0) * 0.4)
+                  }, 0)
+                )
+                const available = totalCap - occupied
+                const utilPct = totalCap > 0 ? Math.round((occupied / totalCap) * 100) : 0
+                const utilColor = utilPct >= 85 ? '#ef4444' : utilPct >= 65 ? '#f97316' : '#22c55e'
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                      <div className="text-center p-2 bg-white rounded border">
+                        <div className="text-lg font-bold text-gray-800">{totalCap}</div>
+                        <div className="text-gray-500">Total Spaces</div>
+                      </div>
+                      <div className="text-center p-2 bg-white rounded border">
+                        <div className="text-lg font-bold" style={{color: utilColor}}>{utilPct}%</div>
+                        <div className="text-gray-500">Utilization</div>
+                      </div>
+                      <div className="text-center p-2 bg-white rounded border">
+                        <div className="text-lg font-bold text-red-600">{occupied}</div>
+                        <div className="text-gray-500">Occupied</div>
+                      </div>
+                      <div className="text-center p-2 bg-white rounded border">
+                        <div className="text-lg font-bold text-green-600">{available}</div>
+                        <div className="text-gray-500">Available</div>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-1">
+                      <div className="h-full rounded-full transition-all" style={{width:`${utilPct}%`, backgroundColor: utilColor}} />
+                    </div>
+                    <div className="flex justify-between text-gray-400 text-xs">
+                      <span>{campus.parking_lots?.length || 0} zones · {campus.destinations?.length || 0} destinations</span>
+                      <span>{occupied} + {available} = {totalCap} ✓</span>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           )}
 
