@@ -32,6 +32,7 @@ function Section({ title, badge, children }) {
 export default function RecordCountsTab() {
   const [summary, setSummary] = useState(null)
   const [summaryError, setSummaryError] = useState('')
+  const [summaryLoading, setSummaryLoading] = useState(true)
 
   // Manual count form state
   const [lots, setLots] = useState([])
@@ -44,9 +45,11 @@ export default function RecordCountsTab() {
   const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
+    setSummaryLoading(true)
     api.getDataSummary()
       .then(r => setSummary(r.data))
       .catch(() => setSummaryError('Could not load dataset summary — is the backend running?'))
+      .finally(() => setSummaryLoading(false))
 
     api.getCampus().then(r => {
       const l = r.data.parking_lots ?? []
@@ -94,6 +97,10 @@ export default function RecordCountsTab() {
         <h2 className="text-lg font-bold text-gray-800">Dataset Overview &amp; Record Counts</h2>
         <p className="text-sm text-gray-500">Live record counts from the database. All figures fetched from backend — none are hardcoded.</p>
       </div>
+
+      {summaryLoading && (
+        <div className="p-4 text-center text-gray-400 text-sm">Loading dataset statistics…</div>
+      )}
 
       {summaryError && (
         <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded">{summaryError}</div>

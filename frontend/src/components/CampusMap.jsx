@@ -380,7 +380,7 @@ export default function CampusMap({ onNavigateTo }) {
                 const occupied = Math.round(
                   (campus.parking_lots || []).reduce((s, l) => {
                     const pred = predMap[l.id]
-                    return s + (pred ? pred.predicted_fill_rate * (l.usable_capacity || 0) : (l.usable_capacity || 0) * 0.4)
+                    return s + (pred ? pred.predicted_fill_rate * (l.usable_capacity || 0) : 0)
                   }, 0)
                 )
                 const available = totalCap - occupied

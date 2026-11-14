@@ -215,7 +215,19 @@ class PredictionEngine:
         self._ma = MovingAveragePredictor()
         self._xgb = XGBoostPredictor()
         self._fitted = False
-        self._current_fills: Dict[str, float] = {lid: 0.3 for lid in LOT_IDS}
+        # Seed fills from HA at the current campus hour so MovingAverage starts realistic, not 0.3
+        try:
+            from datetime import datetime
+            _now = datetime.now()
+            self._current_fills: Dict[str, float] = {
+                lid: 0.3 for lid in LOT_IDS  # overwritten after fit_all()
+            }
+            self._init_hour = _now.hour
+            self._init_dow = _now.weekday()
+        except Exception:
+            self._current_fills = {lid: 0.3 for lid in LOT_IDS}
+            self._init_hour = 9
+            self._init_dow = 0
 
     def fit_all(self, horizon_steps: int = 1):
         """Train all predictors on synthetic_multi_year_demand.csv."""
@@ -225,6 +237,11 @@ class PredictionEngine:
             self._ma.fit(df, lot_id, horizon_steps)
             self._xgb.fit(df, lot_id, horizon_steps)
         self._fitted = True
+        # Seed _current_fills and MA EMAs from time-of-day HA pattern so defaults are realistic
+        for lid in LOT_IDS:
+            ha_fill = self._ha.predict_slot(lid, getattr(self, '_init_hour', 9), getattr(self, '_init_dow', 0))
+            self._current_fills[lid] = ha_fill
+            self._ma._ema[lid] = ha_fill  # warm-start EMA at realistic level
 
     def update_current(self, lot_id: str, fill_rate: float):
         """Update live fill rate (called by simulation or API)."""
@@ -292,11 +309,32 @@ class PredictionEngine:
         return int(rows[-1]) if len(rows) else None
 
     def _predict_for_time(self, lot_id: str, horizon_minutes: int, at, live_fill) -> Optional[Dict]:
-        """Forecast for `at` + horizon from the synthetic row of the matching weekday/time slot."""
-        if lot_id not in self._xgb._models:
-            return None
+        """Forecast for `at` + horizon from the synthetic row of the matching weekday/time slot.
+        Falls back to HistoricalAverage when XGBoost has no model for this lot."""
         from datetime import timedelta
-        # The model predicts +15 min from its input row, so the input row is `horizon - 15` ahead.
+        if lot_id not in self._xgb._models:
+            # HA path: time-aware, different for each lot and each hour
+            row_time = at + timedelta(minutes=max(0, horizon_minutes - 15))
+            ha_pred = float(self._ha.predict_slot(lot_id, row_time.hour, row_time.weekday()))
+            # Apply live-fill adjustment if available
+            if live_fill is not None:
+                current_ha = float(self._ha.predict_slot(lot_id, at.hour, at.weekday()))
+                dev = float(live_fill) - current_ha
+                adj = dev * 0.5 ** (horizon_minutes / LIVE_HALF_LIFE_MIN)
+                ha_pred = max(0.0, min(1.0, ha_pred + adj))
+            w = 0.15  # wider interval for HA (less precise)
+            return {
+                "fill_rate": round(ha_pred, 4),
+                "lower_90": round(max(0.0, ha_pred - w), 4),
+                "upper_90": round(min(1.0, ha_pred + w), 4),
+                "model": "HistoricalAverage",
+                "basis": {
+                    "mode": "time_of_day",
+                    "slot": f"{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][row_time.weekday()]} {row_time.hour:02d}:{(row_time.minute//15)*15:02d}",
+                    "live_fill_used": live_fill is not None,
+                },
+            }
+        # XGBoost path: use the synthetic row for the matching weekday/time slot
         row_time = at + timedelta(minutes=max(0, horizon_minutes - 15))
         i = self._slot_row(lot_id, row_time)
         if i is None:

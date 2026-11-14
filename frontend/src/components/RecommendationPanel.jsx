@@ -42,19 +42,17 @@ export default function RecommendationPanel() {
   const [recs, setRecs] = useState([])
   const [profile, setProfile] = useState('P1')
   const [profiles, setProfiles] = useState(FALLBACK_PROFILES)
-  const [scenarios, setScenarios] = useState([])
-  const [scenario, setScenario] = useState('E1_normal_day')
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [error, setError] = useState('')
 
-  const fetchRecs = async (wp = profile, sc = scenario) => {
+  const fetchRecs = async (wp = profile) => {
     setLoading(true)
     setError('')
     setRecs([])
 
     try {
-      const res = await api.optimize(sc, wp)
+      const res = await api.optimize('E1_normal_day', wp)
 
       if (res.data?.error) {
         throw new Error(res.data.error)
@@ -84,9 +82,6 @@ export default function RecommendationPanel() {
     api.getOptimizeProfiles()
       .then(res => { if (res.data?.profiles?.length) setProfiles(res.data.profiles) })
       .catch(() => {})
-    api.getScenarios()
-      .then(res => { if (res.data?.scenarios?.length) setScenarios(res.data.scenarios) })
-      .catch(() => {})
     fetchRecs()
   }, [])
 
@@ -100,21 +95,11 @@ export default function RecommendationPanel() {
         {lastUpdated && <span className="text-xs text-gray-400">Updated: {lastUpdated}</span>}
       </div>
 
-      {/* Scenario Selector */}
-      {scenarios.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Scenario</label>
-          <select
-            value={scenario}
-            onChange={e => { setScenario(e.target.value); fetchRecs(profile, e.target.value) }}
-            className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full md:w-64"
-          >
-            {scenarios.map(s => (
-              <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* Data source note */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-xs text-blue-700">
+        Recommendations are computed from <strong>live campus occupancy + 15-min forecast</strong>, not a scenario playback.
+        Select a weight profile below to change which costs the optimizer minimises.
+      </div>
 
       {/* Weight Profile Selector */}
       <div className="bg-white rounded-lg shadow p-4">
@@ -136,7 +121,7 @@ export default function RecommendationPanel() {
                 checked={profile === wp.id}
                 onChange={e => {
                   setProfile(e.target.value)
-                  fetchRecs(e.target.value, scenario)
+                  fetchRecs(e.target.value)
                 }}
                 className="mt-0.5"
               />

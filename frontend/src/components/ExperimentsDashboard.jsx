@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid,
-  PolarAngleAxis, PolarRadiusAxis
+  Legend, ResponsiveContainer
 } from 'recharts'
 import { api } from '../api'
 
@@ -96,7 +95,19 @@ useEffect(() => {
     // Fetch statistical summary (std dev + 95% CI) after experiments complete
     try {
       const sumRes = await api.getExperimentSummary()
-      setStatSummary(sumRes.data)
+      // Backend returns { "scenario|strategy": { scenario, strategy, n, metrics: { metric: {mean,std,ci95,n} } } }
+      // Transform into { strategy: { metric: {mean,std,ci95,n} } } by merging across scenarios
+      const raw = sumRes.data || {}
+      const byStrategy = {}
+      for (const entry of Object.values(raw)) {
+        const st = entry.strategy
+        if (!st) continue
+        if (!byStrategy[st]) byStrategy[st] = {}
+        for (const [metric, stats] of Object.entries(entry.metrics || {})) {
+          if (!byStrategy[st][metric] && stats) byStrategy[st][metric] = stats
+        }
+      }
+      setStatSummary(byStrategy)
     } catch { /* summary is optional — table still shows mean values */ }
   } finally {
     setLoading(false)
@@ -112,38 +123,6 @@ useEffect(() => {
     B3: scenarioData.B3?.[m.key] ?? null,
     P: scenarioData.P?.[m.key] ?? null,
   }))
-
-  // Radar data (normalized) for selected scenario
-  const metricMaxes = METRICS.map(m => {
-  const values = STRATEGIES
-    .map(s => scenarioData[s]?.[m.key])
-    .filter(v => typeof v === 'number' && Number.isFinite(v))
-
-  return values.length > 0
-    ? Math.max(...values, 1)
-    : null
-})
-  const radarData = STRATEGIES.map(strategy => {
-  const point = { strategy }
-
-  METRICS.forEach((m, i) => {
-    const val = scenarioData[strategy]?.[m.key]
-    const max = metricMaxes[i]
-
-    if (
-      typeof val !== 'number' ||
-      !Number.isFinite(val) ||
-      max === null
-    ) {
-      point[m.label] = null
-    } else {
-      // Lower values are better for these metrics.
-      point[m.label] = m.lower ? 1 - val / max : val / max
-    }
-  })
-
-  return point
-})
 
   // Summary table: all scenarios × all strategies
   const hasResults = Object.keys(results).length > 0
@@ -246,7 +225,7 @@ useEffect(() => {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-700">Results Summary Table</h3>
               {statSummary && (
-                <span className="text-xs text-gray-400 italic">σ = std dev · CI = 95% confidence interval</span>
+                <span className="text-xs text-gray-400 italic">σ = std dev · ±margin = 95% CI half-width</span>
               )}
             </div>
             <table className="min-w-full text-xs">
@@ -272,9 +251,10 @@ useEffect(() => {
                     const fmtCI = (metric) => {
                       const d = ss?.[metric]
                       if (!d) return '—'
-                      const std = typeof d.std === 'number' ? d.std.toFixed(2) : '?'
-                      const ci = Array.isArray(d.ci95) ? `[${d.ci95[0].toFixed(2)}, ${d.ci95[1].toFixed(2)}]` : '?'
-                      return <span className="text-gray-400">σ={std}<br/>{ci}</span>
+                      const std = typeof d.std === 'number' ? d.std.toFixed(3) : '?'
+                      // ci95 is a half-width margin: mean ± ci95
+                      const margin = typeof d.ci95 === 'number' ? d.ci95.toFixed(3) : '?'
+                      return <span className="text-gray-400 leading-tight">σ={std}<br/>±{margin}</span>
                     }
                     return (
                       <tr key={`${scenario}-${s}`} className={`border-b ${isParkingNav ? 'bg-green-50 font-semibold' : ''} ${si === 0 ? 'border-t-2 border-gray-300' : ''}`}>

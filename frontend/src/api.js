@@ -77,8 +77,8 @@ export const api = {
   // Prediction
   predictOccupancy:  (lot_id, horizon_minutes = 15) =>
     axios.get(`${BASE}/predict/occupancy`, { params: { lot_id, horizon_minutes } }),
-  predictAll:        (horizon_minutes = 15) =>
-    axios.get(`${BASE}/predict/all`, { params: { horizon_minutes } }),
+  predictAll:        (horizon_minutes = 15, as_of = null) =>
+    axios.get(`${BASE}/predict/all`, { params: { horizon_minutes, ...(as_of ? { as_of } : {}) } }),
 
   // Real occupancy counts
   recordObservation: (obs) => axios.post(`${BASE}/observations`, obs, keyHeader()),
@@ -86,8 +86,8 @@ export const api = {
 
   // Risk
   getRiskCurrent:    () => axios.get(`${BASE}/risk/current`),
-  getRiskForecast:   (horizon = 15) =>
-    axios.get(`${BASE}/risk/forecast`, { params: { horizon } }),
+  getRiskForecast:   (horizon = 15, as_of = null) =>
+    axios.get(`${BASE}/risk/forecast`, { params: { horizon, ...(as_of ? { as_of } : {}) } }),
 
   // Optimization
   optimize:          (scenario = 'E1_normal_day', weight_profile = 'P1') =>

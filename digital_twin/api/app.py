@@ -1098,8 +1098,10 @@ def get_current_risk():
     """Return current risk scores across all risk dimensions."""
     try:
         from digital_twin.risk.engine import RiskEngine
+        from digital_twin.prediction.engine import forecast_context
         conn = get_conn()
-        re = RiskEngine(conn)
+        predictor, _basis = forecast_context(conn)
+        re = RiskEngine(conn, predictor=predictor)
         scores = re.compute_all()
         return {"status": "ok", "risks": scores}
     except Exception as e:

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import ForecastBasis from './ForecastBasis'
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts'
 import { api } from '../api'
@@ -14,7 +14,6 @@ const LOT_NAMES = {
   'vitap-lot-overflow':       'Overflow',
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
 function RiskBadge({ score, severity }) {
   const cls = severity === 'CRITICAL' ? 'bg-red-100 text-red-800 border-red-300' :
@@ -34,17 +33,37 @@ export default function ForecastPanel() {
   const [basis, setBasis] = useState(null)
   const [modelMetrics, setModelMetrics] = useState(null)
   const [horizon, setHorizon] = useState(15)
+  const [asOf, setAsOf] = useState('')  // ISO string or '' for live
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const fetchData = async () => {
+  // Quick time-travel presets calibrated to VIT-AP campus patterns
+  const TIME_PRESETS = [
+    { label: 'Live', value: '' },
+    { label: '8 am (arriving)', value: '08:00' },
+    { label: '9 am (peak)', value: '09:00' },
+    { label: '12 pm (lunch)', value: '12:00' },
+    { label: '2 pm (afternoon)', value: '14:00' },
+    { label: '5 pm (dispersal)', value: '17:00' },
+    { label: '8 pm (evening)', value: '20:00' },
+  ]
+
+  // Convert HH:MM preset to a today ISO datetime string (campus local date)
+  const resolveAsOf = (val) => {
+    if (!val) return null
+    const today = new Date().toISOString().slice(0, 10)
+    return `${today}T${val}:00`
+  }
+
+  const fetchData = async (h = horizon, ao = asOf) => {
     setLoading(true)
     setError('')
+    const resolvedAo = resolveAsOf(ao)
 
     try {
       const [predResult, riskResult] = await Promise.allSettled([
-        api.predictAll(horizon),
-        api.getRiskForecast(horizon),
+        api.predictAll(h, resolvedAo),
+        api.getRiskForecast(h, resolvedAo),
       ])
 
       const errors = []
@@ -94,11 +113,13 @@ export default function ForecastPanel() {
   }, [])
 
   useEffect(() => {
-    fetchData()
-    // The forecast follows the campus clock, so refresh it periodically.
-    const id = setInterval(fetchData, 60000)
-    return () => clearInterval(id)
-  }, [horizon])
+    fetchData(horizon, asOf)
+    // Auto-refresh only in live mode; time-travel is static
+    if (!asOf) {
+      const id = setInterval(() => fetchData(horizon, asOf), 60000)
+      return () => clearInterval(id)
+    }
+  }, [horizon, asOf])
 
   // Prepare bar chart data
   const barData = predictions.map(p => ({
@@ -109,45 +130,65 @@ export default function ForecastPanel() {
     alert: p.proactive_alert,
   }))
 
-  const lotIds = predictions.map(p => p.lot_id)
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-gray-800">Forecast & Risk Panel</h2>
-          {error && (
-            <div
-              role="alert"
-              className="p-3 rounded border border-red-200 bg-red-50 text-red-700 text-sm"
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">Forecast & Risk Panel</h2>
+            <p className="text-sm text-gray-500">Occupancy predictions with 90% conformal intervals + multi-dimensional risk scores</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <label className="text-sm text-gray-600">Horizon:</label>
+            <select
+              value={horizon}
+              onChange={e => setHorizon(Number(e.target.value))}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
             >
-              {error}
+              {[15, 30, 60].map(h => <option key={h} value={h}>{h} min</option>)}
+            </select>
+            <button onClick={() => fetchData(horizon, asOf)} className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Time-travel selector */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-amber-700">Time simulation:</span>
+            {TIME_PRESETS.map(p => (
               <button
-                type="button"
-                onClick={fetchData}
-                className="ml-3 underline font-semibold"
+                key={p.value}
+                onClick={() => setAsOf(p.value)}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                  asOf === p.value
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-100'
+                }`}
               >
-                Retry
+                {p.label}
               </button>
+            ))}
+          </div>
+          {basis?.as_of && (
+            <div className="mt-2 text-xs text-amber-700">
+              Showing predictions for <strong>{basis.as_of.replace('T', ' ')} IST</strong>
+              {asOf ? ' (time-travel mode)' : ' (live campus clock)'}
+              {basis.live_lots?.length > 0 && ` · live occupancy from ${basis.live_lots.length} lot(s)`}
             </div>
           )}
-          <p className="text-sm text-gray-500">Occupancy predictions with 90% conformal intervals + multi-dimensional risk scores</p>
-          <ForecastBasis basis={basis} />
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">Horizon:</label>
-          <select
-            value={horizon}
-            onChange={e => setHorizon(Number(e.target.value))}
-            className="border border-gray-300 rounded px-2 py-1 text-sm"
-          >
-            {[15, 30, 60].map(h => <option key={h} value={h}>{h} min</option>)}
-          </select>
-          <button onClick={fetchData} className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-            Refresh
-          </button>
-        </div>
+
+        {error && (
+          <div role="alert" className="p-3 rounded border border-red-200 bg-red-50 text-red-700 text-sm">
+            {error}
+            <button type="button" onClick={() => fetchData(horizon, asOf)} className="ml-3 underline font-semibold">Retry</button>
+          </div>
+        )}
+
+        <ForecastBasis basis={basis} />
       </div>
 
       {/* Prediction Bar Chart */}
