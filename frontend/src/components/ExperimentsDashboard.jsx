@@ -150,13 +150,20 @@ useEffect(() => {
             Compare available scenarios across the supported strategies.
           </p>
         </div>
-        <button
-          onClick={runExperiments}
-          disabled={loading}
-          className="px-4 py-2 bg-vitap-blue text-white rounded-md text-sm font-medium hover:bg-blue-800 disabled:opacity-50"
-        >
-          {loading ? '⏳ Running Experiments...' : '🔬 Run All Experiments'}
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={runExperiments}
+            disabled={loading}
+            className="px-4 py-2 bg-vitap-blue text-white rounded-md text-sm font-medium hover:bg-blue-800 disabled:opacity-50"
+          >
+            {loading ? '⏳ Running Experiments...' : '🔬 Run All Experiments'}
+          </button>
+          {loading && (
+            <p className="text-xs text-amber-600 font-medium">
+              ⏳ Running on free hosting — this takes 2–3 minutes, please wait…
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Progress log */}
