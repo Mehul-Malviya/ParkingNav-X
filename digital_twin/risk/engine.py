@@ -87,7 +87,7 @@ class RiskEngine:
             for lot_id in states:
                 row = self._conn.execute(
                     """SELECT occupied_spaces FROM lot_occupancy_history
-                       WHERE lot_id=? ORDER BY recorded_at DESC LIMIT 1""",
+                       WHERE lot_id=? AND campus_id='vitap' ORDER BY recorded_at DESC LIMIT 1""",
                     (lot_id,)
                 ).fetchone()
                 if row:
@@ -324,7 +324,7 @@ class RiskEngine:
 
         # Current fill (now) and forecast fill (now + horizon)
         predictions_now = self._predictor.predict_all(15)   # near-now baseline
-        predictions = self._predictor.predict_all(horizon_minutes)
+        predictions = predictions_now if horizon_minutes == 15 else self._predictor.predict_all(horizon_minutes)
 
         forecasted_lot_states = {}
         lot_metrics: Dict[str, Dict] = {}

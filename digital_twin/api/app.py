@@ -547,8 +547,8 @@ def simulate(req: SimulateRequest):
             fill_rate = round(occupied / cap, 4)
             try:
                 conn.execute(
-                    "INSERT INTO lot_occupancy_history (lot_id, occupied_spaces, fill_rate, source) "
-                    "VALUES (?, ?, ?, 'simulation')",
+                    "INSERT INTO lot_occupancy_history (campus_id, lot_id, occupied_spaces, fill_rate, source) "
+                    "VALUES ('vitap', ?, ?, ?, 'simulation')",
                     (lot_id, int(occupied), fill_rate),
                 )
             except Exception:
