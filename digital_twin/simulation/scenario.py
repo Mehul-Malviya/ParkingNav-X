@@ -31,7 +31,7 @@ class ScenarioConfig:
     use_prediction: bool = True         # Enable Member 2's occupancy forecasts
     use_optimization: bool = True       # Enable Member 3's optimizer (vs. baseline)
     use_uncertainty: bool = False       # Include uncertainty intervals in decisions
-    proactive: bool = True              # Use proactive routing (vs. reactive)
+    proactive: bool = False             # Use proactive routing (vs. reactive)
     # Warm-down: no new arrivals in the last N minutes so vehicles can exit before recording ends
     warmdown_minutes: int = 0
     # Simulation tick length in seconds (spec default 10 s). Scenario times stay in minutes; the engine
@@ -76,7 +76,7 @@ class ScenarioLoader:
             use_prediction=raw.get("use_prediction", True),
             use_optimization=raw.get("use_optimization", True),
             use_uncertainty=raw.get("use_uncertainty", False),
-            proactive=raw.get("proactive", True),
+            proactive=raw.get("proactive", False),
             warmdown_minutes=raw.get("warmdown_minutes", 0),
             time_step_sec=raw.get("time_step_sec", 10),
             gate_model=raw.get("gate_model", "tick"),
