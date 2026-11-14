@@ -154,16 +154,14 @@ useEffect(() => {
           <div className="flex gap-4 items-center flex-wrap">
             <div>
               <label className="text-xs font-medium text-gray-600 block mb-1">Scenario</label>
+              {scenarioError && (
+                <p className="text-sm text-red-600" role="alert">{scenarioError}</p>
+              )}
               <select
                 value={selectedScenario}
                 onChange={e => setSelectedScenario(e.target.value)}
                 className="border border-gray-300 rounded px-2 py-1 text-sm"
               >
-                {scenarioError && (
-                  <p className="text-sm text-red-600" role="alert">
-                    {scenarioError}
-                  </p>
-                )}
                 {scenarios
                   .filter(s => results[s])
                   .map(s => (

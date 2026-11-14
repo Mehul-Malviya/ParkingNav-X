@@ -135,11 +135,6 @@ export default function FindParkingTab({ initialDest }) {
   // Route geometry for display
   const driveCoords = option?.drive_route?.geometry?.map(p => [p.lat, p.lng]) || []
   const walkCoords = option?.walk_route?.geometry?.map(p => [p.lat, p.lng]) || []
-  const lotCoords = option ? [
-    campus?.parking_lots?.find(l => l.id === option.lot_id)?.lat,
-    campus?.parking_lots?.find(l => l.id === option.lot_id)?.lng,
-  ] : null
-
   return (
     <div className="space-y-5">
       <div>
@@ -351,7 +346,7 @@ export default function FindParkingTab({ initialDest }) {
                       <div className="font-medium text-gray-700">Drive to {option.lot_name}</div>
                       <div className="text-xs text-gray-500">
                         Enter via {campus?.gates?.find(g => g.id === result.gate_used)?.name || result.gate_used}
-                        · {option.drive_route.distance_meters}m · {option.drive_time_minutes} min
+                        · {option.drive_route?.distance_meters}m · {option.drive_time_minutes} min
                       </div>
                     </div>
                   </div>
@@ -360,7 +355,7 @@ export default function FindParkingTab({ initialDest }) {
                     <div>
                       <div className="font-medium text-gray-700">Walk to {result.destination_name}</div>
                       <div className="text-xs text-gray-500">
-                        {option.walk_route.distance_meters}m walking path · {option.walk_time_minutes} min
+                        {option.walk_route?.distance_meters}m walking path · {option.walk_time_minutes} min
                       </div>
                     </div>
                   </div>
