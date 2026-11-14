@@ -268,20 +268,63 @@ class RiskEngine:
             },
         }
 
+    def _time_to_threshold(self, current_fill: float, horizon_fill: float,
+                           horizon_minutes: int, threshold: float) -> Optional[int]:
+        """
+        Estimate minutes until `threshold` is reached given a linear fill trajectory.
+        Returns None if already past threshold or not approaching it.
+        """
+        if current_fill >= threshold:
+            return 0
+        if horizon_fill <= current_fill:
+            return None  # fill is flat or falling
+        rate = (horizon_fill - current_fill) / horizon_minutes  # fill/min
+        if rate <= 0:
+            return None
+        mins = (threshold - current_fill) / rate
+        return int(mins) if mins <= 120 else None  # only report if within 2 hours
+
     def compute_forecast(self, horizon_minutes: int = 15) -> Dict:
         """Compute forecasted risk using prediction engine."""
         if self._predictor is None:
             return self.compute_all()
 
-        # Build predicted lot states
+        # Current fill (now) and forecast fill (now + horizon)
+        predictions_now = self._predictor.predict_all(15)   # near-now baseline
         predictions = self._predictor.predict_all(horizon_minutes)
+
         forecasted_lot_states = {}
+        lot_metrics: Dict[str, Dict] = {}
         for lot_id, pred in predictions.items():
             cap = LOT_CAPACITIES.get(lot_id, 100)
+            fill_now = predictions_now[lot_id]["fill_rate"]
+            fill_future = pred["fill_rate"]
             forecasted_lot_states[lot_id] = {
                 "capacity": cap,
-                "occupied": int(pred["fill_rate"] * cap),
+                "occupied": int(fill_future * cap),
                 "status": "open",
+            }
+            # Fill velocity: % per minute (positive = filling, negative = emptying)
+            velocity = (fill_future - fill_now) / max(horizon_minutes, 1)
+            # Time to warning (70%) and alert (90%) thresholds
+            ttw = self._time_to_threshold(fill_now, fill_future, horizon_minutes, 0.70)
+            tta = self._time_to_threshold(fill_now, fill_future, horizon_minutes, 0.90)
+            # Spaces remaining
+            spaces_free = max(0, int((1.0 - fill_future) * cap))
+            # Estimated search time (seconds): grows sharply above 60% fill
+            search_sec = int(30 + 270 * max(0, fill_future - 0.3) ** 2 / 0.49)
+            lot_metrics[lot_id] = {
+                "fill_now": round(fill_now, 3),
+                "fill_forecast": round(fill_future, 3),
+                "fill_velocity_pct_per_min": round(velocity * 100, 2),
+                "trend": "rising" if velocity > 0.001 else "falling" if velocity < -0.001 else "stable",
+                "spaces_free": spaces_free,
+                "capacity": cap,
+                "pct_to_warn": round(max(0, 0.70 - fill_future) * 100, 1),
+                "pct_to_alert": round(max(0, 0.90 - fill_future) * 100, 1),
+                "time_to_warn_minutes": ttw,
+                "time_to_alert_minutes": tta,
+                "est_search_seconds": search_sec,
             }
 
         gate_states = self._get_gate_states()
@@ -297,12 +340,26 @@ class RiskEngine:
             if score >= 0.25: return "MEDIUM"
             return "LOW"
 
+        # Gate estimated wait seconds
+        gate_metrics = {}
+        for gid, s in gq_risk.items():
+            cap_vpm = GATE_CAPACITIES.get(gid, 5)
+            queue_est = int(s * GATE_QUEUE_CRITICAL)
+            wait_sec = int(queue_est / cap_vpm * 60) if cap_vpm > 0 else 0
+            gate_metrics[gid] = {
+                "score": s,
+                "severity": severity(s),
+                "est_queue_vehicles": queue_est,
+                "est_wait_seconds": wait_sec,
+            }
+
         return {
             "horizon_minutes": horizon_minutes,
             "overflow_risk": {lid: {"score": s, "severity": severity(s)} for lid, s in of_risk.items()},
-            "gate_queue_risk": {gid: {"score": s, "severity": severity(s)} for gid, s in gq_risk.items()},
+            "gate_queue_risk": gate_metrics,
             "road_congestion_risk": {rid: {"score": s, "severity": severity(s)} for rid, s in road_risk.items()},
             "search_risk": {lid: {"score": s, "severity": severity(s)} for lid, s in sr_risk.items()},
             "network_risk": {"score": net_risk, "severity": severity(net_risk)},
             "predicted_fill_rates": {lid: round(p["fill_rate"], 3) for lid, p in predictions.items()},
+            "lot_metrics": lot_metrics,
         }
