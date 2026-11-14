@@ -151,7 +151,13 @@ class ParkingNavXFullStrategy(AllocationStrategy):
 
             # ── Effective fill for proactive / reactive modes ─────────────────
             if self._proactive and self._use_prediction:
-                effective_fill = predicted_fills.get(lot_id, current_fill)
+                # Take the worse of predicted vs current fill so P is never
+                # less cautious than a reactive strategy (guards against the
+                # ML model returning uniform low predictions when lots vary).
+                effective_fill = max(
+                    predicted_fills.get(lot_id, current_fill),
+                    current_fill,
+                )
                 # Widen with upper conformal interval when uncertainty is enabled
                 if self._use_uncertainty:
                     effective_fill = max(effective_fill,
