@@ -247,7 +247,7 @@ export default function CampusMap({ onNavigateTo }) {
                 footprint get a circle at their (approximate) centre. Placeholder boxes are never drawn. */}
             {(campus?.parking_lots || []).map(lot => {
               const pred = predMap[lot.id]
-              const fill = pred ? pred.predicted_fill_rate : 0.4
+              const fill = pred ? pred.predicted_fill_rate : 0
               const shortName = lot.name.replace(' Lot', '').replace(' Parking', '')
               const label = (
                 <div className="text-xs font-semibold">
