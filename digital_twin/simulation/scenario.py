@@ -30,7 +30,7 @@ class ScenarioConfig:
     # Ablation flags (Phase 7, E6): control which components are active
     use_prediction: bool = True         # Enable Member 2's occupancy forecasts
     use_optimization: bool = True       # Enable Member 3's optimizer (vs. baseline)
-    use_uncertainty: bool = True        # Include uncertainty intervals in decisions
+    use_uncertainty: bool = False       # Include uncertainty intervals in decisions
     proactive: bool = True              # Use proactive routing (vs. reactive)
     # Warm-down: no new arrivals in the last N minutes so vehicles can exit before recording ends
     warmdown_minutes: int = 0
@@ -75,7 +75,7 @@ class ScenarioLoader:
             start_time_min=raw.get("start_time_min", 480),
             use_prediction=raw.get("use_prediction", True),
             use_optimization=raw.get("use_optimization", True),
-            use_uncertainty=raw.get("use_uncertainty", True),
+            use_uncertainty=raw.get("use_uncertainty", False),
             proactive=raw.get("proactive", True),
             warmdown_minutes=raw.get("warmdown_minutes", 0),
             time_step_sec=raw.get("time_step_sec", 10),
