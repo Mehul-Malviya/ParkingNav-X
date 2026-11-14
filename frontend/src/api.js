@@ -1,6 +1,9 @@
 import axios from 'axios'
 
-const BASE = '/api'
+// Use direct backend URL in production to avoid Netlify's 26s proxy timeout on long simulation runs
+const BASE = import.meta.env.VITE_API_BASE
+  ? `${import.meta.env.VITE_API_BASE}`
+  : '/api'
 
 // Render's free tier sleeps when idle and takes ~50s to wake; the host proxy answers 502/503/504 meanwhile.
 // Retry idempotent GETs while it wakes and tell the UI (window 'api-waking' event) so it can show a banner.
