@@ -1314,13 +1314,18 @@ def run_experiment(req: ExperimentRunRequest):
                        "error": str(e), "status": "error"}
             new_results.append(rec)
 
-    # Persist
+    # Persist — deduplicate by (scenario, strategy, seed): keep the latest run for
+    # each combination so re-running experiments always replaces stale results.
     RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
     existing = _load_results()
-    by_id = {r["run_id"]: r for r in existing}
+    # Index existing by natural key; a unique run_id never matches a new one
+    by_key = {(r["scenario"], r["strategy"], r.get("seed", 0)): r for r in existing}
     for r in new_results:
-        by_id[r["run_id"]] = r
-    RESULTS_FILE.write_text(json.dumps(list(by_id.values()), indent=2))
+        by_key[(r["scenario"], r["strategy"], r.get("seed", 0))] = r
+    RESULTS_FILE.write_text(json.dumps(list(by_key.values()), indent=2))
+    # Invalidate pre-computed summary so next /experiments/summary reflects new results
+    if SUMMARY_FILE.exists():
+        SUMMARY_FILE.unlink(missing_ok=True)
 
     ok = [r for r in new_results if r.get("status") == "ok"]
     err = [r for r in new_results if r.get("status") == "error"]

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer
 } from 'recharts'
 import { api } from '../api'
 
@@ -96,32 +96,20 @@ useEffect(() => {
     try {
       const sumRes = await api.getExperimentSummary()
       // Backend returns { "scenario|strategy": { scenario, strategy, n, metrics: { metric: {mean,std,ci95,n} } } }
-      // Transform into { strategy: { metric: {mean,std,ci95,n} } } by merging across scenarios
-      const raw = sumRes.data || {}
-      const byStrategy = {}
-      for (const entry of Object.values(raw)) {
-        const st = entry.strategy
-        if (!st) continue
-        if (!byStrategy[st]) byStrategy[st] = {}
-        for (const [metric, stats] of Object.entries(entry.metrics || {})) {
-          if (!byStrategy[st][metric] && stats) byStrategy[st][metric] = stats
-        }
-      }
-      setStatSummary(byStrategy)
+      // Keep keyed by "scenario|strategy" so each table cell gets the correct per-combination stats
+      setStatSummary(sumRes.data || {})
     } catch { /* summary is optional — table still shows mean values */ }
   } finally {
     setLoading(false)
   }
 }
 
-  // Build chart data for selected scenario
+  // Build chart data: one bar per strategy for the selected metric only
   const scenarioData = results[selectedScenario] || {}
-  const chartData = METRICS.map(m => ({
-    metric: m.label,
-    B1: scenarioData.B1?.[m.key] ?? null,
-    B2: scenarioData.B2?.[m.key] ?? null,
-    B3: scenarioData.B3?.[m.key] ?? null,
-    P: scenarioData.P?.[m.key] ?? null,
+  const activeMeta = METRICS.find(m => m.key === selectedMetric) || METRICS[0]
+  const chartData = STRATEGIES.map(s => ({
+    strategy: s,
+    value: scenarioData[s]?.[activeMeta.key] ?? null,
   }))
 
   // Summary table: all scenarios × all strategies
@@ -201,21 +189,25 @@ useEffect(() => {
 
       {hasResults && (
         <>
-          {/* Strategy Comparison Bar Chart */}
+          {/* Strategy Comparison Bar Chart — one bar per strategy for the selected metric */}
           <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            <h3 className="text-sm font-semibold text-gray-700 mb-1">
               Strategy Comparison — {selectedScenario.replace(/_/g, ' ')}
             </h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+            <p className="text-xs text-gray-400 mb-3">
+              {activeMeta.label} · {activeMeta.lower ? 'lower is better ↓' : 'higher is better ↑'}
+            </p>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="metric" tick={{ fontSize: 10 }} />
+                <XAxis dataKey="strategy" tick={{ fontSize: 13, fontWeight: 600 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Legend />
-                {STRATEGIES.map(s => (
-                  <Bar key={s} dataKey={s} fill={STRATEGY_COLORS[s]} />
-                ))}
+                <Tooltip formatter={(v) => [v?.toFixed ? v.toFixed(3) : v, activeMeta.label]} />
+                <Bar dataKey="value" name={activeMeta.label} radius={[4, 4, 0, 0]}>
+                  {chartData.map(entry => (
+                    <Cell key={entry.strategy} fill={STRATEGY_COLORS[entry.strategy]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -246,10 +238,10 @@ useEffect(() => {
                   STRATEGIES.map((s, si) => {
                     const m = stratMap[s] || {}
                     const isParkingNav = s === 'P'
-                    // statSummary shape: { [strategy]: { [metric]: { mean, std, ci95, n } } }
-                    const ss = statSummary?.[s]
+                    // statSummary shape: { "scenario|strategy": { metrics: { metric: {mean,std,ci95,n} } } }
+                    const ss = statSummary?.[`${scenario}|${s}`]
                     const fmtCI = (metric) => {
-                      const d = ss?.[metric]
+                      const d = ss?.metrics?.[metric]
                       if (!d) return '—'
                       const std = typeof d.std === 'number' ? d.std.toFixed(3) : '?'
                       // ci95 is a half-width margin: mean ± ci95
