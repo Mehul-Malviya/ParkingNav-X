@@ -63,7 +63,9 @@ export default function ForecastPanel() {
       }
 
       if (riskResult.status === 'fulfilled') {
-        setRisks(riskResult.value.data)
+        // API wraps risk data under a "risks" key
+        const d = riskResult.value.data
+        setRisks(d.risks ?? d)
       } else {
         setRisks(null)
         errors.push(
@@ -198,28 +200,39 @@ export default function ForecastPanel() {
                 {risks.network_risk && <RiskBadge {...risks.network_risk} />}
               </div>
               {risks.network_risk && (
-                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${risks.network_risk.score * 100}%`,
-                      backgroundColor: risks.network_risk.severity === 'CRITICAL' ? '#ef4444' :
-                                       risks.network_risk.severity === 'HIGH' ? '#f97316' :
-                                       risks.network_risk.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
-                    }}
-                  />
-                </div>
+                <>
+                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-1">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.max(risks.network_risk.score * 100, 2)}%`,
+                        backgroundColor: risks.network_risk.severity === 'CRITICAL' ? '#ef4444' :
+                                         risks.network_risk.severity === 'HIGH' ? '#f97316' :
+                                         risks.network_risk.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
+                      }}
+                    />
+                  </div>
+                  <div className="text-xs text-gray-400 text-right">{(risks.network_risk.score * 100).toFixed(1)}%</div>
+                </>
               )}
             </div>
 
             {/* Overflow Risk per lot */}
             <div className="p-3 border rounded-lg">
               <div className="text-sm font-semibold mb-2">Overflow Risk by Lot</div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {risks.overflow_risk && Object.entries(risks.overflow_risk).map(([lotId, r]) => (
-                  <div key={lotId} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600">{LOT_NAMES[lotId] || lotId}</span>
-                    <RiskBadge {...r} />
+                  <div key={lotId}>
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className="text-gray-600">{LOT_NAMES[lotId] || lotId}</span>
+                      <RiskBadge {...r} />
+                    </div>
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{
+                        width: `${Math.max(r.score * 100, 1)}%`,
+                        backgroundColor: r.severity === 'CRITICAL' ? '#ef4444' : r.severity === 'HIGH' ? '#f97316' : r.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
+                      }} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -228,11 +241,19 @@ export default function ForecastPanel() {
             {/* Gate Queue Risk */}
             <div className="p-3 border rounded-lg">
               <div className="text-sm font-semibold mb-2">Gate Queue Risk</div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {risks.gate_queue_risk && Object.entries(risks.gate_queue_risk).map(([gateId, r]) => (
-                  <div key={gateId} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600">{gateId.replace('vitap-gate-', '').replace('-', ' ')}</span>
-                    <RiskBadge {...r} />
+                  <div key={gateId}>
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className="text-gray-600 capitalize">{gateId.replace('vitap-gate-', '').replace(/-/g, ' ')} Gate</span>
+                      <RiskBadge {...r} />
+                    </div>
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{
+                        width: `${Math.max(r.score * 100, 1)}%`,
+                        backgroundColor: r.severity === 'CRITICAL' ? '#ef4444' : r.severity === 'HIGH' ? '#f97316' : r.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
+                      }} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -241,11 +262,19 @@ export default function ForecastPanel() {
             {/* Search Risk */}
             <div className="p-3 border rounded-lg">
               <div className="text-sm font-semibold mb-2">Search Time Risk by Lot</div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {risks.search_risk && Object.entries(risks.search_risk).map(([lotId, r]) => (
-                  <div key={lotId} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600">{LOT_NAMES[lotId] || lotId}</span>
-                    <RiskBadge {...r} />
+                  <div key={lotId}>
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className="text-gray-600">{LOT_NAMES[lotId] || lotId}</span>
+                      <RiskBadge {...r} />
+                    </div>
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{
+                        width: `${Math.max(r.score * 100, 1)}%`,
+                        backgroundColor: r.severity === 'CRITICAL' ? '#ef4444' : r.severity === 'HIGH' ? '#f97316' : r.severity === 'MEDIUM' ? '#eab308' : '#22c55e'
+                      }} />
+                    </div>
                   </div>
                 ))}
               </div>
