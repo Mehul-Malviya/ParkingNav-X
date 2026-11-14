@@ -17,6 +17,7 @@ const METRICS = [
 
 export default function ExperimentsDashboard() {
   const [results, setResults] = useState({})
+  const [statSummary, setStatSummary] = useState(null)
 const [loading, setLoading] = useState(false)
 const [scenarios, setScenarios] = useState([])
 const [selectedScenario, setSelectedScenario] = useState('')
@@ -64,6 +65,7 @@ useEffect(() => {
   setLoading(true)
   setProgress([])
   setResults({})
+  setStatSummary(null)
 
   const newResults = {}
 
@@ -91,6 +93,11 @@ useEffect(() => {
         ])
       }
     }
+    // Fetch statistical summary (std dev + 95% CI) after experiments complete
+    try {
+      const sumRes = await api.getExperimentSummary()
+      setStatSummary(sumRes.data)
+    } catch { /* summary is optional — table still shows mean values */ }
   } finally {
     setLoading(false)
   }
@@ -236,14 +243,21 @@ useEffect(() => {
 
           {/* Summary Table (all scenarios) */}
           <div className="bg-white rounded-lg shadow p-4 overflow-x-auto">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Results Summary Table</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">Results Summary Table</h3>
+              {statSummary && (
+                <span className="text-xs text-gray-400 italic">σ = std dev · CI = 95% confidence interval</span>
+              )}
+            </div>
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="border-b bg-gray-50">
                   <th className="text-left py-2 px-3 text-gray-500">Scenario</th>
                   <th className="text-left py-2 px-3 text-gray-500">Strategy</th>
                   <th className="text-right py-2 px-3 text-gray-500">Search (min)</th>
+                  {statSummary && <th className="text-right py-2 px-3 text-gray-400">σ / 95% CI</th>}
                   <th className="text-right py-2 px-3 text-gray-500">Wait (min)</th>
+                  {statSummary && <th className="text-right py-2 px-3 text-gray-400">σ / 95% CI</th>}
                   <th className="text-right py-2 px-3 text-gray-500">Avg Queue</th>
                   <th className="text-right py-2 px-3 text-gray-500">Overflow</th>
                 </tr>
@@ -253,6 +267,15 @@ useEffect(() => {
                   STRATEGIES.map((s, si) => {
                     const m = stratMap[s] || {}
                     const isParkingNav = s === 'P'
+                    // statSummary shape: { [strategy]: { [metric]: { mean, std, ci95, n } } }
+                    const ss = statSummary?.[s]
+                    const fmtCI = (metric) => {
+                      const d = ss?.[metric]
+                      if (!d) return '—'
+                      const std = typeof d.std === 'number' ? d.std.toFixed(2) : '?'
+                      const ci = Array.isArray(d.ci95) ? `[${d.ci95[0].toFixed(2)}, ${d.ci95[1].toFixed(2)}]` : '?'
+                      return <span className="text-gray-400">σ={std}<br/>{ci}</span>
+                    }
                     return (
                       <tr key={`${scenario}-${s}`} className={`border-b ${isParkingNav ? 'bg-green-50 font-semibold' : ''} ${si === 0 ? 'border-t-2 border-gray-300' : ''}`}>
                         <td className="py-1.5 px-3 text-gray-600">{si === 0 ? scenario.replace(/_/g, ' ') : ''}</td>
@@ -260,7 +283,9 @@ useEffect(() => {
                           <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${isParkingNav ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{s}</span>
                         </td>
                         <td className="text-right py-1.5 px-3">{m.avg_search_time_min ?? '—'}</td>
+                        {statSummary && <td className="text-right py-1.5 px-3 leading-tight">{fmtCI('avg_search_time_min')}</td>}
                         <td className="text-right py-1.5 px-3">{m.avg_wait_time_min ?? '—'}</td>
+                        {statSummary && <td className="text-right py-1.5 px-3 leading-tight">{fmtCI('avg_wait_time_min')}</td>}
                         <td className="text-right py-1.5 px-3">{m.avg_gate_queue ?? '—'}</td>
                         <td className="text-right py-1.5 px-3">{m.overflow_events ?? '—'}</td>
                       </tr>

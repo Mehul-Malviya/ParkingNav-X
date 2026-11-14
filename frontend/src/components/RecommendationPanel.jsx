@@ -42,17 +42,19 @@ export default function RecommendationPanel() {
   const [recs, setRecs] = useState([])
   const [profile, setProfile] = useState('P1')
   const [profiles, setProfiles] = useState(FALLBACK_PROFILES)
+  const [scenarios, setScenarios] = useState([])
+  const [scenario, setScenario] = useState('E1_normal_day')
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [error, setError] = useState('')
 
-  const fetchRecs = async (wp = profile) => {
+  const fetchRecs = async (wp = profile, sc = scenario) => {
     setLoading(true)
     setError('')
     setRecs([])
 
     try {
-      const res = await api.optimize('E1_normal_day', wp)
+      const res = await api.optimize(sc, wp)
 
       if (res.data?.error) {
         throw new Error(res.data.error)
@@ -81,7 +83,10 @@ export default function RecommendationPanel() {
   useEffect(() => {
     api.getOptimizeProfiles()
       .then(res => { if (res.data?.profiles?.length) setProfiles(res.data.profiles) })
-      .catch(() => {})  // keep the fallback labels; recommendations still load
+      .catch(() => {})
+    api.getScenarios()
+      .then(res => { if (res.data?.scenarios?.length) setScenarios(res.data.scenarios) })
+      .catch(() => {})
     fetchRecs()
   }, [])
 
@@ -94,6 +99,22 @@ export default function RecommendationPanel() {
         </div>
         {lastUpdated && <span className="text-xs text-gray-400">Updated: {lastUpdated}</span>}
       </div>
+
+      {/* Scenario Selector */}
+      {scenarios.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Scenario</label>
+          <select
+            value={scenario}
+            onChange={e => { setScenario(e.target.value); fetchRecs(profile, e.target.value) }}
+            className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full md:w-64"
+          >
+            {scenarios.map(s => (
+              <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Weight Profile Selector */}
       <div className="bg-white rounded-lg shadow p-4">
@@ -115,7 +136,7 @@ export default function RecommendationPanel() {
                 checked={profile === wp.id}
                 onChange={e => {
                   setProfile(e.target.value)
-                  fetchRecs(e.target.value)
+                  fetchRecs(e.target.value, scenario)
                 }}
                 className="mt-0.5"
               />
