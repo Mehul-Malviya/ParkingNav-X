@@ -1,0 +1,250 @@
+{
+  "HC1_high_congestion_85|B1": {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B1",
+    "n_runs": 5,
+    "metrics": {
+      "avg_search_time_min": {
+        "mean": 3.932,
+        "std": 0.088,
+        "ci_95": 0.1094,
+        "n": 5
+      },
+      "avg_wait_time_min": {
+        "mean": 0.0181,
+        "std": 0.0039,
+        "ci_95": 0.0049,
+        "n": 5
+      },
+      "successful_park_rate": {
+        "mean": 0.9976,
+        "std": 0.0018,
+        "ci_95": 0.0022,
+        "n": 5
+      },
+      "avg_utilization_pct": {
+        "mean": 39.938,
+        "std": 0.6978,
+        "ci_95": 0.8675,
+        "n": 5
+      }
+    }
+  },
+  "HC1_high_congestion_85|B2": {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B2",
+    "n_runs": 5,
+    "metrics": {
+      "avg_search_time_min": {
+        "mean": 4.1167,
+        "std": 0.0898,
+        "ci_95": 0.1117,
+        "n": 5
+      },
+      "avg_wait_time_min": {
+        "mean": 0.0181,
+        "std": 0.0039,
+        "ci_95": 0.0049,
+        "n": 5
+      },
+      "successful_park_rate": {
+        "mean": 0.9982,
+        "std": 0.0013,
+        "ci_95": 0.0016,
+        "n": 5
+      },
+      "avg_utilization_pct": {
+        "mean": 51.994,
+        "std": 0.6753,
+        "ci_95": 0.8395,
+        "n": 5
+      }
+    }
+  },
+  "HC1_high_congestion_85|B3": {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B3",
+    "n_runs": 5,
+    "metrics": {
+      "avg_search_time_min": {
+        "mean": 2.6606,
+        "std": 0.0256,
+        "ci_95": 0.0318,
+        "n": 5
+      },
+      "avg_wait_time_min": {
+        "mean": 0.0181,
+        "std": 0.0039,
+        "ci_95": 0.0049,
+        "n": 5
+      },
+      "successful_park_rate": {
+        "mean": 0.9989,
+        "std": 0.0011,
+        "ci_95": 0.0014,
+        "n": 5
+      },
+      "avg_utilization_pct": {
+        "mean": 48.172,
+        "std": 0.9531,
+        "ci_95": 1.1849,
+        "n": 5
+      }
+    }
+  },
+  "HC1_high_congestion_85|P": {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "P",
+    "n_runs": 5,
+    "metrics": {
+      "avg_search_time_min": {
+        "mean": 2.5901,
+        "std": 0.011,
+        "ci_95": 0.0137,
+        "n": 5
+      },
+      "avg_wait_time_min": {
+        "mean": 0.0181,
+        "std": 0.0039,
+        "ci_95": 0.0049,
+        "n": 5
+      },
+      "successful_park_rate": {
+        "mean": 0.9989,
+        "std": 0.0016,
+        "ci_95": 0.0019,
+        "n": 5
+      },
+      "avg_utilization_pct": {
+        "mean": 48.336,
+        "std": 0.995,
+        "ci_95": 1.237,
+        "n": 5
+      }
+    }
+  },
+  "HC3_high_congestion_95|B1": {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B1",
+    "n_runs": 5,
+    "metrics": {
+      "avg_search_time_min": {
+        "mean": 4.5595,
+        "std": 0.0399,
+        "ci_95": 0.0496,
+        "n": 5
+      },
+      "avg_wait_time_min": {
+        "mean": 0.0418,
+        "std": 0.0053,
+        "ci_95": 0.0066,
+        "n": 5
+      },
+      "successful_park_rate": {
+        "mean": 0.9982,
+        "std": 0.0009,
+        "ci_95": 0.0011,
+        "n": 5
+      },
+      "avg_utilization_pct": {
+        "mean": 58.714,
+        "std": 0.9696,
+        "ci_95": 1.2055,
+        "n": 5
+      }
+    }
+  },
+  "HC3_high_congestion_95|B2": {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B2",
+    "n_runs": 5,
+    "metrics": {
+      "avg_search_time_min": {
+        "mean": 4.4218,
+        "std": 0.0619,
+        "ci_95": 0.077,
+        "n": 5
+      },
+      "avg_wait_time_min": {
+        "mean": 0.0418,
+        "std": 0.0053,
+        "ci_95": 0.0066,
+        "n": 5
+      },
+      "successful_park_rate": {
+        "mean": 0.998,
+        "std": 0.0017,
+        "ci_95": 0.0021,
+        "n": 5
+      },
+      "avg_utilization_pct": {
+        "mean": 65.554,
+        "std": 0.4359,
+        "ci_95": 0.542,
+        "n": 5
+      }
+    }
+  },
+  "HC3_high_congestion_95|B3": {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B3",
+    "n_runs": 5,
+    "metrics": {
+      "avg_search_time_min": {
+        "mean": 3.1953,
+        "std": 0.0352,
+        "ci_95": 0.0438,
+        "n": 5
+      },
+      "avg_wait_time_min": {
+        "mean": 0.0418,
+        "std": 0.0053,
+        "ci_95": 0.0066,
+        "n": 5
+      },
+      "successful_park_rate": {
+        "mean": 0.9988,
+        "std": 0.0004,
+        "ci_95": 0.0005,
+        "n": 5
+      },
+      "avg_utilization_pct": {
+        "mean": 64.748,
+        "std": 0.364,
+        "ci_95": 0.4525,
+        "n": 5
+      }
+    }
+  },
+  "HC3_high_congestion_95|P": {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "P",
+    "n_runs": 5,
+    "metrics": {
+      "avg_search_time_min": {
+        "mean": 3.1411,
+        "std": 0.0469,
+        "ci_95": 0.0583,
+        "n": 5
+      },
+      "avg_wait_time_min": {
+        "mean": 0.0418,
+        "std": 0.0053,
+        "ci_95": 0.0066,
+        "n": 5
+      },
+      "successful_park_rate": {
+        "mean": 0.9989,
+        "std": 0.0004,
+        "ci_95": 0.0005,
+        "n": 5
+      },
+      "avg_utilization_pct": {
+        "mean": 64.84,
+        "std": 0.4769,
+        "ci_95": 0.5929,
+        "n": 5
+      }
+    }
+  }
+}

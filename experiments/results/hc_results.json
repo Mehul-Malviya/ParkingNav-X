@@ -1,0 +1,762 @@
+[
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B1",
+    "seed": 0,
+    "run_id": "vitap-hc1-85pct-6ea850ce",
+    "metrics": {
+      "avg_search_time_min": 3.9493388078650966,
+      "avg_wait_time_min": 0.016851851851851837,
+      "overflow_events_count": 0,
+      "successful_park_rate": 1.0,
+      "avg_gate_queue": 0.016666666666666666,
+      "total_travel_distance_m": 761280.0,
+      "total_reassignments": 214
+    },
+    "secondary": {
+      "avg_utilization_pct": 40.22,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B1",
+    "seed": 1,
+    "run_id": "vitap-hc1-85pct-b3e07f46",
+    "metrics": {
+      "avg_search_time_min": 3.941334085357099,
+      "avg_wait_time_min": 0.012777777777777773,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9967,
+      "avg_gate_queue": 0.011666666666666667,
+      "total_travel_distance_m": 776350.0,
+      "total_reassignments": 256
+    },
+    "secondary": {
+      "avg_utilization_pct": 40.95,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B1",
+    "seed": 2,
+    "run_id": "vitap-hc1-85pct-e2a2129c",
+    "metrics": {
+      "avg_search_time_min": 4.060134540011289,
+      "avg_wait_time_min": 0.016851851851851844,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9989,
+      "avg_gate_queue": 0.018333333333333333,
+      "total_travel_distance_m": 765490.0,
+      "total_reassignments": 222
+    },
+    "secondary": {
+      "avg_utilization_pct": 39.08,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B1",
+    "seed": 3,
+    "run_id": "vitap-hc1-85pct-b7508caa",
+    "metrics": {
+      "avg_search_time_min": 3.8213648318028377,
+      "avg_wait_time_min": 0.022037037037037042,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9967,
+      "avg_gate_queue": 0.02,
+      "total_travel_distance_m": 745990.0,
+      "total_reassignments": 214
+    },
+    "secondary": {
+      "avg_utilization_pct": 39.64,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B1",
+    "seed": 4,
+    "run_id": "vitap-hc1-85pct-8975b5c8",
+    "metrics": {
+      "avg_search_time_min": 3.8880745056542203,
+      "avg_wait_time_min": 0.021851851851851845,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9956,
+      "avg_gate_queue": 0.021666666666666667,
+      "total_travel_distance_m": 752480.0,
+      "total_reassignments": 202
+    },
+    "secondary": {
+      "avg_utilization_pct": 39.8,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B2",
+    "seed": 1,
+    "run_id": "vitap-hc1-85pct-11f4477a",
+    "metrics": {
+      "avg_search_time_min": 4.001919078042917,
+      "avg_wait_time_min": 0.012777777777777773,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9978,
+      "avg_gate_queue": 0.011666666666666667,
+      "total_travel_distance_m": 563550.0,
+      "total_reassignments": 161
+    },
+    "secondary": {
+      "avg_utilization_pct": 52.86,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B2",
+    "seed": 2,
+    "run_id": "vitap-hc1-85pct-00648c90",
+    "metrics": {
+      "avg_search_time_min": 4.230582775737982,
+      "avg_wait_time_min": 0.016851851851851844,
+      "overflow_events_count": 0,
+      "successful_park_rate": 1.0,
+      "avg_gate_queue": 0.018333333333333333,
+      "total_travel_distance_m": 549490.0,
+      "total_reassignments": 156
+    },
+    "secondary": {
+      "avg_utilization_pct": 51.12,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B2",
+    "seed": 0,
+    "run_id": "vitap-hc1-85pct-c54728a1",
+    "metrics": {
+      "avg_search_time_min": 4.180622175505388,
+      "avg_wait_time_min": 0.016851851851851837,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9989,
+      "avg_gate_queue": 0.016666666666666666,
+      "total_travel_distance_m": 538600.0,
+      "total_reassignments": 127
+    },
+    "secondary": {
+      "avg_utilization_pct": 52.45,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B2",
+    "seed": 3,
+    "run_id": "vitap-hc1-85pct-39437b6a",
+    "metrics": {
+      "avg_search_time_min": 4.080729483324218,
+      "avg_wait_time_min": 0.022037037037037042,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9967,
+      "avg_gate_queue": 0.02,
+      "total_travel_distance_m": 519460.0,
+      "total_reassignments": 115
+    },
+    "secondary": {
+      "avg_utilization_pct": 51.74,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B2",
+    "seed": 4,
+    "run_id": "vitap-hc1-85pct-827f46b0",
+    "metrics": {
+      "avg_search_time_min": 4.089484230623599,
+      "avg_wait_time_min": 0.021851851851851845,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9978,
+      "avg_gate_queue": 0.021666666666666667,
+      "total_travel_distance_m": 511670.0,
+      "total_reassignments": 114
+    },
+    "secondary": {
+      "avg_utilization_pct": 51.8,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B3",
+    "seed": 1,
+    "run_id": "vitap-hc1-85pct-51a9a288",
+    "metrics": {
+      "avg_search_time_min": 2.647588547874764,
+      "avg_wait_time_min": 0.012777777777777773,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9978,
+      "avg_gate_queue": 0.011666666666666667,
+      "total_travel_distance_m": 542830.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 49.55,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B3",
+    "seed": 0,
+    "run_id": "vitap-hc1-85pct-b6d1fe7f",
+    "metrics": {
+      "avg_search_time_min": 2.6615526116451234,
+      "avg_wait_time_min": 0.016851851851851837,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9989,
+      "avg_gate_queue": 0.016666666666666666,
+      "total_travel_distance_m": 545210.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 48.61,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B3",
+    "seed": 2,
+    "run_id": "vitap-hc1-85pct-bec6d81e",
+    "metrics": {
+      "avg_search_time_min": 2.704214730013291,
+      "avg_wait_time_min": 0.016851851851851844,
+      "overflow_events_count": 0,
+      "successful_park_rate": 1.0,
+      "avg_gate_queue": 0.018333333333333333,
+      "total_travel_distance_m": 532420.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 47.03,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B3",
+    "seed": 4,
+    "run_id": "vitap-hc1-85pct-cbe59475",
+    "metrics": {
+      "avg_search_time_min": 2.6402693899776577,
+      "avg_wait_time_min": 0.021851851851851845,
+      "overflow_events_count": 0,
+      "successful_park_rate": 1.0,
+      "avg_gate_queue": 0.021666666666666667,
+      "total_travel_distance_m": 530180.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 47.91,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "B3",
+    "seed": 3,
+    "run_id": "vitap-hc1-85pct-369a4b6f",
+    "metrics": {
+      "avg_search_time_min": 2.6491270115699512,
+      "avg_wait_time_min": 0.022037037037037042,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9978,
+      "avg_gate_queue": 0.02,
+      "total_travel_distance_m": 514220.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 47.76,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "P",
+    "seed": 0,
+    "run_id": "vitap-hc1-85pct-273ed70e",
+    "metrics": {
+      "avg_search_time_min": 2.6007956631191327,
+      "avg_wait_time_min": 0.016851851851851837,
+      "overflow_events_count": 0,
+      "successful_park_rate": 1.0,
+      "avg_gate_queue": 0.016666666666666666,
+      "total_travel_distance_m": 556780.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 48.79,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "P",
+    "seed": 1,
+    "run_id": "vitap-hc1-85pct-dc66eeb6",
+    "metrics": {
+      "avg_search_time_min": 2.5719860254955926,
+      "avg_wait_time_min": 0.012777777777777773,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9967,
+      "avg_gate_queue": 0.011666666666666667,
+      "total_travel_distance_m": 562430.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 49.68,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "P",
+    "seed": 2,
+    "run_id": "vitap-hc1-85pct-836264ca",
+    "metrics": {
+      "avg_search_time_min": 2.59669936422529,
+      "avg_wait_time_min": 0.016851851851851844,
+      "overflow_events_count": 0,
+      "successful_park_rate": 1.0,
+      "avg_gate_queue": 0.018333333333333333,
+      "total_travel_distance_m": 547930.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 46.99,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "P",
+    "seed": 3,
+    "run_id": "vitap-hc1-85pct-2d7e4eb6",
+    "metrics": {
+      "avg_search_time_min": 2.589732658726825,
+      "avg_wait_time_min": 0.022037037037037042,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9978,
+      "avg_gate_queue": 0.02,
+      "total_travel_distance_m": 533310.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 47.98,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC1_high_congestion_85",
+    "strategy": "P",
+    "seed": 4,
+    "run_id": "vitap-hc1-85pct-50c1a65b",
+    "metrics": {
+      "avg_search_time_min": 2.591219633121576,
+      "avg_wait_time_min": 0.021851851851851845,
+      "overflow_events_count": 0,
+      "successful_park_rate": 1.0,
+      "avg_gate_queue": 0.021666666666666667,
+      "total_travel_distance_m": 537690.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 48.24,
+      "total_vehicles": 900
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B1",
+    "seed": 0,
+    "run_id": "vitap-hc3-95pct-900dbd83",
+    "metrics": {
+      "avg_search_time_min": 4.524726429712765,
+      "avg_wait_time_min": 0.0429487179487179,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9992,
+      "avg_gate_queue": 0.06666666666666667,
+      "total_travel_distance_m": 1331940.0,
+      "total_reassignments": 667
+    },
+    "secondary": {
+      "avg_utilization_pct": 57.53,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B1",
+    "seed": 1,
+    "run_id": "vitap-hc3-95pct-d0d06cb9",
+    "metrics": {
+      "avg_search_time_min": 4.5549530968996015,
+      "avg_wait_time_min": 0.04141025641025635,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9977,
+      "avg_gate_queue": 0.075,
+      "total_travel_distance_m": 1371750.0,
+      "total_reassignments": 725
+    },
+    "secondary": {
+      "avg_utilization_pct": 58.08,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B1",
+    "seed": 2,
+    "run_id": "vitap-hc3-95pct-7a1d6fb8",
+    "metrics": {
+      "avg_search_time_min": 4.5321821780223654,
+      "avg_wait_time_min": 0.05012820512820513,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9985,
+      "avg_gate_queue": 0.09833333333333333,
+      "total_travel_distance_m": 1376330.0,
+      "total_reassignments": 679
+    },
+    "secondary": {
+      "avg_utilization_pct": 58.58,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B1",
+    "seed": 3,
+    "run_id": "vitap-hc3-95pct-dbb46572",
+    "metrics": {
+      "avg_search_time_min": 4.625852440478262,
+      "avg_wait_time_min": 0.03756410256410256,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9985,
+      "avg_gate_queue": 0.06666666666666667,
+      "total_travel_distance_m": 1409440.0,
+      "total_reassignments": 814
+    },
+    "secondary": {
+      "avg_utilization_pct": 59.56,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B1",
+    "seed": 4,
+    "run_id": "vitap-hc3-95pct-bd6e1740",
+    "metrics": {
+      "avg_search_time_min": 4.559665544333191,
+      "avg_wait_time_min": 0.03705128205128202,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9969,
+      "avg_gate_queue": 0.058333333333333334,
+      "total_travel_distance_m": 1392390.0,
+      "total_reassignments": 792
+    },
+    "secondary": {
+      "avg_utilization_pct": 59.82,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B2",
+    "seed": 0,
+    "run_id": "vitap-hc3-95pct-e783bd6c",
+    "metrics": {
+      "avg_search_time_min": 4.423251336404779,
+      "avg_wait_time_min": 0.0429487179487179,
+      "overflow_events_count": 0,
+      "successful_park_rate": 1.0,
+      "avg_gate_queue": 0.06666666666666667,
+      "total_travel_distance_m": 1156890.0,
+      "total_reassignments": 599
+    },
+    "secondary": {
+      "avg_utilization_pct": 65.3,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B2",
+    "seed": 1,
+    "run_id": "vitap-hc3-95pct-71f4dc70",
+    "metrics": {
+      "avg_search_time_min": 4.402894309130835,
+      "avg_wait_time_min": 0.04141025641025635,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9977,
+      "avg_gate_queue": 0.075,
+      "total_travel_distance_m": 1123830.0,
+      "total_reassignments": 544
+    },
+    "secondary": {
+      "avg_utilization_pct": 65.18,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B2",
+    "seed": 2,
+    "run_id": "vitap-hc3-95pct-b6054226",
+    "metrics": {
+      "avg_search_time_min": 4.361397716140891,
+      "avg_wait_time_min": 0.05012820512820513,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9985,
+      "avg_gate_queue": 0.09833333333333333,
+      "total_travel_distance_m": 1139140.0,
+      "total_reassignments": 527
+    },
+    "secondary": {
+      "avg_utilization_pct": 66.21,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B2",
+    "seed": 3,
+    "run_id": "vitap-hc3-95pct-fffea781",
+    "metrics": {
+      "avg_search_time_min": 4.525198952817643,
+      "avg_wait_time_min": 0.03756410256410256,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9985,
+      "avg_gate_queue": 0.06666666666666667,
+      "total_travel_distance_m": 1121290.0,
+      "total_reassignments": 548
+    },
+    "secondary": {
+      "avg_utilization_pct": 65.29,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B2",
+    "seed": 4,
+    "run_id": "vitap-hc3-95pct-0097d92f",
+    "metrics": {
+      "avg_search_time_min": 4.396301290854297,
+      "avg_wait_time_min": 0.03705128205128202,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9954,
+      "avg_gate_queue": 0.058333333333333334,
+      "total_travel_distance_m": 1077000.0,
+      "total_reassignments": 453
+    },
+    "secondary": {
+      "avg_utilization_pct": 65.79,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B3",
+    "seed": 0,
+    "run_id": "vitap-hc3-95pct-ef9395a2",
+    "metrics": {
+      "avg_search_time_min": 3.1404601487648725,
+      "avg_wait_time_min": 0.0429487179487179,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9985,
+      "avg_gate_queue": 0.06666666666666667,
+      "total_travel_distance_m": 1017320.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 64.23,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B3",
+    "seed": 1,
+    "run_id": "vitap-hc3-95pct-36f212ff",
+    "metrics": {
+      "avg_search_time_min": 3.2071419928532054,
+      "avg_wait_time_min": 0.04141025641025635,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9992,
+      "avg_gate_queue": 0.075,
+      "total_travel_distance_m": 1022530.0,
+      "total_reassignments": 1
+    },
+    "secondary": {
+      "avg_utilization_pct": 64.58,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B3",
+    "seed": 2,
+    "run_id": "vitap-hc3-95pct-5216874b",
+    "metrics": {
+      "avg_search_time_min": 3.230010504362669,
+      "avg_wait_time_min": 0.05012820512820513,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9992,
+      "avg_gate_queue": 0.09833333333333333,
+      "total_travel_distance_m": 1065220.0,
+      "total_reassignments": 4
+    },
+    "secondary": {
+      "avg_utilization_pct": 65.14,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B3",
+    "seed": 3,
+    "run_id": "vitap-hc3-95pct-5d799386",
+    "metrics": {
+      "avg_search_time_min": 3.2163782954580076,
+      "avg_wait_time_min": 0.03756410256410256,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9985,
+      "avg_gate_queue": 0.06666666666666667,
+      "total_travel_distance_m": 1067280.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 64.76,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "B3",
+    "seed": 4,
+    "run_id": "vitap-hc3-95pct-d756c9f8",
+    "metrics": {
+      "avg_search_time_min": 3.182287867189674,
+      "avg_wait_time_min": 0.03705128205128202,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9985,
+      "avg_gate_queue": 0.058333333333333334,
+      "total_travel_distance_m": 1054440.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 65.03,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "P",
+    "seed": 0,
+    "run_id": "vitap-hc3-95pct-8368c4ed",
+    "metrics": {
+      "avg_search_time_min": 3.081954995352459,
+      "avg_wait_time_min": 0.0429487179487179,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9985,
+      "avg_gate_queue": 0.06666666666666667,
+      "total_travel_distance_m": 1007350.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 64.2,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "P",
+    "seed": 1,
+    "run_id": "vitap-hc3-95pct-0ebd2886",
+    "metrics": {
+      "avg_search_time_min": 3.137405897535481,
+      "avg_wait_time_min": 0.04141025641025635,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9992,
+      "avg_gate_queue": 0.075,
+      "total_travel_distance_m": 999550.0,
+      "total_reassignments": 2
+    },
+    "secondary": {
+      "avg_utilization_pct": 64.62,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "P",
+    "seed": 2,
+    "run_id": "vitap-hc3-95pct-767e02ff",
+    "metrics": {
+      "avg_search_time_min": 3.194804543690062,
+      "avg_wait_time_min": 0.05012820512820513,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9992,
+      "avg_gate_queue": 0.09833333333333333,
+      "total_travel_distance_m": 1031040.0,
+      "total_reassignments": 6
+    },
+    "secondary": {
+      "avg_utilization_pct": 65.39,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "P",
+    "seed": 3,
+    "run_id": "vitap-hc3-95pct-9532a407",
+    "metrics": {
+      "avg_search_time_min": 3.1800104542775878,
+      "avg_wait_time_min": 0.03756410256410256,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9992,
+      "avg_gate_queue": 0.06666666666666667,
+      "total_travel_distance_m": 1071990.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 64.77,
+      "total_vehicles": 1300
+    }
+  },
+  {
+    "scenario": "HC3_high_congestion_95",
+    "strategy": "P",
+    "seed": 4,
+    "run_id": "vitap-hc3-95pct-a56be13b",
+    "metrics": {
+      "avg_search_time_min": 3.1113598061211425,
+      "avg_wait_time_min": 0.03705128205128202,
+      "overflow_events_count": 0,
+      "successful_park_rate": 0.9985,
+      "avg_gate_queue": 0.058333333333333334,
+      "total_travel_distance_m": 1029330.0,
+      "total_reassignments": 0
+    },
+    "secondary": {
+      "avg_utilization_pct": 65.22,
+      "total_vehicles": 1300
+    }
+  }
+]
